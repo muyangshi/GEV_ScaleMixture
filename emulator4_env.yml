@@ -1,0 +1,30 @@
+name: emulator4
+channels:
+  - conda-forge
+dependencies:
+  - matplotlib=3.5.2
+  - r-httpgd
+  - scikit-learn=1.1.1
+  - numpy=1.22.4
+  - cython
+  - r-hetgp
+  - r-essentials
+  - pytest
+  - r-plot3d
+  - python=3.8
+  - r-reticulate
+  - r-languageserver
+  - scipy
+  - r-base
+  - pandas
+  - r-mgcv
+  - ipympl
+  - r-beepr
+  - rpy2
+  - r-scam
+  - r-dicekriging
+  - mpmath
+  - mpi4py
+  - cxx-compiler
+  - boost
+  - gsl
