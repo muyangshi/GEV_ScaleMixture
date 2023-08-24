@@ -9,6 +9,7 @@ from ns_cov import *
 import scipy
 from scipy.stats import uniform
 from mpi4py import MPI
+import time
 
 # Sites Parameters
 np.random.seed(2345)
@@ -197,7 +198,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 random_generator = np.random.RandomState()
-n_iters = 3000
+n_iters = 10000
 
 mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.08467852e-03],
                     [-3.53233442e-05,  1.60576481e-03,  9.46786420e-04,-8.60876113e-05],
@@ -207,6 +208,11 @@ mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.0846
 mvn_cov_3x3 = 2*np.array([[ 1.60576481e-03,  9.46786420e-04, -8.60876113e-05],
                         [ 9.46786420e-04,  4.25227059e-03,  3.39474201e-03],
                         [-8.60876113e-05,  3.39474201e-03,  3.92065445e-03]])
+
+if rank == 0:
+    start_time = time.time()
+else:
+    start_time = None
 
 ########## Storage Place ##################################################
 
@@ -289,8 +295,88 @@ Shape_matrix_current = GEV_knots_current[2,0] * np.full(shape = (num_sites,N), f
 
 for iter in range(1, n_iters):
     if rank == 0:
+        if iter == 1:
+            print(iter)
         if iter % 25 == 0:
             print(iter)
+        if iter % 1000 == 0 or iter == n_iters-1:
+            # Save data every 1000 iterations
+            end_time = time.time()
+            print('elapsed: ', round(end_time - start_time, 1), ' seconds')
+            np.save('R_trace_log', R_trace_log)
+            np.save('phi_knots_trace', phi_knots_trace)
+            np.save('range_knots_trace', range_knots_trace)
+            np.save('GEV_knots_trace', GEV_knots_trace)
+
+            # Print traceplot every 1000 iterations
+            xs = np.arange(iter)
+            xs_thin = xs[0::10]
+            xs_thin2 = np.arange(len(xs_thin))
+            R_trace_log_thin = R_trace_log[0:iter:10,:]
+            phi_knots_trace_thin = phi_knots_trace[0:iter:10,:]
+            range_knots_trace_thin = range_knots_trace[0:iter:10,:]
+            GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
+
+            # ---- phi ----
+            plt.subplots()
+            plt.plot(xs_thin2, phi_knots_trace_thin)
+            plt.title('traceplot for phi')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('phi')
+            plt.savefig('phi.pdf')
+
+            # ---- R_t ----
+            plt.subplots()
+            plt.plot(xs_thin2, R_trace_log_thin[:,0])
+            plt.plot(xs_thin2, R_trace_log_thin[:,1])
+            plt.plot(xs_thin2, R_trace_log_thin[:,2])
+            plt.plot(xs_thin2, R_trace_log_thin[:,3])
+            plt.plot(xs_thin2, R_trace_log_thin[:,4])
+            plt.title('traceplot for some R_t')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('R_ts')
+            plt.savefig('R_t.pdf')
+
+            # ---- range ----
+            plt.subplots()
+            plt.plot(xs_thin2, range_knots_trace_thin)
+            plt.title('traceplot for range')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('range')
+            plt.savefig('range.pdf')
+
+            # ---- GEV ----
+            ## location mu
+            plt.subplots()
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,0]) # location
+            plt.title('traceplot for location')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('mu')
+            plt.savefig('mu.pdf')
+            ## scale tau
+            plt.subplots()
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,1]) # scale
+            plt.title('traceplot for scale')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('tau')
+            plt.savefig('tau.pdf')
+            ## shape ksi
+            plt.subplots()
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,2]) # shape
+            plt.title('traceplot for shape')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('ksi')
+            plt.savefig('ksi.pdf')
+            ## together
+            plt.subplots()
+            plt.plot(xs_thin2, phi_knots_trace_thin, label='phi')
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,0], label='mu') # location
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,1], label='tau') # scale
+            plt.plot(xs_thin2, GEV_knots_trace_thin[:,2], label='ksi') # shape
+            plt.title('traceplot for phi and GEV')
+            plt.legend()
+            plt.savefig('phi_GEV.pdf')
+
 
 #### ----- Update Rt ----- Parallelized Across N time
 
@@ -625,8 +711,9 @@ for iter in range(1, n_iters):
 
 # End of MCMC
 if rank == 0:
-    # print('R_trace_log')
-    # print(R_trace_log)
+    end_time = time.time()
+    print('total time: ', round(end_time - start_time, 1), ' seconds')
+    print('true R: ', R)
     np.save('R_trace_log', R_trace_log)
     np.save('phi_knots_trace', phi_knots_trace)
     np.save('range_knots_trace', range_knots_trace)
@@ -634,7 +721,6 @@ if rank == 0:
 
 # %%
 # Plotting
-
 phi_knots_trace = np.load('phi_knots_trace.npy')
 R_trace_log = np.load('R_trace_log.npy')
 range_knots_trace = np.load('range_knots_trace.npy')
