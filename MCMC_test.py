@@ -299,7 +299,7 @@ for iter in range(1, n_iters):
             print(iter)
         if iter % 25 == 0:
             print(iter)
-        if iter % 1000 == 0:
+        if iter % 1000 == 0 or iter == n_iters-1:
             # Save data every 1000 iterations
             end_time = time.time()
             print('elapsed: ', round(end_time - start_time, 1), ' seconds')
@@ -343,7 +343,6 @@ for iter in range(1, n_iters):
             plt.title('traceplot for range')
             plt.xlabel('iter thinned by 10')
             plt.ylabel('range')
-            plt.savefig('range.pdf')
             plt.savefig('range.pdf')
 
             # ---- GEV ----
@@ -719,3 +718,33 @@ if rank == 0:
     np.save('phi_knots_trace', phi_knots_trace)
     np.save('range_knots_trace', range_knots_trace)
     np.save('GEV_knots_trace', GEV_knots_trace)
+
+# %%
+# Plotting
+phi_knots_trace = np.load('phi_knots_trace.npy')
+R_trace_log = np.load('R_trace_log.npy')
+range_knots_trace = np.load('range_knots_trace.npy')
+GEV_knots_trace = np.load('GEV_knots_trace.npy')
+xs = np.arange(3000)
+# %%
+plt.plot(xs, phi_knots_trace)
+# %%
+plt.plot(xs, R_trace_log[:,0])
+plt.plot(xs, R_trace_log[:,1])
+plt.plot(xs, R_trace_log[:,2])
+plt.plot(xs, R_trace_log[:,3])
+plt.plot(xs, R_trace_log[:,4])
+# %%
+plt.plot(xs, range_knots_trace)
+# %%
+plt.plot(xs, GEV_knots_trace[:,0]) # location
+# %%
+plt.plot(xs, GEV_knots_trace[:,1]) # scale
+# %%
+plt.plot(xs, GEV_knots_trace[:,2]) # shape
+# %%
+plt.plot(xs, phi_knots_trace)
+plt.plot(xs, GEV_knots_trace[:,0]) # location
+plt.plot(xs, GEV_knots_trace[:,1]) # scale
+plt.plot(xs, GEV_knots_trace[:,2]) # shape
+# %%
