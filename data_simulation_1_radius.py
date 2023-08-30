@@ -1,12 +1,12 @@
 
 import os
-os.chdir("/Users/LikunZhang/Desktop/Nonstat/")
+# os.chdir("/Users/LikunZhang/Desktop/Nonstat/")
 
 # import random
-import nonstat_Pareto1.model_sim as utils
+import model_sim as utils
 import nonstat_Pareto1.generic_samplers as sampler
 import nonstat_Pareto1.priors as priors
-import nonstat_Pareto1.ns_cov as cov
+import ns_cov as cov
 import numpy as np
 from scipy.stats import uniform
 from scipy.stats import norm 
