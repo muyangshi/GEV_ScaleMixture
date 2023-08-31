@@ -1,5 +1,12 @@
 #%%
 # Imports and Set Parameters
+import os
+os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -13,10 +20,12 @@ from mpi4py import MPI
 # %%
 # ------- 0. Simulation Setting --------------------------------------
 
+n_iters = 200
+
 ## space setting
 np.random.seed(2345)
-N = 6 # number of time replicates
-num_sites = 10 # number of sites/stations
+N = 5 # number of time replicates
+num_sites = 250 # number of sites/stations
 k = 2 # number of knots
 
 ## unchanged constants or parameters
@@ -83,6 +92,7 @@ for site_id in np.arange(num_sites):
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix[site_id, :] = weight_from_knots
+
 # %%
 # ------- 3. Generate covariance matrix, Z, and W --------------------------------
 
@@ -278,7 +288,6 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 random_generator = np.random.RandomState()
-n_iters = 100
 
 mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.08467852e-03],
                     [-3.53233442e-05,  1.60576481e-03,  9.46786420e-04,-8.60876113e-05],
@@ -298,7 +307,6 @@ else:
 
 ## ---- R, log scaled, at the knots ----
 if rank == 0:
-    # R_trace_log = np.empty((n_iters, N, k))
     R_trace_log = np.full(shape = (n_iters, k, N), fill_value = np.nan) # [n_iters, num_knots, n_t]
     R_trace_log[0,:,:] = np.log(R_at_knots) # initialize
     R_init_log = R_trace_log[0,:,:]
@@ -359,9 +367,12 @@ cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
 ## ---- GEV mu tau ksi (location, scale, shape) together ----
 GEV_knots_current = GEV_knots_init
 # will(?) be changed into matrix multiplication w/ more knots:
-Loc_matrix_current = GEV_knots_current[0,0] * np.full(shape = (num_sites,N), fill_value = 1)
-Scale_matrix_current = GEV_knots_current[1,0] * np.full(shape = (num_sites,N), fill_value = 1)
-Shape_matrix_current = GEV_knots_current[2,0] * np.full(shape = (num_sites,N), fill_value = 1)
+Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
+Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
+Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
+
+## ---- X_star ----
+X_star_1t_current = X_star[:,rank]
 
 ########## Updates ##################################################
 
@@ -455,9 +466,12 @@ for iter in range(1, n_iters):
             # ## together
             # plt.subplots()
             # plt.plot(xs_thin2, phi_knots_trace_thin, label='phi')
-            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,0], label='mu') # location
-            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,1], label='tau') # scale
-            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,2], label='ksi') # shape
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label='mu knot 0') # location
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label='tau knot 0') # scale
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label='ksi knot 0') # shape
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,1], label='mu knot 1') # location
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,1], label='tau knot 1') # scale
+            # plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,1], label='ksi knot 1') # shape
             # plt.title('traceplot for phi and GEV')
             # plt.legend()
             # plt.savefig('phi_GEV.pdf')
@@ -470,8 +484,9 @@ for iter in range(1, n_iters):
 
     # Conditional Likelihood at Current
     R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
+
     # log-likelihood:
-    lik = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star[:,rank], 
+    lik = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
     # log-prior density
@@ -480,7 +495,7 @@ for iter in range(1, n_iters):
     # Conditional Likelihood at Proposal
     R_vec_proposal = wendland_weight_matrix @ np.exp(R_proposal_log)
     # if np.any(~np.isfinite(R_vec_proposal**phi_vec_current)): print("Negative or zero R, iter=", iter, ", rank=", rank, R_vec_proposal[0], phi_vec_current[0])
-    lik_star = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star[:,rank], 
+    lik_star = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                     phi_vec_current, gamma_vec, R_vec_proposal, cholesky_matrix_current)
     prior_star = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log)) + R_proposal_log)
@@ -514,8 +529,8 @@ for iter in range(1, n_iters):
     phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
 
     # Conditional Likelihood at Current
-    X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                  phi_vec_current, gamma, 100)
+    # X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+    #                               phi_vec_current, gamma, 100)
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -539,6 +554,7 @@ for iter in range(1, n_iters):
 
     # Accept or Reject
     if rank == 0:
+        phi_accepted = False
         lik = sum(lik_gathered)
         lik_proposal = sum(lik_proposal_gathered)
 
@@ -552,6 +568,7 @@ for iter in range(1, n_iters):
         else: # Accept, u <= ratio
             phi_vec_update = phi_vec_proposal
             phi_knots_update = phi_knots_proposal
+            phi_accepted = True
         
         # Store the result
         phi_knots_trace[iter,:] = phi_knots_update
@@ -559,99 +576,18 @@ for iter in range(1, n_iters):
         # Update the "current" value
         phi_vec_current = phi_vec_update
         phi_knots_current = phi_knots_update
+    else:
+        phi_accepted = False
 
     # Brodcast the updated values
     phi_vec_current = comm.bcast(phi_vec_current, root = 0)
     phi_knots_current = comm.bcast(phi_knots_current, root = 0)
+    phi_accepted = comm.bcast(phi_accepted, root = 0)
 
-# #### ----- Update phi and GEV together ----- parallelized likelihood calculation across N time
-    
-#     # Propose new (phi, mu, tau, ksi) at the knots
-#     if rank == 0:
-#         random_walk_4x4 = random_generator.multivariate_normal(np.zeros(4), mvn_cov, size = k).T
-#         phi_knots_proposal = phi_knots_current + random_walk_4x4[0,:]
-#         GEV_knots_proposal = GEV_knots_current + random_walk_4x4[1:4, :]
-#         GEV_knots_proposal[2,:] = GEV_knots_current[2,:]
-#     else:
-#         phi_knots_proposal = None
-#         GEV_knots_proposal = None
-#     phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
-#     GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
-
-#     # will be changed into matrix multiplication w/ more knots
-#     phi_vec_proposal = np.repeat(1, num_sites) * phi_knots_proposal[0]
-#     Loc_matrix_proposal = GEV_knots_proposal[0,0] * np.full(shape = (num_sites,N), fill_value = 1)
-#     Scale_matrix_proposal = GEV_knots_proposal[1,0] * np.full(shape = (num_sites,N), fill_value = 1)
-#     Shape_matrix_proposal = GEV_knots_proposal[2,0] * np.full(shape = (num_sites,N), fill_value = 1)
-
-#     # Conditional Likelihood at Current
-#     X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-#                                     phi_vec_current, gamma, 100)
-#     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-#                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-#                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-
-#     # Conditional Likelihood at Proposed
-#     phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
-#     Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:]) # U(0, inf) prior
-#     Shape_out_of_range = any(shape <= -0.5 for shape in GEV_knots_proposal[2,:]) or any(shape > 0.5 for shape in GEV_knots_proposal[2,:]) # U(-0.5, 0.5] prior
-#     if any((phi_out_of_range, Scale_out_of_range, Shape_out_of_range)):
-#         X_star_1t_proposal = np.NINF
-#         lik_1t_proposal = np.NINF
-#     else:
-#         X_star_1t_proposal = qRW_Newton(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
-#                                         phi_vec_proposal, gamma, 100)
-#         lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-#                                                         Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
-#                                                         phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
-
-#     # Gather likelihood calculated across time
-#     lik_gathered = comm.gather(lik_1t, root = 0)
-#     lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-
-#     # Accept or Reject
-#     if rank == 0:
-#         lik = sum(lik_gathered)
-#         lik_proposal = sum(lik_proposal_gathered)
-
-#         u = random_generator.uniform()
-#         ratio = np.exp(lik_proposal - lik)
-#         if not np.isfinite(ratio):
-#             ratio = 0
-#         if u > ratio: # Reject
-#             phi_vec_update = phi_vec_current
-#             Loc_matrix_update = Loc_matrix_current
-#             Scale_matrix_update = Scale_matrix_current
-#             Shape_matrix_update = Shape_matrix_current
-#             phi_knots_update = phi_knots_current
-#             GEV_knots_update = GEV_knots_current
-#         else: # Accept, u <= ratio
-#             phi_vec_update = phi_vec_proposal
-#             Loc_matrix_update = Loc_matrix_proposal
-#             Scale_matrix_update = Scale_matrix_proposal
-#             Shape_matrix_update = Shape_matrix_proposal
-#             phi_knots_update = phi_knots_proposal
-#             GEV_knots_update = GEV_knots_proposal
-
-#         # Store the result
-#         phi_knots_trace[iter,:] = phi_knots_update
-#         GEV_knots_trace[iter,:,:] = GEV_knots_update
-
-#         # Update the "current" values
-#         phi_vec_current = phi_vec_update
-#         phi_knots_current = phi_knots_update
-#         Loc_matrix_current = Loc_matrix_update
-#         Scale_matrix_current = Scale_matrix_update
-#         Shape_matrix_current = Shape_matrix_update
-#         GEV_knots_current = GEV_knots_update
-
-#     # Brodcast the updated values
-#     phi_vec_current = comm.bcast(phi_vec_current, root = 0)
-#     phi_knots_current = comm.bcast(phi_knots_current, root = 0)
-#     Loc_matrix_current = comm.bcast(Loc_matrix_current, root = 0)
-#     Scale_matrix_current = comm.bcast(Scale_matrix_current, root = 0)
-#     Shape_matrix_current = comm.bcast(Shape_matrix_current, root = 0)
-#     GEV_knots_current = comm.bcast(GEV_knots_current, root = 0)
+    # Update X_star
+    if phi_accepted:
+        X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma, 100)
 
 #### ----- Update range_vec ----- parallelized likelihood calculation across N time
 
@@ -663,10 +599,6 @@ for iter in range(1, n_iters):
     range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
 
     range_vec_proposal = gaussian_weight_matrix @ range_knots_proposal
-
-    # One calculation of X_star is enough, with the most current phi_vec
-    X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                  phi_vec_current, gamma, 100)
 
     # Conditional Likelihood at Current
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
@@ -691,6 +623,7 @@ for iter in range(1, n_iters):
 
     # Accept or Reject
     if rank == 0:
+        range_accepted = False
         lik = sum(lik_gathered)
         lik_proposal = sum(lik_proposal_gathered)
 
@@ -700,21 +633,31 @@ for iter in range(1, n_iters):
             ratio = 0 # Force a rejection
         if u > ratio: # Reject
             range_vec_update = range_vec_current
+            range_knots_update = range_knots_current
         else: # Accept, u <= ratio
             range_vec_update = range_vec_proposal
+            range_knots_update = range_knots_proposal
+            range_accepted = True
         
         # Store the result
-        range_knots_update = np.array(range_vec_update[0]) # will be changed into matrix multiplication w/ more knots
         range_knots_trace[iter,:] = range_knots_update
 
         # Update the "current" value
         range_vec_current = range_vec_update
         range_knots_current = range_knots_update
+    else:
+        range_accepted = False
 
     # Brodcast the updated values
     range_vec_current = comm.bcast(range_vec_current, root = 0)
     range_knots_current = comm.bcast(range_knots_current, root = 0)
-    # pass
+    range_accepted = comm.bcast(range_accepted, root = 0)
+
+    # Update the K
+    if range_accepted:
+        K_current = ns_cov(range_vec = range_vec_current,
+                            sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
+        cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
 
 #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
 #### ----- Do not update ksi -----
@@ -723,19 +666,18 @@ for iter in range(1, n_iters):
     if rank == 0:
         random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), mvn_cov_3x3, size = k).T
         GEV_knots_proposal = GEV_knots_current + random_walk_3x3
+        GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot
         GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
     else:
         GEV_knots_proposal = None
     GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
 
     # will be changed into matrix multiplication w/ more knots
-    Loc_matrix_proposal = GEV_knots_proposal[0,0] * np.full(shape = (num_sites,N), fill_value = 1)
-    Scale_matrix_proposal = GEV_knots_proposal[1,0] * np.full(shape = (num_sites,N), fill_value = 1)
-    Shape_matrix_proposal = GEV_knots_proposal[2,0] * np.full(shape = (num_sites,N), fill_value = 1)
+    Loc_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[0,0])
+    Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
+    Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
 
     # Conditional Likelihodd at Current
-    X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                  phi_vec_current, gamma, 100)
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -758,6 +700,7 @@ for iter in range(1, n_iters):
 
     # Accept or Reject
     if rank == 0:
+        GEV_accepted = False
         lik = sum(lik_gathered)
         lik_proposal = sum(lik_proposal_gathered)
 
@@ -775,6 +718,7 @@ for iter in range(1, n_iters):
             Scale_matrix_update = Scale_matrix_proposal
             Shape_matrix_update = Shape_matrix_proposal
             GEV_knots_update = GEV_knots_proposal
+            GEV_accepted = True
         
         # Store the result
         GEV_knots_trace[iter,:,:] = GEV_knots_update
@@ -784,12 +728,21 @@ for iter in range(1, n_iters):
         Scale_matrix_current = Scale_matrix_update
         Shape_matrix_current = Shape_matrix_update
         GEV_knots_current = GEV_knots_update
+    else:
+        GEV_accepted = False
 
     # Brodcast the updated values
     Loc_matrix_current = comm.bcast(Loc_matrix_current, root = 0)
     Scale_matrix_current = comm.bcast(Scale_matrix_current, root = 0)
     Shape_matrix_current = comm.bcast(Shape_matrix_current, root = 0)
     GEV_knots_current = comm.bcast(GEV_knots_current, root = 0)
+    GEV_accepted = comm.bcast(GEV_accepted, root = 0)
+
+    # Update X_star
+    if GEV_accepted:
+        X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma, 100)
+    
 
 # End of MCMC
 if rank == 0:
@@ -803,31 +756,98 @@ if rank == 0:
 
 # # %%
 # # Plotting
-# phi_knots_trace = np.load('phi_knots_trace.npy')
-# R_trace_log = np.load('R_trace_log.npy')
-# range_knots_trace = np.load('range_knots_trace.npy')
-# GEV_knots_trace = np.load('GEV_knots_trace.npy')
-# xs = np.arange(3000)
+
+# folder = './data/20230830_2knots_10000_500_32/'
+# phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
+# R_trace_log = np.load(folder + 'R_trace_log.npy')
+# range_knots_trace = np.load(folder + 'range_knots_trace.npy')
+# GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
+# xs = np.arange(10000)
+
 # # %%
-# plt.plot(xs, phi_knots_trace)
+# # Plot phi
+# plt.plot(xs, phi_knots_trace) # 1 knot
+
+# plt.plot(xs, phi_knots_trace[:,0], label = 'knot 0')
+# plt.plot(xs, phi_knots_trace[:,1], label = 'knot 1')
+# plt.legend()
 # # %%
-# plt.plot(xs, R_trace_log[:,0])
-# plt.plot(xs, R_trace_log[:,1])
-# plt.plot(xs, R_trace_log[:,2])
-# plt.plot(xs, R_trace_log[:,3])
-# plt.plot(xs, R_trace_log[:,4])
+# # Plot R
+# plt.plot(xs, R_trace_log[:,0]) # 1 knot
+# plt.plot(xs, R_trace_log[:,1]) # 1 knot
+# plt.plot(xs, R_trace_log[:,2]) # 1 knot
+# plt.plot(xs, R_trace_log[:,3]) # 1 knot
+# plt.plot(xs, R_trace_log[:,4]) # 1 knot
+
+# plt.plot(xs, R_trace_log[:,0,0], label='knot 0 time 0')
+# plt.plot(xs, R_trace_log[:,0,1], label='knot 0 time 1')
+# plt.plot(xs, R_trace_log[:,0,2], label='knot 0 time 2')
+# plt.plot(xs, R_trace_log[:,1,0], label='knot 1 time 0')
+# plt.plot(xs, R_trace_log[:,1,1], label='knot 1 time 1')
+# plt.plot(xs, R_trace_log[:,1,2], label='knot 1 time 2')
+# plt.legend()
+
 # # %%
-# plt.plot(xs, range_knots_trace)
+# # Plot range
+# plt.plot(xs, range_knots_trace) # 1 knot
+
+# plt.plot(xs, range_knots_trace[:,0], label='knot 0')
+# plt.plot(xs, range_knots_trace[:,1], label='knot 1')
+# plt.legend()
+
 # # %%
+# # mu location
 # plt.plot(xs, GEV_knots_trace[:,0]) # location
+
+# plt.plot(xs, GEV_knots_trace[:,0,0], label = 'knot 0') # location
+# plt.plot(xs, GEV_knots_trace[:,0,1], label = 'knot 1')
+# plt.legend()
+
 # # %%
 # plt.plot(xs, GEV_knots_trace[:,1]) # scale
+
+# plt.plot(xs, GEV_knots_trace[:,1,0], label = 'knot 0') # scale
+# plt.plot(xs, GEV_knots_trace[:,1,1], label = 'knot 1')
+# plt.legend()
+
 # # %%
 # plt.plot(xs, GEV_knots_trace[:,2]) # shape
+
+# plt.plot(xs, GEV_knots_trace[:,2,0], label = 'knot 0') # shape
+# plt.plot(xs, GEV_knots_trace[:,2,1], label = 'knot 1')
+# plt.legend()
+
 # # %%
 # plt.plot(xs, phi_knots_trace)
 # plt.plot(xs, GEV_knots_trace[:,0]) # location
 # plt.plot(xs, GEV_knots_trace[:,1]) # scale
 # plt.plot(xs, GEV_knots_trace[:,2]) # shape
+
+# plt.plot(xs, phi_knots_trace[:, 0], label='phi knot 0')
+# plt.plot(xs, GEV_knots_trace[:,0,0], label='mu knot 0') # location
+# plt.plot(xs, GEV_knots_trace[:,1,0], label='tau knot 0') # scale
+# plt.plot(xs, GEV_knots_trace[:,2,0], label='ksi knot 0') # shape
+# plt.legend()
+
+# plt.plot(xs, phi_knots_trace[:, 1], label='phi knot 1')
+# plt.plot(xs, GEV_knots_trace[:,0,1], label='mu knot 1') # location
+# plt.plot(xs, GEV_knots_trace[:,1,1], label='tau knot 1') # scale
+# plt.plot(xs, GEV_knots_trace[:,2,1], label='ksi knot 1') # shape
+# plt.legend()
+
 # # %%
-# np.corrcoef(np.array([phi_knots_trace.ravel(), GEV_knots_trace[:,0].ravel(), GEV_knots_trace[:,1].ravel()]))
+# np.corrcoef(np.array([phi_knots_trace[:,0].ravel(), 
+#                       GEV_knots_trace[:,0,0].ravel(), 
+#                       GEV_knots_trace[:,1,0].ravel()]))
+
+# np.corrcoef(np.array([phi_knots_trace[:,1].ravel(), 
+#                       GEV_knots_trace[:,0,1].ravel(), 
+#                       GEV_knots_trace[:,1,1].ravel()]))
+
+# np.cov(np.array([phi_knots_trace[:,0].ravel(), 
+#                 GEV_knots_trace[:,0,0].ravel(), 
+#                 GEV_knots_trace[:,1,0].ravel()]))
+
+# np.cov(np.array([phi_knots_trace[:,1].ravel(), 
+#                 GEV_knots_trace[:,0,1].ravel(), 
+#                 GEV_knots_trace[:,1,1].ravel()]))
