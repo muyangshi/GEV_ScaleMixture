@@ -20,13 +20,11 @@ from mpi4py import MPI
 # %%
 # ------- 0. Simulation Setting --------------------------------------
 
-n_iters = 200
-
 ## space setting
 np.random.seed(2345)
-N = 5 # number of time replicates
-num_sites = 250 # number of sites/stations
-k = 2 # number of knots
+N = 32 # number of time replicates
+num_sites = 500 # number of sites/stations
+k = 5 # number of knots
 
 ## unchanged constants or parameters
 gamma = 0.5 # this is the gamma that goes in rlevy
@@ -44,30 +42,42 @@ sites_x = sites_xy[:,0]
 sites_y = sites_xy[:,1]
 
 ## Knots
-knots_xy = np.array([[3,5],
-                     [7,5]])
+knots_xy = np.array([[2,2],
+                     [2,8],
+                     [8,2],
+                     [8,8],
+                     [4.5,4.5]])
 knots_x = knots_xy[:,0]
 knots_y = knots_xy[:,1]
 
-radius = 6
+radius = 4 # from 6 to 4
 radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
 
-# # Plot the space
-# fig, ax = plt.subplots()
-# ax.plot(sites_x, sites_y, 'b.')
-# ax.plot(knots_x, knots_y, 'r+')
-# space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
-#                                 fill = False, color = 'black')
-# circle0 = plt.Circle((knots_xy[0,0],knots_xy[0,1]), radius_from_knots[0], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# circle1 = plt.Circle((knots_xy[1,0],knots_xy[1,1]), radius_from_knots[1], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# ax.add_patch(space_rectangle)
-# ax.add_patch(circle0)
-# ax.add_patch(circle1)
-# plt.xlim([-2,12])
-# plt.ylim([-2,12])
-# plt.show()
+# Plot the space
+fig, ax = plt.subplots()
+ax.plot(sites_x, sites_y, 'b.')
+ax.plot(knots_x, knots_y, 'r+')
+space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
+                                fill = False, color = 'black')
+circle0 = plt.Circle((knots_xy[0,0],knots_xy[0,1]), radius_from_knots[0], 
+                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+circle1 = plt.Circle((knots_xy[1,0],knots_xy[1,1]), radius_from_knots[1], 
+                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+circle2 = plt.Circle((knots_xy[2,0],knots_xy[2,1]), radius_from_knots[1], 
+                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+circle3 = plt.Circle((knots_xy[3,0],knots_xy[3,1]), radius_from_knots[1], 
+                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+circle4 = plt.Circle((knots_xy[4,0],knots_xy[4,1]), radius_from_knots[1], 
+                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+ax.add_patch(space_rectangle)
+ax.add_patch(circle0)
+ax.add_patch(circle1)
+ax.add_patch(circle2)
+ax.add_patch(circle3)
+ax.add_patch(circle4)
+plt.xlim([-2,12])
+plt.ylim([-2,12])
+plt.show()
 
 # %%
 # ------- 2. Generate the weight matrices ------------------------------------
@@ -99,7 +109,8 @@ for site_id in np.arange(num_sites):
 ## range_vec
 rho = 2.0 # the rho in matern kernel exp(-rho * x)
 length_scale = 1/rho # scikit/learn parameterization (length_scale)
-range_at_knots = np.full(shape = k, fill_value = length_scale) # array([0.5, 0.5])
+# range_at_knots = np.full(shape = k, fill_value = length_scale) # array([0.5, 0.5])
+range_at_knots = np.array([0.1,0.3,0.5,0.7,0.9])
 range_vec = gaussian_weight_matrix @ range_at_knots
 
 ## sigsq_vec
@@ -115,7 +126,8 @@ W = norm_to_Pareto1(Z)
 # ------- 4. Generate Scaling Factor, R^phi --------------------------------
 
 ## phi_vec
-phi_at_knots = np.full(shape = k, fill_value = 0.33)
+# phi_at_knots = np.full(shape = k, fill_value = 0.33)
+phi_at_knots = np.array([0.1,0.2,0.3,0.4,0.7])
 phi_vec = gaussian_weight_matrix @ phi_at_knots
 
 ## R
@@ -288,6 +300,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 random_generator = np.random.RandomState()
+n_iters = 10000
 
 mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.08467852e-03],
                     [-3.53233442e-05,  1.60576481e-03,  9.46786420e-04,-8.60876113e-05],
