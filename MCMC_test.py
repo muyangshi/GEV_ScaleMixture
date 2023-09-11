@@ -223,13 +223,60 @@ n_iters = 100
 #                         [ 0.00057124,  0.00048282,  0.00149776,  0.00615477, -0.00169341],
 #                         [-0.00144159, -0.0017226 , -0.00172151, -0.00169341,  0.01281447]])
 
-phi_post_cov = 0.001 * np.identity(k)
+# phi_post_cov = 0.001 * np.identity(k)
 
-range_post_cov = 0.001 * np.identity(k)
+# range_post_cov = 0.001 * np.identity(k)
 
-GEV_post_cov = np.array([[0.00118121, 0.00056851,0],
-                        [0.00056851, 0.00035896, 0],
-                        [0,          0,          1]])
+phi_post_cov = np.array([[ 9.58542418e-03, -6.01140297e-03,  1.06511988e-03,
+        -7.01106204e-03,  5.07443726e-03, -4.07658075e-03,
+         2.43384515e-04,  4.43488080e-04, -1.72051955e-04],
+       [-6.01140297e-03,  2.29216490e-02, -1.08331037e-02,
+         4.00797383e-03, -1.58483844e-02,  6.59980653e-03,
+         1.75053208e-03,  4.53228164e-03, -6.90583213e-04],
+       [ 1.06511988e-03, -1.08331037e-02,  2.01752882e-02,
+        -7.67372584e-04,  9.22744820e-03, -1.13651380e-02,
+        -4.18897332e-04, -1.60789731e-03,  9.24313673e-04],
+       [-7.01106204e-03,  4.00797383e-03, -7.67372584e-04,
+         1.79168903e-02, -1.65285992e-02,  8.39889941e-03,
+        -1.51799364e-03, -4.17429455e-05,  9.21351991e-04],
+       [ 5.07443726e-03, -1.58483844e-02,  9.22744820e-03,
+        -1.65285992e-02,  4.68883346e-02, -2.03977996e-02,
+        -1.32932964e-04, -7.18075752e-03,  1.84976077e-03],
+       [-4.07658075e-03,  6.59980653e-03, -1.13651380e-02,
+         8.39889941e-03, -2.03977996e-02,  2.27058260e-02,
+         8.87141186e-04,  2.38616187e-03, -2.02146764e-03],
+       [ 2.43384515e-04,  1.75053208e-03, -4.18897332e-04,
+        -1.51799364e-03, -1.32932964e-04,  8.87141186e-04,
+         3.87579111e-03, -1.48625496e-03, -1.14163720e-04],
+       [ 4.43488080e-04,  4.53228164e-03, -1.60789731e-03,
+        -4.17429455e-05, -7.18075752e-03,  2.38616187e-03,
+        -1.48625496e-03,  1.20973384e-02, -3.31096423e-03],
+       [-1.72051955e-04, -6.90583213e-04,  9.24313673e-04,
+         9.21351991e-04,  1.84976077e-03, -2.02146764e-03,
+        -1.14163720e-04, -3.31096423e-03,  3.95069513e-03]])
+
+range_post_cov = np.array([[ 0.00389826, -0.00275459,  0.00131422, -0.00287918,  0.00224106,
+        -0.00184821,  0.00015821,  0.0001398 ,  0.00017417],
+       [-0.00275459,  0.00745223, -0.0036786 ,  0.00010056, -0.00165754,
+         0.001429  ,  0.00114549,  0.00085336, -0.00027707],
+       [ 0.00131422, -0.0036786 ,  0.00581071, -0.00039857,  0.00047248,
+        -0.00327776,  0.0001384 , -0.00066359,  0.00064227],
+       [-0.00287918,  0.00010056, -0.00039857,  0.01212723, -0.00988254,
+         0.00303601, -0.00182846,  0.00019348,  0.00052403],
+       [ 0.00224106, -0.00165754,  0.00047248, -0.00988254,  0.02122722,
+        -0.00634579,  0.0001077 , -0.00272059,  0.00061086],
+       [-0.00184821,  0.001429  , -0.00327776,  0.00303601, -0.00634579,
+         0.01171366,  0.00070328,  0.00042865, -0.00224499],
+       [ 0.00015821,  0.00114549,  0.0001384 , -0.00182846,  0.0001077 ,
+         0.00070328,  0.00448887, -0.00225439,  0.00085958],
+       [ 0.0001398 ,  0.00085336, -0.00066359,  0.00019348, -0.00272059,
+         0.00042865, -0.00225439,  0.00751886, -0.00263526],
+       [ 0.00017417, -0.00027707,  0.00064227,  0.00052403,  0.00061086,
+        -0.00224499,  0.00085958, -0.00263526,  0.00326332]])
+
+GEV_post_cov = np.array([[0.00093752, 0.00046485, 0],
+                         [0.00046485, 0.00031506, 0],
+                         [0         , 0         , 1]])
 
 if rank == 0:
     start_time = time.time()
@@ -462,9 +509,14 @@ for iter in range(1, n_iters):
 
     # Propose new phi at the knots --> new phi vector
     if rank == 0:
-        random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), phi_post_cov, size = None) # size = None returns vector
-        phi_knots_proposal = phi_knots_current + random_walk_kxk
+        # random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), phi_post_cov, size = None) # size = None returns vector
+        # phi_knots_proposal = phi_knots_current + random_walk_kxk
         # phi_knots_proposal = random_generator.normal(loc = 0.0, scale = 0.1, size = k) + phi_knots_current
+        random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[0:3,0:3], size = None)
+        random_walk_block2 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[3:6,3:6], size = None)
+        random_walk_block3 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[6:9,6:9], size = None)
+        random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+        phi_knots_proposal = phi_knots_current + random_walk_perturb
     else:
         phi_knots_proposal = None
     phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
@@ -536,9 +588,14 @@ for iter in range(1, n_iters):
 
     # Propose new range at the knots --> new range vector
     if rank == 0:
-        random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), range_post_cov, size = None) # size = None so returns vector
-        range_knots_proposal = range_knots_current + random_walk_kxk
+        # random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), range_post_cov, size = None) # size = None so returns vector
+        # range_knots_proposal = range_knots_current + random_walk_kxk
         # range_knots_proposal = random_generator.normal(loc = 0.0, scale = 0.1, size = k) + range_knots_current
+        random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[0:3,0:3], size = None)
+        random_walk_block2 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[3:6,3:6], size = None)
+        random_walk_block3 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[6:9,6:9], size = None)
+        random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+        range_knots_proposal = range_knots_current + random_walk_perturb
     else:
         range_knots_proposal = None
     range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
@@ -815,6 +872,10 @@ if rank == 0:
 
 # GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
 #                                 GEV_knots_trace[:,1,0].ravel()])) # tau scale
+
+# phi_post_cov = np.cov(np.array([phi_knots_trace[:,i].ravel() for i in range(k)]))
+
+# range_post_cov = np.cov(np.array([range_knots_trace[:,i].ravel() for i in range(k)]))
 
 # Evaluate Profile Likelihoods
 # ###########################################################################################
