@@ -1,3 +1,5 @@
+# This is a MCMC sampler that constantly gets updated
+# Scratch work and modifications are done in this file
 #%%
 # Imports
 import os
@@ -41,7 +43,7 @@ nu = 0.5 # exponential kernel for matern with nu = 1/2
 # phi_at_knots
 # phi_post_cov
 # range_post_cov
-# n_iters
+n_iters = 100
 
 # %%
 # ------- 1. Generate Sites and Knots --------------------------------
@@ -63,6 +65,11 @@ knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
 #                      [4.5,4.5]])
 knots_x = knots_xy[:,0]
 knots_y = knots_xy[:,1]
+
+plotgrid_x = np.linspace(0.1,10,25)
+plotgrid_y = np.linspace(0.1,10,25)
+plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
+plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
 
 radius = 3.5 # from 6 to 4 to 3.5
 radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
@@ -121,17 +128,51 @@ for site_id in np.arange(num_sites):
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix[site_id, :] = weight_from_knots
 
+gaussian_weight_matrix_for_plot = np.full(shape = (625, k), fill_value = np.nan)
+for site_id in np.arange(625):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                     XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+wendland_weight_matrix_for_plot = np.full(shape = (625,k), fill_value = np.nan)
+for site_id in np.arange(625):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                     XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+
 # %%
 # ------- 3. Generate covariance matrix, Z, and W --------------------------------
 
 ## range_vec
-rho = 2.0 # the rho in matern kernel exp(-rho * x)
-length_scale = 1/rho # scikit/learn parameterization (length_scale)
+# rho = 2.0 # the rho in matern kernel exp(-rho * x)
+# length_scale = 1/rho # scikit/learn parameterization (length_scale)
 # range_at_knots = np.full(shape = k, fill_value = length_scale) # array([0.5, 0.5])
-range_at_knots = np.array([0.3,0.3,0.3,
-                           0.3,0.3,0.3,
-                           0.3,0.3,0.3])
+# range_at_knots = np.array([0.3,0.3,0.3,
+#                            0.3,0.3,0.3,
+#                            0.3,0.3,0.3])
+# range_vec = gaussian_weight_matrix @ range_at_knots
+
+## range_vec
+range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
 range_vec = gaussian_weight_matrix @ range_at_knots
+
+range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+fig2 = plt.figure()
+ax2 = fig2.add_subplot(projection='3d')
+ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
+ax2.set_xlabel('X')
+ax2.set_ylabel('Y')
+ax2.set_zlabel('phi(s)')
+ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
+plt.show()
+plt.close()
 
 ## sigsq_vec
 sigsq_vec = np.repeat(1, num_sites) # hold at 1
@@ -148,10 +189,30 @@ W = norm_to_Pareto1(Z)
 
 ## phi_vec
 # phi_at_knots = np.full(shape = k, fill_value = 0.33)
-phi_at_knots = np.array([0.2,0.2,0.2,
-                         0.2,0.8,0.2,
-                         0.2,0.2,0.2])
+# phi_at_knots = np.array([0.2,0.2,0.2,
+#                          0.2,0.8,0.2,
+#                          0.2,0.2,0.2])
+phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
 phi_vec = gaussian_weight_matrix @ phi_at_knots
+
+# phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+# fig = plt.figure()
+# ax = fig.add_subplot(projection='3d')
+# ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(phi_vec_for_plot).reshape(25,25))
+# ax.set_xlabel('X')
+# ax.set_ylabel('Y')
+# ax.set_zlabel('phi(s)')
+# ax.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
+
+# fig2 = plt.figure()
+# ax2 = fig2.add_subplot(projection='3d')
+# ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], phi_vec_for_plot, linewidth=0.2, antialiased=True)
+# ax2.set_xlabel('X')
+# ax2.set_ylabel('Y')
+# ax2.set_zlabel('phi(s)')
+# ax2.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
+# plt.show()
+# plt.close()
 
 ## R
 ## Generate them at the knots
@@ -200,7 +261,6 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 random_generator = np.random.RandomState()
-n_iters = 100
 
 # mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.08467852e-03],
 #                     [-3.53233442e-05,  1.60576481e-03,  9.46786420e-04,-8.60876113e-05],
