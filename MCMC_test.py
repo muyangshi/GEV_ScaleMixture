@@ -43,7 +43,7 @@ nu = 0.5 # exponential kernel for matern with nu = 1/2
 # phi_at_knots
 # phi_post_cov
 # range_post_cov
-n_iters = 100
+n_iters = 500
 
 # %%
 # ------- 1. Generate Sites and Knots --------------------------------
@@ -102,7 +102,8 @@ ax.add_patch(space_rectangle)
 # ax.add_patch(circle4)
 plt.xlim([-2,12])
 plt.ylim([-2,12])
-plt.show()
+# plt.show()
+plt.close()
 
 # %%
 # ------- 2. Generate the weight matrices ------------------------------------
@@ -163,16 +164,16 @@ for site_id in np.arange(625):
 range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
 range_vec = gaussian_weight_matrix @ range_at_knots
 
-range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
-fig2 = plt.figure()
-ax2 = fig2.add_subplot(projection='3d')
-ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
-ax2.set_xlabel('X')
-ax2.set_ylabel('Y')
-ax2.set_zlabel('phi(s)')
-ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
-plt.show()
-plt.close()
+# range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+# fig2 = plt.figure()
+# ax2 = fig2.add_subplot(projection='3d')
+# ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
+# ax2.set_xlabel('X')
+# ax2.set_ylabel('Y')
+# ax2.set_zlabel('phi(s)')
+# ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
+# plt.show()
+# plt.close()
 
 ## sigsq_vec
 sigsq_vec = np.repeat(1, num_sites) # hold at 1
@@ -203,7 +204,6 @@ phi_vec = gaussian_weight_matrix @ phi_at_knots
 # ax.set_ylabel('Y')
 # ax.set_zlabel('phi(s)')
 # ax.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
-
 # fig2 = plt.figure()
 # ax2 = fig2.add_subplot(projection='3d')
 # ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], phi_vec_for_plot, linewidth=0.2, antialiased=True)
@@ -255,87 +255,107 @@ cholesky_matrix = scipy.linalg.cholesky(K, lower=False)
 ###########################################################################################
 
 # %%
-# MPI and setup
+# MPI setup
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
 random_generator = np.random.RandomState()
 
-# mvn_cov = 2*np.array([[ 1.51180152e-02, -3.53233442e-05,  6.96443508e-03, 7.08467852e-03],
-#                     [-3.53233442e-05,  1.60576481e-03,  9.46786420e-04,-8.60876113e-05],
-#                     [ 6.96443508e-03,  9.46786420e-04,  4.25227059e-03, 3.39474201e-03],
-#                     [ 7.08467852e-03, -8.60876113e-05,  3.39474201e-03, 3.92065445e-03]])
+# %%
+# ------- Preparation for Adaptive Metropolis -----------------------------
+# constant to control adaptive Metropolis updates
+c_0 = 1
+c_1 = 0.8
+# offset = 3 # the iteration offset?
+# r_opt_1d = .41
+# r_opt_2d = .35
+r_opt = 0.234
+# eps = 1e-6
 
-# mvn_cov_3x3 = 2*np.array([[ 1.60576481e-03,  9.46786420e-04, -8.60876113e-05],
-#                         [ 9.46786420e-04,  4.25227059e-03,  3.39474201e-03],
-#                         [-8.60876113e-05,  3.39474201e-03,  3.92065445e-03]])
+if rank == 0: # these parameters are only proposed on worker 0
+    sigma_m_sq = {}
+    sigma_m_sq['phi_block1'] = 0.01
+    sigma_m_sq['phi_block2'] = 0.01
+    sigma_m_sq['phi_block3'] = 0.01
+    sigma_m_sq['range_block1'] = 0.01
+    sigma_m_sq['range_block2'] = 0.01
+    sigma_m_sq['range_block3'] = 0.01
+    sigma_m_sq['GEV'] = 0.01
 
-# phi_post_cov = np.array([[ 2.2348e-03, -6.4440e-04,  8.5400e-05,  3.6920e-04, -1.8740e-04],
-#                         [-6.4440e-04,  2.8613e-03,  3.3760e-04,  1.2440e-04, -5.6460e-04],
-#                         [ 8.5400e-05,  3.3760e-04,  2.0855e-03,  6.0150e-04,  4.8340e-04],
-#                         [ 3.6920e-04,  1.2440e-04,  6.0150e-04,  2.0463e-03, -6.0290e-04],
-#                         [-1.8740e-04, -5.6460e-04,  4.8340e-04, -6.0290e-04,  5.7503e-03]])
+    Sigma_0 = {}
+    Sigma_0['phi_block1'] = np.identity(3)
+    Sigma_0['phi_block2'] = np.identity(3)
+    Sigma_0['phi_block3'] = np.identity(3)
+    Sigma_0['range_block1'] = np.identity(3)
+    Sigma_0['range_block2'] = np.identity(3)
+    Sigma_0['range_block3'] = np.identity(3)
+    Sigma_0['GEV'] = np.identity(3)
 
-# range_post_cov = np.array([[ 0.00049806,  0.00017201,  0.00021982,  0.00057124, -0.00144159],
-#                         [ 0.00017201,  0.00159722,  0.00050871,  0.00048282, -0.0017226 ],
-#                         [ 0.00021982,  0.00050871,  0.00314174,  0.00149776, -0.00172151],
-#                         [ 0.00057124,  0.00048282,  0.00149776,  0.00615477, -0.00169341],
-#                         [-0.00144159, -0.0017226 , -0.00172151, -0.00169341,  0.01281447]])
+    num_accepted = {}
+    num_accepted['phi'] = 0
+    num_accepted['range'] = 0
+    num_accepted['GEV'] = 0
+
+sigma_m_sq_Rt = (2.4**2)/N # each worker t proposed one Rt
+# Sigma_0_Rt = np.identity(N)
+num_accepted_Rt = 0
 
 # phi_post_cov = 0.001 * np.identity(k)
 
 # range_post_cov = 0.001 * np.identity(k)
 
-phi_post_cov = np.array([[ 9.58542418e-03, -6.01140297e-03,  1.06511988e-03,
-        -7.01106204e-03,  5.07443726e-03, -4.07658075e-03,
-         2.43384515e-04,  4.43488080e-04, -1.72051955e-04],
-       [-6.01140297e-03,  2.29216490e-02, -1.08331037e-02,
-         4.00797383e-03, -1.58483844e-02,  6.59980653e-03,
-         1.75053208e-03,  4.53228164e-03, -6.90583213e-04],
-       [ 1.06511988e-03, -1.08331037e-02,  2.01752882e-02,
-        -7.67372584e-04,  9.22744820e-03, -1.13651380e-02,
-        -4.18897332e-04, -1.60789731e-03,  9.24313673e-04],
-       [-7.01106204e-03,  4.00797383e-03, -7.67372584e-04,
-         1.79168903e-02, -1.65285992e-02,  8.39889941e-03,
-        -1.51799364e-03, -4.17429455e-05,  9.21351991e-04],
-       [ 5.07443726e-03, -1.58483844e-02,  9.22744820e-03,
-        -1.65285992e-02,  4.68883346e-02, -2.03977996e-02,
-        -1.32932964e-04, -7.18075752e-03,  1.84976077e-03],
-       [-4.07658075e-03,  6.59980653e-03, -1.13651380e-02,
-         8.39889941e-03, -2.03977996e-02,  2.27058260e-02,
-         8.87141186e-04,  2.38616187e-03, -2.02146764e-03],
-       [ 2.43384515e-04,  1.75053208e-03, -4.18897332e-04,
-        -1.51799364e-03, -1.32932964e-04,  8.87141186e-04,
-         3.87579111e-03, -1.48625496e-03, -1.14163720e-04],
-       [ 4.43488080e-04,  4.53228164e-03, -1.60789731e-03,
-        -4.17429455e-05, -7.18075752e-03,  2.38616187e-03,
-        -1.48625496e-03,  1.20973384e-02, -3.31096423e-03],
-       [-1.72051955e-04, -6.90583213e-04,  9.24313673e-04,
-         9.21351991e-04,  1.84976077e-03, -2.02146764e-03,
-        -1.14163720e-04, -3.31096423e-03,  3.95069513e-03]])
+# GEV_post_cov = 0.0001 * np.identity(3)
 
-range_post_cov = np.array([[ 0.00389826, -0.00275459,  0.00131422, -0.00287918,  0.00224106,
-        -0.00184821,  0.00015821,  0.0001398 ,  0.00017417],
-       [-0.00275459,  0.00745223, -0.0036786 ,  0.00010056, -0.00165754,
-         0.001429  ,  0.00114549,  0.00085336, -0.00027707],
-       [ 0.00131422, -0.0036786 ,  0.00581071, -0.00039857,  0.00047248,
-        -0.00327776,  0.0001384 , -0.00066359,  0.00064227],
-       [-0.00287918,  0.00010056, -0.00039857,  0.01212723, -0.00988254,
-         0.00303601, -0.00182846,  0.00019348,  0.00052403],
-       [ 0.00224106, -0.00165754,  0.00047248, -0.00988254,  0.02122722,
-        -0.00634579,  0.0001077 , -0.00272059,  0.00061086],
-       [-0.00184821,  0.001429  , -0.00327776,  0.00303601, -0.00634579,
-         0.01171366,  0.00070328,  0.00042865, -0.00224499],
-       [ 0.00015821,  0.00114549,  0.0001384 , -0.00182846,  0.0001077 ,
-         0.00070328,  0.00448887, -0.00225439,  0.00085958],
-       [ 0.0001398 ,  0.00085336, -0.00066359,  0.00019348, -0.00272059,
-         0.00042865, -0.00225439,  0.00751886, -0.00263526],
-       [ 0.00017417, -0.00027707,  0.00064227,  0.00052403,  0.00061086,
-        -0.00224499,  0.00085958, -0.00263526,  0.00326332]])
+phi_post_cov = np.array([[ 1.02091028e-02, -4.65416081e-03,  2.83121774e-03,
+        -1.98334540e-03,  6.43880363e-05,  2.91578540e-03,
+         8.30697725e-04,  1.51244094e-03, -1.69856434e-03],
+       [-4.65416081e-03,  1.78529332e-02, -6.46019647e-03,
+        -3.08993583e-03, -2.22328955e-03, -8.82329739e-03,
+         9.67951943e-04,  5.10212543e-03, -2.79892766e-03],
+       [ 2.83121774e-03, -6.46019647e-03,  1.69812250e-02,
+         4.33404401e-03, -4.30488074e-03, -5.48951838e-03,
+        -3.58441843e-03,  1.83117898e-03, -5.07705637e-03],
+       [-1.98334540e-03, -3.08993583e-03,  4.33404401e-03,
+         9.80545980e-03, -6.43336271e-03,  3.85552957e-03,
+        -2.20377952e-03, -1.11189476e-03,  3.01694619e-04],
+       [ 6.43880363e-05, -2.22328955e-03, -4.30488074e-03,
+        -6.43336271e-03,  1.79583705e-02, -4.12401123e-03,
+         2.36776379e-04, -3.74790010e-03, -1.45715836e-03],
+       [ 2.91578540e-03, -8.82329739e-03, -5.48951838e-03,
+         3.85552957e-03, -4.12401123e-03,  2.59920768e-02,
+         4.76402918e-03, -9.31711711e-03,  9.97438067e-03],
+       [ 8.30697725e-04,  9.67951943e-04, -3.58441843e-03,
+        -2.20377952e-03,  2.36776379e-04,  4.76402918e-03,
+         5.19253871e-03, -2.10837952e-03,  2.51398841e-03],
+       [ 1.51244094e-03,  5.10212543e-03,  1.83117898e-03,
+        -1.11189476e-03, -3.74790010e-03, -9.31711711e-03,
+        -2.10837952e-03,  1.20696319e-02, -5.23805452e-03],
+       [-1.69856434e-03, -2.79892766e-03, -5.07705637e-03,
+         3.01694619e-04, -1.45715836e-03,  9.97438067e-03,
+         2.51398841e-03, -5.23805452e-03,  1.13886174e-02]])
 
-GEV_post_cov = np.array([[0.00093752, 0.00046485, 0],
-                         [0.00046485, 0.00031506, 0],
+range_post_cov = np.array([[ 0.03558729, -0.01194256,  0.01789309, -0.02617062,  0.03662592,
+        -0.02371117,  0.00875232, -0.00807813, -0.01552671],
+       [-0.01194256,  0.04356771, -0.03063381,  0.01660483, -0.04042018,
+         0.02988818,  0.0138222 ,  0.00860835,  0.0198619 ],
+       [ 0.01789309, -0.03063381,  0.05484638, -0.02905475,  0.04804216,
+        -0.04557623, -0.00314149, -0.02029084, -0.02739919],
+       [-0.02617062,  0.01660483, -0.02905475,  0.10147915, -0.09118452,
+         0.13567129,  0.02498169, -0.04548769,  0.06119967],
+       [ 0.03662592, -0.04042018,  0.04804216, -0.09118452,  0.19990843,
+        -0.17453938, -0.04141167,  0.02987613, -0.08793701],
+       [-0.02371117,  0.02988818, -0.04557623,  0.13567129, -0.17453938,
+         0.25707198,  0.06007342, -0.0865937 ,  0.10147855],
+       [ 0.00875232,  0.0138222 , -0.00314149,  0.02498169, -0.04141167,
+         0.06007342,  0.0469336 , -0.03794883,  0.0275728 ],
+       [-0.00807813,  0.00860835, -0.02029084, -0.04548769,  0.02987613,
+        -0.0865937 , -0.03794883,  0.10611076, -0.02885252],
+       [-0.01552671,  0.0198619 , -0.02739919,  0.06119967, -0.08793701,
+         0.10147855,  0.0275728 , -0.02885252,  0.07082559]])
+
+GEV_post_cov = np.array([[0.00290557, 0.00159124, 0],
+                         [0.00159124, 0.0010267,  0],
                          [0         , 0         , 1]])
 
 if rank == 0:
@@ -524,6 +544,67 @@ for iter in range(1, n_iters):
             # plt.legend()
             # plt.savefig('phi_GEV.pdf')
 
+    # Adaptive Update autotunings
+
+    # R_t
+
+    # phi, range, and GEV
+
+    if rank == 0:
+        if iter % 25 == 0:
+            gamma1 = 1 / ((iter/25) ** c_1)
+            gamma2 = c_0 * gamma1
+
+            # phi
+            r_hat = num_accepted['phi']/25
+            num_accepted['phi'] = 0
+            ## phi_block1
+            Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(0,3)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block1']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['phi_block1'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['phi_block1'] = Sigma_0['phi_block1'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block1'])
+            ## phi_block2
+            Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(3,6)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block2']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['phi_block2'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['phi_block2'] = Sigma_0['phi_block2'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block2'])
+            ## phi_block3
+            Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(6,9)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block3']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['phi_block3'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['phi_block3'] = Sigma_0['phi_block3'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block3'])
+
+            # range
+            r_hat = num_accepted['range']/25
+            num_accepted['range'] = 0
+            ## range_block1
+            Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(0,3)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block1']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['range_block1'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['range_block1'] = Sigma_0['range_block1'] + gamma1*(Sigma_0_hat - Sigma_0['range_block1'])
+            ## range_block2
+            Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(3,6)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block2']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['range_block2'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['range_block2'] = Sigma_0['range_block2'] + gamma1*(Sigma_0_hat - Sigma_0['range_block2'])
+            ## range_block3
+            Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(6,9)]))
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block3']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['range_block3'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['range_block3'] = Sigma_0['range_block3'] + gamma1*(Sigma_0_hat - Sigma_0['range_block3'])
+            
+            # GEV
+            r_hat = num_accepted['GEV']/25
+            num_accepted['GEV'] = 0
+            sample_cov = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
+                                            GEV_knots_trace[iter-25:iter,1,0].ravel()])) # tau scale
+            Sigma_0_hat = np.zeros((3,3)) # doing the hack because we are not updating ksi
+            Sigma_0_hat[2,2] = 1
+            Sigma_0_hat[0:2,0:2] += sample_cov
+            log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
+            sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
+            Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
+            pass
 
 #### ----- Update Rt ----- Parallelized Across N time
 
@@ -569,12 +650,12 @@ for iter in range(1, n_iters):
 
     # Propose new phi at the knots --> new phi vector
     if rank == 0:
-        # random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), phi_post_cov, size = None) # size = None returns vector
-        # phi_knots_proposal = phi_knots_current + random_walk_kxk
-        # phi_knots_proposal = random_generator.normal(loc = 0.0, scale = 0.1, size = k) + phi_knots_current
-        random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[0:3,0:3], size = None)
-        random_walk_block2 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[3:6,3:6], size = None)
-        random_walk_block3 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[6:9,6:9], size = None)
+        # random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[0:3,0:3], size = None)
+        # random_walk_block2 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[3:6,3:6], size = None)
+        # random_walk_block3 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[6:9,6:9], size = None)
+        random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
+        random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
+        random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
         random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
         phi_knots_proposal = phi_knots_current + random_walk_perturb
     else:
@@ -624,6 +705,7 @@ for iter in range(1, n_iters):
             phi_vec_update = phi_vec_proposal
             phi_knots_update = phi_knots_proposal
             phi_accepted = True
+            num_accepted['phi'] += 1
         
         # Store the result
         phi_knots_trace[iter,:] = phi_knots_update
@@ -648,12 +730,9 @@ for iter in range(1, n_iters):
 
     # Propose new range at the knots --> new range vector
     if rank == 0:
-        # random_walk_kxk = random_generator.multivariate_normal(np.zeros(k), range_post_cov, size = None) # size = None so returns vector
-        # range_knots_proposal = range_knots_current + random_walk_kxk
-        # range_knots_proposal = random_generator.normal(loc = 0.0, scale = 0.1, size = k) + range_knots_current
-        random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[0:3,0:3], size = None)
-        random_walk_block2 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[3:6,3:6], size = None)
-        random_walk_block3 = random_generator.multivariate_normal(np.zeros(3), range_post_cov[6:9,6:9], size = None)
+        random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
+        random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
+        random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
         random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
         range_knots_proposal = range_knots_current + random_walk_perturb
     else:
@@ -700,6 +779,7 @@ for iter in range(1, n_iters):
             range_vec_update = range_vec_proposal
             range_knots_update = range_knots_proposal
             range_accepted = True
+            num_accepted['range'] += 1
         
         # Store the result
         range_knots_trace[iter,:] = range_knots_update
@@ -726,7 +806,8 @@ for iter in range(1, n_iters):
 
     # Propose new GEV params at the knots --> new GEV params vector
     if rank == 0:
-        random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
+        # random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
+        random_walk_3x3 = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
         GEV_knots_proposal = GEV_knots_current + random_walk_3x3
         GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot
         GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
@@ -781,6 +862,7 @@ for iter in range(1, n_iters):
             Shape_matrix_update = Shape_matrix_proposal
             GEV_knots_update = GEV_knots_proposal
             GEV_accepted = True
+            num_accepted['GEV'] += 1
         
         # Store the result
         GEV_knots_trace[iter,:,:] = GEV_knots_update
@@ -936,6 +1018,17 @@ if rank == 0:
 # phi_post_cov = np.cov(np.array([phi_knots_trace[:,i].ravel() for i in range(k)]))
 
 # range_post_cov = np.cov(np.array([range_knots_trace[:,i].ravel() for i in range(k)]))
+
+
+
+
+
+
+
+
+
+
+
 
 # Evaluate Profile Likelihoods
 # ###########################################################################################
