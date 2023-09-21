@@ -262,52 +262,24 @@ size = comm.Get_size()
 
 random_generator = np.random.RandomState()
 
+if rank == 0:
+    start_time = time.time()
+
 # %%
 # ------- Preparation for Adaptive Metropolis -----------------------------
+
 # constant to control adaptive Metropolis updates
 c_0 = 1
 c_1 = 0.8
-# offset = 3 # the iteration offset?
+offset = 3 # the iteration offset?
 # r_opt_1d = .41
 # r_opt_2d = .35
-r_opt = 0.234
+# r_opt = 0.234 # asymptotically
+r_opt = .35
 # eps = 1e-6
 
-if rank == 0: # these parameters are only proposed on worker 0
-    sigma_m_sq = {}
-    sigma_m_sq['phi_block1'] = 0.01
-    sigma_m_sq['phi_block2'] = 0.01
-    sigma_m_sq['phi_block3'] = 0.01
-    sigma_m_sq['range_block1'] = 0.01
-    sigma_m_sq['range_block2'] = 0.01
-    sigma_m_sq['range_block3'] = 0.01
-    sigma_m_sq['GEV'] = 0.01
-
-    Sigma_0 = {}
-    Sigma_0['phi_block1'] = np.identity(3)
-    Sigma_0['phi_block2'] = np.identity(3)
-    Sigma_0['phi_block3'] = np.identity(3)
-    Sigma_0['range_block1'] = np.identity(3)
-    Sigma_0['range_block2'] = np.identity(3)
-    Sigma_0['range_block3'] = np.identity(3)
-    Sigma_0['GEV'] = np.identity(3)
-
-    num_accepted = {}
-    num_accepted['phi'] = 0
-    num_accepted['range'] = 0
-    num_accepted['GEV'] = 0
-
-sigma_m_sq_Rt = (2.4**2)/N # each worker t proposed one Rt
-# Sigma_0_Rt = np.identity(N)
-num_accepted_Rt = 0
-
-# phi_post_cov = 0.001 * np.identity(k)
-
-# range_post_cov = 0.001 * np.identity(k)
-
-# GEV_post_cov = 0.0001 * np.identity(3)
-
-phi_post_cov = np.array([[ 1.02091028e-02, -4.65416081e-03,  2.83121774e-03,
+# posterior covariance matrix from trial run
+phi_post_cov = 0.1*np.array([[ 1.02091028e-02, -4.65416081e-03,  2.83121774e-03,
         -1.98334540e-03,  6.43880363e-05,  2.91578540e-03,
          8.30697725e-04,  1.51244094e-03, -1.69856434e-03],
        [-4.65416081e-03,  1.78529332e-02, -6.46019647e-03,
@@ -335,7 +307,7 @@ phi_post_cov = np.array([[ 1.02091028e-02, -4.65416081e-03,  2.83121774e-03,
          3.01694619e-04, -1.45715836e-03,  9.97438067e-03,
          2.51398841e-03, -5.23805452e-03,  1.13886174e-02]])
 
-range_post_cov = np.array([[ 0.03558729, -0.01194256,  0.01789309, -0.02617062,  0.03662592,
+range_post_cov = 0.1*np.array([[ 0.03558729, -0.01194256,  0.01789309, -0.02617062,  0.03662592,
         -0.02371117,  0.00875232, -0.00807813, -0.01552671],
        [-0.01194256,  0.04356771, -0.03063381,  0.01660483, -0.04042018,
          0.02988818,  0.0138222 ,  0.00860835,  0.0198619 ],
@@ -358,10 +330,42 @@ GEV_post_cov = np.array([[0.00290557, 0.00159124, 0],
                          [0.00159124, 0.0010267,  0],
                          [0         , 0         , 1]])
 
+# Scalors for adaptive updates
+# (phi, range, GEV) these parameters are only proposed on worker 0
+if rank == 0: 
+    sigma_m_sq = {}
+    sigma_m_sq['phi_block1'] = (2.4**2)/3
+    sigma_m_sq['phi_block2'] = (2.4**2)/3
+    sigma_m_sq['phi_block3'] = (2.4**2)/3
+    sigma_m_sq['range_block1'] = (2.4**2)/3
+    sigma_m_sq['range_block2'] = (2.4**2)/3
+    sigma_m_sq['range_block3'] = (2.4**2)/3
+    sigma_m_sq['GEV'] = (2.4**2)/3
+
+    # initialize them with posterior covariance matrix
+    Sigma_0 = {}
+    Sigma_0['phi_block1'] = phi_post_cov[0:3,0:3]
+    Sigma_0['phi_block2'] = phi_post_cov[3:6,3:6]
+    Sigma_0['phi_block3'] = phi_post_cov[6:9,6:9]
+    Sigma_0['range_block1'] = range_post_cov[0:3,0:3]
+    Sigma_0['range_block2'] = range_post_cov[3:6,3:6]
+    Sigma_0['range_block3'] = range_post_cov[6:9,6:9]
+    Sigma_0['GEV'] = GEV_post_cov
+
+    num_accepted = {}
+    num_accepted['phi'] = 0
+    num_accepted['range'] = 0
+    num_accepted['GEV'] = 0
+
+# Rt: each worker t proposed Rt at k knots at time t
 if rank == 0:
-    start_time = time.time()
+    sigma_m_sq_Rt_list = [(2.4**2)/k]*size # comm scatter and gather preserves order
+    num_accepted_Rt_list = [0]*size
 else:
-    start_time = None
+    sigma_m_sq_Rt_list = None
+    num_accepted_Rt_list = None
+sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
+num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
 ########## Storage Place ##################################################
 # %%
@@ -545,16 +549,25 @@ for iter in range(1, n_iters):
             # plt.savefig('phi_GEV.pdf')
 
     # Adaptive Update autotunings
+    if iter % 25 == 0:
+            
+        gamma1 = 1 / ((iter/25 + offset) ** c_1)
+        gamma2 = c_0 * gamma1
 
-    # R_t
+        # R_t
+        sigma_m_sq_Rt_list = comm.gather(sigma_m_sq_Rt, root = 0)
+        num_accepted_Rt_list = comm.gather(num_accepted_Rt, root = 0)
+        if rank == 0:
+            for i in range(size):
+                r_hat = num_accepted_Rt_list[i]/25
+                num_accepted_Rt_list[i] = 0
+                log_sigma_m_sq_hat = np.log(sigma_m_sq_Rt_list[i]) + gamma2*(r_hat - r_opt)
+                sigma_m_sq_Rt_list[i] = np.exp(log_sigma_m_sq_hat)
+        sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
+        num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
-    # phi, range, and GEV
-
-    if rank == 0:
-        if iter % 25 == 0:
-            gamma1 = 1 / ((iter/25) ** c_1)
-            gamma2 = c_0 * gamma1
-
+        # phi, range, and GEV
+        if rank == 0:
             # phi
             r_hat = num_accepted['phi']/25
             num_accepted['phi'] = 0
@@ -604,12 +617,16 @@ for iter in range(1, n_iters):
             log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
             sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
             Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
-            pass
+        
+
 
 #### ----- Update Rt ----- Parallelized Across N time
 
     # Propose a R at time "rank", on log-scale
-    R_proposal_log = random_generator.normal(loc=0.0, scale=2.0, size=k) + R_current_log
+    # R_proposal_log = random_generator.normal(loc=0.0, scale=2.0, size=k) + R_current_log
+
+    # Propose a R using adaptive update
+    R_proposal_log = np.sqrt(sigma_m_sq_Rt)*random_generator.normal(loc = 0.0, scale = 1.0, size = k) + R_current_log
 
     # Conditional Likelihood at Current
     R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
@@ -636,6 +653,7 @@ for iter in range(1, n_iters):
         R_update_log = R_current_log
     else: # Accept, u <= ratio
         R_update_log = R_proposal_log
+        num_accepted_Rt += 1
     
     R_current_log = R_update_log
     R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
