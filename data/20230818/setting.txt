@@ -1,2 +1,0 @@
-(phi, GEV) being updated together
-traceplots of 3000 iterations
