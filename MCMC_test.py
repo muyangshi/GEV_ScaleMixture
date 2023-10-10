@@ -3,11 +3,11 @@
 #%%
 # Imports
 import os
-os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
-os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
-os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
-os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+os.environ["OMP_NUM_THREADS"] = "2" # export OMP_NUM_THREADS=1
+os.environ["OPENBLAS_NUM_THREADS"] = "2" # export OPENBLAS_NUM_THREADS=1
+os.environ["MKL_NUM_THREADS"] = "2" # export MKL_NUM_THREADS=1
+os.environ["VECLIB_MAXIMUM_THREADS"] = "2" # export VECLIB_MAXIMUM_THREADS=1
+os.environ["NUMEXPR_NUM_THREADS"] = "2" # export NUMEXPR_NUM_THREADS=1
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,9 +23,10 @@ from mpi4py import MPI
 # ------- 0. Simulation Setting --------------------------------------
 
 ## space setting
-np.random.seed(2345)
-N = 5 # number of time replicates
-num_sites = 50 # number of sites/stations
+# np.random.seed(2345) # 1
+np.random.seed(79) # 2
+N = 4 # number of time replicates
+num_sites = 25 # number of sites/stations
 k = 9 # number of knots
 
 ## unchanged constants or parameters
@@ -71,7 +72,8 @@ plotgrid_y = np.linspace(0.1,10,25)
 plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
 plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
 
-radius = 3.5 # from 6 to 4 to 3.5
+radius = 4 # 3.5 might make some points closer to the edge of circle
+            # might lead to numericla issues
 radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
 
 # Plot the space
@@ -102,8 +104,8 @@ ax.add_patch(space_rectangle)
 # ax.add_patch(circle4)
 plt.xlim([-2,12])
 plt.ylim([-2,12])
-# plt.show()
-plt.close()
+plt.show()
+# plt.close()
 
 # %%
 # ------- 2. Generate the weight matrices ------------------------------------
@@ -161,7 +163,8 @@ for site_id in np.arange(625):
 # range_vec = gaussian_weight_matrix @ range_at_knots
 
 ## range_vec
-range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
+# range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
+range_at_knots = np.array([0.3]*9)
 range_vec = gaussian_weight_matrix @ range_at_knots
 
 # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
@@ -360,7 +363,7 @@ if rank == 0:
 # Rt: each worker t proposed Rt at k knots at time t
 if rank == 0:
     sigma_m_sq_Rt_list = [(2.4**2)/k]*size # comm scatter and gather preserves order
-    num_accepted_Rt_list = [0]*size
+    num_accepted_Rt_list = [0]*size # [0, 0, ... 0]
 else:
     sigma_m_sq_Rt_list = None
     num_accepted_Rt_list = None
@@ -406,6 +409,12 @@ else:
     GEV_knots_init = None
 GEV_knots_init = comm.bcast(GEV_knots_init, root = 0)
 
+## ---- overal likelihood? -----
+if rank == 0:
+    loglik_trace = np.full(shape = (n_iters,1), fill_value = np.nan)
+else:
+    loglik_trace = None
+
 ########## Initialize ##################################################
 # %%
 # Initialize
@@ -442,7 +451,7 @@ for iter in range(1, n_iters):
     if rank == 0:
         if iter == 1:
             print(iter)
-        if iter % 25 == 0:
+        if iter % 100 == 0:
             print(iter)
         if iter % 1000 == 0 or iter == n_iters-1:
             # Save data every 1000 iterations
@@ -452,15 +461,17 @@ for iter in range(1, n_iters):
             np.save('phi_knots_trace', phi_knots_trace)
             np.save('range_knots_trace', range_knots_trace)
             np.save('GEV_knots_trace', GEV_knots_trace)
+            np.save('loglik_trace', loglik_trace)
 
             # Print traceplot every 1000 iterations
             xs = np.arange(iter)
-            xs_thin = xs[0::10]
-            xs_thin2 = np.arange(len(xs_thin))
+            xs_thin = xs[0::10] # index 1, 11, 21, ...
+            xs_thin2 = np.arange(len(xs_thin)) # numbers 1, 2, 3, ...
             R_trace_log_thin = R_trace_log[0:iter:10,:,:]
             phi_knots_trace_thin = phi_knots_trace[0:iter:10,:]
             range_knots_trace_thin = range_knots_trace[0:iter:10,:]
             GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
+            loglik_trace_thin = loglik_trace[0:iter:10,:]
 
             # ---- phi ----
             plt.subplots()
@@ -547,6 +558,15 @@ for iter in range(1, n_iters):
             # plt.title('traceplot for phi and GEV')
             # plt.legend()
             # plt.savefig('phi_GEV.pdf')
+
+            # log-likelihood
+            plt.subplots()
+            plt.plot(xs_thin2, loglik_trace_thin)
+            plt.title('traceplot for log-likelihood')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('loglikelihood')
+            plt.savefig('loglik.pdf')
+            plt.close()
 
     # Adaptive Update autotunings
     if iter % 25 == 0:
@@ -705,6 +725,9 @@ for iter in range(1, n_iters):
     # Gather likelihood calculated across time
     lik_gathered = comm.gather(lik_1t, root = 0)
     lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+    # if rank == 0:
+        # print("iter: ", iter, "lik after R: ", round(sum(lik_gathered),3))
 
     # Accept or Reject
     if rank == 0:
@@ -906,6 +929,10 @@ for iter in range(1, n_iters):
                                         phi_vec_current, gamma, 100)
     
 
+    if rank == 0:
+        # print("after iter: ", iter, "lik: ", round(sum(lik_gathered),3))
+        loglik_trace[iter,0] = round(sum(lik_gathered),3)
+
 # End of MCMC
 if rank == 0:
     end_time = time.time()
@@ -915,6 +942,7 @@ if rank == 0:
     np.save('phi_knots_trace', phi_knots_trace)
     np.save('range_knots_trace', range_knots_trace)
     np.save('GEV_knots_trace', GEV_knots_trace)
+    np.save('loglik_trace', loglik_trace)
 
 # # %%
 # # Plotting
