@@ -568,7 +568,7 @@ def norm_to_Pareto1(z):
     return 1/(1-tmp)-1
 
 
-def pareto_to_Norm(W):
+def pareto1_to_Norm(W):
     if(isinstance(W, (int, np.int64, float))): W=np.array([W])
     tmp = 1-1/(W+1)
     return norm.ppf(tmp)
@@ -692,7 +692,7 @@ def marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi_vec, 
   ## Initialize space to store the log-likelihoods for each observation:
   W_vec = X/R_vec**phi_vec
   
-  Z_vec = pareto_to_Norm(W_vec)
+  Z_vec = pareto1_to_Norm(W_vec)
   # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
   cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
   part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
@@ -711,7 +711,7 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
   ## Initialize space to store the log-likelihoods for each observation:
   W_vec = X/R_vec**phi_vec
 
-  Z_vec = pareto_to_Norm(W_vec)
+  Z_vec = pareto1_to_Norm(W_vec)
   # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
   cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
   part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
