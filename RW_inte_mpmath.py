@@ -16,7 +16,9 @@ def dRW_integrand_mpmath(r, x, phi, gamma):
     return numerator / denominator * exp
 def dRW_mpmath(x, phi, gamma, **kwargs):
     return mp.sqrt(gamma/(2 * mp.pi)) * mp.quad(lambda r : dRW_integrand_mpmath(r, x, phi, gamma), [0, mp.inf], method='tanh-sinh', **kwargs)
-dRW_mpmath_vec = np.vectorize(dRW_mpmath)
+dRW_mpmath_vec = np.vectorize(dRW_mpmath) # return a np.array of mpf
+def dRW_mpmath_vec_float(x, phi, gamma): # return a np.array of floats
+    return(dRW_mpmath_vec(x, phi, gamma).astype(float))
 
 # mpmath pRW
 def pRW_integrand_mpmath(r, x, phi, gamma):
@@ -26,7 +28,9 @@ def pRW_integrand_mpmath(r, x, phi, gamma):
     return numerator / denominator * exp
 def pRW_mpmath(x, phi, gamma):
     return 1 - mp.sqrt(gamma/(2*mp.pi)) * mp.quad(lambda r : pRW_integrand_mpmath(r, x, phi, gamma), [0, mp.inf], method='tanh-sinh')
-pRW_mpmath_vec = np.vectorize(pRW_mpmath)
+pRW_mpmath_vec = np.vectorize(pRW_mpmath) # return a np.array of mpf
+def pRW_mpmath_vec_float(x, phi, gamma): # return a np.array of floats
+    return(pRW_mpmath_vec(x, phi, gamma).astype(float))
 
 # mpmath transform dRW -- no significant gain in terms of accuracy as compared to dRW_mpmath
 # mpmath with high dps can handle integration from [0, mp.inf] well
@@ -55,4 +59,6 @@ def qRW_mpmath(p, phi, gamma):
     return mp.findroot(lambda x : pRW_mpmath(x, phi, gamma) - p,
                        [0,1e12],
                        solver='anderson')
-qRW_mpmath_vec = np.vectorize(qRW_mpmath)
+qRW_mpmath_vec = np.vectorize(qRW_mpmath) # return a np.array of mpf
+def qRW_mpmath_vec_float(p, phi, gamma): # return a np.array of floats
+    return(qRW_mpmath_vec(p, phi, gamma).astype(float))
