@@ -13,11 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import time
-from model_sim import *
-from ns_cov import *
 from mpi4py import MPI
-# from multiprocessing import Pool
-# from p_cubature import *
+from utilities import *
 
 # %%
 # ------- 0. Simulation Setting --------------------------------------
@@ -26,7 +23,7 @@ from mpi4py import MPI
 # np.random.seed(2345) # 1
 np.random.seed(79) # 2
 N = 4 # number of time replicates
-num_sites = 25 # number of sites/stations
+num_sites = 625 # number of sites/stations
 k = 9 # number of knots
 
 ## unchanged constants or parameters
@@ -77,34 +74,19 @@ radius = 4 # 3.5 might make some points closer to the edge of circle
 radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
 
 # Plot the space
-fig, ax = plt.subplots()
-ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
-ax.plot(knots_x, knots_y, 'r+')
-space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
-                                fill = False, color = 'black')
-for i in range(k):
-    circle_i = plt.Circle((knots_xy[i,0],knots_xy[i,1]), radius_from_knots[0], 
-                     color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-    ax.add_patch(circle_i)
-# circle0 = plt.Circle((knots_xy[0,0],knots_xy[0,1]), radius_from_knots[0], 
+# fig, ax = plt.subplots()
+# ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
+# ax.plot(knots_x, knots_y, 'r+')
+# space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
+#                                 fill = False, color = 'black')
+# for i in range(k):
+#     circle_i = plt.Circle((knots_xy[i,0],knots_xy[i,1]), radius_from_knots[0], 
 #                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# circle1 = plt.Circle((knots_xy[1,0],knots_xy[1,1]), radius_from_knots[1], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# circle2 = plt.Circle((knots_xy[2,0],knots_xy[2,1]), radius_from_knots[1], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# circle3 = plt.Circle((knots_xy[3,0],knots_xy[3,1]), radius_from_knots[1], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-# circle4 = plt.Circle((knots_xy[4,0],knots_xy[4,1]), radius_from_knots[1], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-ax.add_patch(space_rectangle)
-# ax.add_patch(circle0)
-# ax.add_patch(circle1)
-# ax.add_patch(circle2)
-# ax.add_patch(circle3)
-# ax.add_patch(circle4)
-plt.xlim([-2,12])
-plt.ylim([-2,12])
-plt.show()
+#     ax.add_patch(circle_i)
+# ax.add_patch(space_rectangle)
+# plt.xlim([-2,12])
+# plt.ylim([-2,12])
+# plt.show()
 # plt.close()
 
 # %%
@@ -451,7 +433,7 @@ for iter in range(1, n_iters):
     if rank == 0:
         if iter == 1:
             print(iter)
-        if iter % 100 == 0:
+        if iter % 1 == 0:
             print(iter)
         if iter % 1000 == 0 or iter == n_iters-1:
             # Save data every 1000 iterations
@@ -641,7 +623,8 @@ for iter in range(1, n_iters):
 
 
 #### ----- Update Rt ----- Parallelized Across N time
-
+    if rank == 0:
+        print('Updating R')
     # Propose a R at time "rank", on log-scale
     # R_proposal_log = random_generator.normal(loc=0.0, scale=2.0, size=k) + R_current_log
 
@@ -685,7 +668,8 @@ for iter in range(1, n_iters):
         R_trace_log[iter,:,:] = np.vstack(R_current_log_gathered).T
 
 #### ----- Update phi ----- parallelized likelihood calculation across N time
-
+    if rank == 0:
+        print('Updating phi')
     # Propose new phi at the knots --> new phi vector
     if rank == 0:
         # random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[0:3,0:3], size = None)
@@ -703,7 +687,7 @@ for iter in range(1, n_iters):
     phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
 
     # Conditional Likelihood at Current
-    # X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+    # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
     #                               phi_vec_current, gamma, 100)
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
@@ -716,8 +700,8 @@ for iter in range(1, n_iters):
         X_star_1t_proposal = np.NINF
         lik_1t_proposal = np.NINF
     else: # 0 < phi <= 1
-        X_star_1t_proposal = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                      phi_vec_proposal, gamma, 100)
+        X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                      phi_vec_proposal, gamma)
         lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                         phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -764,11 +748,12 @@ for iter in range(1, n_iters):
 
     # Update X_star
     if phi_accepted:
-        X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_current, gamma, 100)
+        X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma)
 
 #### ----- Update range_vec ----- parallelized likelihood calculation across N time
-
+    if rank == 0:
+        print('Updating range')
     # Propose new range at the knots --> new range vector
     if rank == 0:
         random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
@@ -844,7 +829,8 @@ for iter in range(1, n_iters):
 
 #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
 #### ----- Do not update ksi -----
-
+    if rank == 0:
+        print('Updating GEV')
     # Propose new GEV params at the knots --> new GEV params vector
     if rank == 0:
         # random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
@@ -865,6 +851,8 @@ for iter in range(1, n_iters):
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+    # log-prior density for scale as P(tau) = 1/tau
+    prior_1t = np.sum(-np.log(Scale_matrix_current[:,rank]))
 
     # Conditional Likelihood at Proposed
     Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:])
@@ -872,21 +860,28 @@ for iter in range(1, n_iters):
     if Scale_out_of_range or Shape_out_of_range:
         X_star_1t_proposal = np.NINF
         lik_1t_proposal = np.NINF
+        prior_1t_proposal = np.NINF
     else:
-        X_star_1t_proposal = qRW_Newton(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
-                                      phi_vec_current, gamma, 100)
+        X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
+                                      phi_vec_current, gamma)
         lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                         Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        prior_1t_proposal = np.sum(-np.log(Scale_matrix_proposal[:,rank]))
+    
     # Gather likelihood calculated across time
     lik_gathered = comm.gather(lik_1t, root = 0)
     lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+    prior_gathered = comm.gather(prior_1t, root = 0)
+    prior_proposal_gathered = comm.gather(prior_1t_proposal, root = 0)
 
     # Accept or Reject
     if rank == 0:
         GEV_accepted = False
         lik = sum(lik_gathered)
+        lik += sum(prior_gathered)
         lik_proposal = sum(lik_proposal_gathered)
+        lik_proposal += sum(prior_proposal_gathered)
 
         u = random_generator.uniform()
         ratio = np.exp(lik_proposal - lik)
@@ -925,8 +920,8 @@ for iter in range(1, n_iters):
 
     # Update X_star
     if GEV_accepted:
-        X_star_1t_current = qRW_Newton(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_current, gamma, 100)
+        X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma)
     
 
     if rank == 0:
@@ -1087,7 +1082,7 @@ if rank == 0:
 # for phi in phis:
 #     phi_vec = np.repeat(phi, num_sites)
 #     # X_star_tmp = X_star
-#     X_star_tmp = qRW_Newton(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
+#     X_star_tmp = qRW(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
 #     lik.append(marg_transform_data_mixture_likelihood(Y, X_star_tmp, Loc_matrix, Scale_matrix, Shape_matrix, phi_vec, gamma_vec, R_matrix, cholesky_matrix))
 #     # lik.append(marg_transform_data_mixture_likelihood(Y, X, Loc_matrix, Scale_matrix, Shape_matrix, phi_vec, gamma_vec, R_matrix, cholesky_matrix))
 
@@ -1101,7 +1096,7 @@ if rank == 0:
 # lik = []
 # for Loc in Locs:
 #     Loc_matrix = np.full(shape = Y.shape, fill_value = Loc)
-#     X_star_tmp = qRW_Newton(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
+#     X_star_tmp = qRW(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
 #     lik.append(marg_transform_data_mixture_likelihood(Y, X_star_tmp, Loc_matrix, Scale_matrix, Shape_matrix, phi_vec, gamma_vec, R_matrix, cholesky_matrix))
 # plt.plot(Locs, lik)
 # Loc_matrix = np.full(shape = Y.shape, fill_value = mu)
@@ -1112,7 +1107,7 @@ if rank == 0:
 # lik = []
 # for Scale in Scales:
 #     Scale_matrix = np.full(shape = Y.shape, fill_value = Scale)
-#     X_star_tmp = qRW_Newton(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
+#     X_star_tmp = qRW(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
 #     lik.append(marg_transform_data_mixture_likelihood(Y, X_star_tmp, Loc_matrix, Scale_matrix, Shape_matrix, phi_vec, gamma_vec, R_matrix, cholesky_matrix))
 # plt.plot(Scales, lik)
 # Scale_matrix = np.full(shape = Y.shape, fill_value = tau)
@@ -1123,7 +1118,7 @@ if rank == 0:
 # lik = []
 # for Shape in Shapes:
 #     Shape_matrix = np.full(shape = Y.shape, fill_value = Shape)
-#     X_star_tmp = qRW_Newton(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
+#     X_star_tmp = qRW(pgev(Y, Loc_matrix, Scale_matrix, Shape_matrix), phi, gamma, 100)
 #     lik.append(marg_transform_data_mixture_likelihood(Y, X_star_tmp, Loc_matrix, Scale_matrix, Shape_matrix, phi_vec, gamma_vec, R_matrix, cholesky_matrix))
 # plt.plot(Shapes, lik)
 # Shape_matrix = np.full(shape = Y.shape, fill_value = ksi)
