@@ -3,11 +3,11 @@
 #%%
 # Imports
 import os
-os.environ["OMP_NUM_THREADS"] = "2" # export OMP_NUM_THREADS=1
-os.environ["OPENBLAS_NUM_THREADS"] = "2" # export OPENBLAS_NUM_THREADS=1
-os.environ["MKL_NUM_THREADS"] = "2" # export MKL_NUM_THREADS=1
-os.environ["VECLIB_MAXIMUM_THREADS"] = "2" # export VECLIB_MAXIMUM_THREADS=1
-os.environ["NUMEXPR_NUM_THREADS"] = "2" # export NUMEXPR_NUM_THREADS=1
+os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,15 +15,16 @@ import scipy
 import time
 from mpi4py import MPI
 from utilities import *
+from time import strftime, localtime
 
 # %%
 # ------- 0. Simulation Setting --------------------------------------
 
 ## space setting
-# np.random.seed(2345) # 1
-np.random.seed(79) # 2
-N = 4 # number of time replicates
-num_sites = 625 # number of sites/stations
+np.random.seed(2345) # 1
+# np.random.seed(79) # 2
+N = 16 # number of time replicates
+num_sites = 100 # number of sites/stations
 k = 9 # number of knots
 
 ## unchanged constants or parameters
@@ -41,7 +42,7 @@ nu = 0.5 # exponential kernel for matern with nu = 1/2
 # phi_at_knots
 # phi_post_cov
 # range_post_cov
-n_iters = 500
+n_iters = 5000
 
 # %%
 # ------- 1. Generate Sites and Knots --------------------------------
@@ -145,8 +146,8 @@ for site_id in np.arange(625):
 # range_vec = gaussian_weight_matrix @ range_at_knots
 
 ## range_vec
-# range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
-range_at_knots = np.array([0.3]*9)
+range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2
+# range_at_knots = np.array([0.3]*9)
 range_vec = gaussian_weight_matrix @ range_at_knots
 
 # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
@@ -229,9 +230,7 @@ for t in np.arange(N):
 Loc_matrix = np.full(shape = Y.shape, fill_value = mu)
 Scale_matrix = np.full(shape = Y.shape, fill_value = tau)
 Shape_matrix = np.full(shape = Y.shape, fill_value = ksi)
-# R_matrix = np.tile(R, num_sites).reshape(Y.shape)
 R_matrix = R_at_sites
-# phi_vec = np.repeat(phi, num_sites)
 gamma_vec = np.repeat(gamma, num_sites)
 cholesky_matrix = scipy.linalg.cholesky(K, lower=False)
 
@@ -433,9 +432,10 @@ for iter in range(1, n_iters):
     if rank == 0:
         if iter == 1:
             print(iter)
-        if iter % 1 == 0:
+        if iter % 10 == 0:
             print(iter)
-        if iter % 1000 == 0 or iter == n_iters-1:
+            print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
+        if iter % 100 == 0 or iter == n_iters-1:
             # Save data every 1000 iterations
             end_time = time.time()
             print('elapsed: ', round(end_time - start_time, 1), ' seconds')
@@ -623,8 +623,8 @@ for iter in range(1, n_iters):
 
 
 #### ----- Update Rt ----- Parallelized Across N time
-    if rank == 0:
-        print('Updating R')
+    # if rank == 0:
+    #     print('Updating R')
     # Propose a R at time "rank", on log-scale
     # R_proposal_log = random_generator.normal(loc=0.0, scale=2.0, size=k) + R_current_log
 
@@ -668,8 +668,8 @@ for iter in range(1, n_iters):
         R_trace_log[iter,:,:] = np.vstack(R_current_log_gathered).T
 
 #### ----- Update phi ----- parallelized likelihood calculation across N time
-    if rank == 0:
-        print('Updating phi')
+    # if rank == 0:
+    #     print('Updating phi')
     # Propose new phi at the knots --> new phi vector
     if rank == 0:
         # random_walk_block1 = random_generator.multivariate_normal(np.zeros(3), phi_post_cov[0:3,0:3], size = None)
@@ -752,8 +752,8 @@ for iter in range(1, n_iters):
                                         phi_vec_current, gamma)
 
 #### ----- Update range_vec ----- parallelized likelihood calculation across N time
-    if rank == 0:
-        print('Updating range')
+    # if rank == 0:
+    #     print('Updating range')
     # Propose new range at the knots --> new range vector
     if rank == 0:
         random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
@@ -829,14 +829,14 @@ for iter in range(1, n_iters):
 
 #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
 #### ----- Do not update ksi -----
-    if rank == 0:
-        print('Updating GEV')
+    # if rank == 0:
+    #     print('Updating GEV')
     # Propose new GEV params at the knots --> new GEV params vector
     if rank == 0:
         # random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
         random_walk_3x3 = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
         GEV_knots_proposal = GEV_knots_current + random_walk_3x3
-        GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot
+        GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot, GEV params spatial stationary
         GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
     else:
         GEV_knots_proposal = None
