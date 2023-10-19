@@ -9,6 +9,10 @@ from ns_cov import *
 import RW_inte_mpmath
 import model_sim
 
+dRW_method = 'cpp'
+pRW_method = 'cpp'
+qRW_method = 'cpp'
+
 # utility functions used to simulate dataset
 weights_fun = model_sim.weights_fun
 wendland_weights_fun = model_sim.wendland_weights_fun
@@ -23,15 +27,21 @@ dgev = model_sim.dgev
 # specify which dRW, pRW, and qRW to use
 # then specify the likelihoods to use that integral
 
-# dRW = model_sim.dRW
-# pRW = model_sim.pRW
-# def qRW(p, phi, gamma):
-#     return(model_sim.qRW_Newton(p, phi, gamma, 100))
+dRW_cpp = model_sim.dRW
+pRW_cpp = model_sim.pRW
+def qRW_cpp(p, phi, gamma):
+    return(model_sim.qRW_Newton(p, phi, gamma, 100))
 
-dRW = RW_inte_mpmath.dRW_mpmath_vec_float
-pRW = RW_inte_mpmath.pRW_mpmath_vec_float
-qRW = RW_inte_mpmath.qRW_mpmath_vec_float
+dRW_mpmath = RW_inte_mpmath.dRW_mpmath_vec_float
+pRW_mpmath = RW_inte_mpmath.pRW_mpmath_vec_float
+qRW_mpmath = RW_inte_mpmath.qRW_mpmath_vec_float
 
+dRW = dRW_cpp if dRW_method == 'cpp' else dRW_mpmath
+pRW = pRW_cpp if pRW_method == 'cpp' else pRW_mpmath
+qRW = qRW_cpp if qRW_method == 'cpp' else qRW_mpmath
+
+# %%
+# likelihood
 def marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi_vec, gamma_vec, R_vec, cholesky_U):
     if(isinstance(Y, (int, np.int64, float))): Y=np.array([Y], dtype='float64')
 
