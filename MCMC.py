@@ -851,8 +851,6 @@ for iter in range(1, n_iters):
     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-    # log-prior density for scale as P(tau) = 1/tau
-    prior_1t = np.sum(-np.log(Scale_matrix_current[:,rank]))
 
     # Conditional Likelihood at Proposed
     Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:])
@@ -860,28 +858,29 @@ for iter in range(1, n_iters):
     if Scale_out_of_range or Shape_out_of_range:
         X_star_1t_proposal = np.NINF
         lik_1t_proposal = np.NINF
-        prior_1t_proposal = np.NINF
     else:
         X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
                                       phi_vec_current, gamma)
         lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                         Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-        prior_1t_proposal = np.sum(-np.log(Scale_matrix_proposal[:,rank]))
     
     # Gather likelihood calculated across time
     lik_gathered = comm.gather(lik_1t, root = 0)
     lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-    prior_gathered = comm.gather(prior_1t, root = 0)
-    prior_proposal_gathered = comm.gather(prior_1t_proposal, root = 0)
 
     # Accept or Reject
     if rank == 0:
+
+        # for now there is only one set of GEV parameters
+        # (constant across all time and space)
+        # log-prior density for scale as P(tau) = 1/tau
+        prior_scale = -np.log(Scale_matrix_current[0][0])
+        prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
+
         GEV_accepted = False
-        lik = sum(lik_gathered)
-        lik += sum(prior_gathered)
-        lik_proposal = sum(lik_proposal_gathered)
-        lik_proposal += sum(prior_proposal_gathered)
+        lik = sum(lik_gathered) + prior_scale
+        lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal
 
         u = random_generator.uniform()
         ratio = np.exp(lik_proposal - lik)
