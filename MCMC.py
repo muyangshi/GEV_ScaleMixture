@@ -23,7 +23,7 @@ from time import strftime, localtime
 ## space setting
 np.random.seed(2345) # 1
 # np.random.seed(79) # 2
-N = 16 # number of time replicates
+N = 4 # number of time replicates
 num_sites = 100 # number of sites/stations
 k = 9 # number of knots
 
@@ -42,7 +42,7 @@ nu = 0.5 # exponential kernel for matern with nu = 1/2
 # phi_at_knots
 # phi_post_cov
 # range_post_cov
-n_iters = 5000
+n_iters = 100
 
 # %%
 # ------- 1. Generate Sites and Knots --------------------------------
@@ -396,6 +396,12 @@ if rank == 0:
 else:
     loglik_trace = None
 
+## ---- detail likelihood ----
+if rank == 0:
+    loglik_detail_trace = np.full(shape = (n_iters, 5), fill_value = np.nan)
+else:
+    loglik_detail_trace = None
+
 ########## Initialize ##################################################
 # %%
 # Initialize
@@ -444,6 +450,7 @@ for iter in range(1, n_iters):
             np.save('range_knots_trace', range_knots_trace)
             np.save('GEV_knots_trace', GEV_knots_trace)
             np.save('loglik_trace', loglik_trace)
+            np.save('loglik_detail_trace', loglik_detail_trace)
 
             # Print traceplot every 1000 iterations
             xs = np.arange(iter)
@@ -454,6 +461,7 @@ for iter in range(1, n_iters):
             range_knots_trace_thin = range_knots_trace[0:iter:10,:]
             GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
             loglik_trace_thin = loglik_trace[0:iter:10,:]
+            loglik_detail_trace_thin = loglik_detail_trace[0:iter:10,:]
 
             # ---- phi ----
             plt.subplots()
@@ -548,6 +556,16 @@ for iter in range(1, n_iters):
             plt.xlabel('iter thinned by 10')
             plt.ylabel('loglikelihood')
             plt.savefig('loglik.pdf')
+            plt.close()
+
+            plt.subplots()
+            for i in range(5):
+                plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
+            plt.title('traceplot for detail log likelihood')
+            plt.xlabel('iter thinned by 10')
+            plt.ylabel('log likelihood')
+            plt.legend()
+            plt.savefig('loglik_detail.pdf')
             plt.close()
 
     # Adaptive Update autotunings
@@ -923,9 +941,17 @@ for iter in range(1, n_iters):
                                         phi_vec_current, gamma)
     
 
+    # Keeping track of likelihood after this iteration
+    lik_final_1t_detail = marg_transform_data_mixture_likelihood_1t_detail(Y[:,rank], X_star_1t_current, 
+                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+    lik_final_1t = sum(lik_final_1t_detail)
+    lik_final_detail_gathered = comm.gather(lik_final_1t_detail, root = 0)
+    lik_final_gathered = comm.gather(lik_final_1t, root = 0)
     if rank == 0:
-        # print("after iter: ", iter, "lik: ", round(sum(lik_gathered),3))
-        loglik_trace[iter,0] = round(sum(lik_gathered),3)
+        loglik_trace[iter,0] = round(sum(lik_final_gathered),3) # storing the overall log likelihood
+        loglik_detail_trace[iter,:] = np.matrix(lik_final_detail_gathered).sum(axis=0) # storing the detail log likelihood
+
 
 # End of MCMC
 if rank == 0:
@@ -937,6 +963,7 @@ if rank == 0:
     np.save('range_knots_trace', range_knots_trace)
     np.save('GEV_knots_trace', GEV_knots_trace)
     np.save('loglik_trace', loglik_trace)
+    np.save('loglik_detail_trace', loglik_detail_trace)
 
 # # %%
 # # Plotting
@@ -1052,6 +1079,11 @@ if rank == 0:
 #                                 range_knots_trace[:,3].ravel(),
 #                                 range_knots_trace[:,4].ravel()]))
 
+
+# ###########################################################################################
+# Posterior Covariance Matrix
+# ###########################################################################################
+
 # GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
 #                                 GEV_knots_trace[:,1,0].ravel()])) # tau scale
 
@@ -1069,7 +1101,7 @@ if rank == 0:
 
 
 
-
+# ###########################################################################################
 # Evaluate Profile Likelihoods
 # ###########################################################################################
 
