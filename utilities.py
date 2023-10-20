@@ -60,3 +60,22 @@ def marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi_vec, 
     part23 = np.sum(dgev(Y, Loc=Loc, Scale=Scale, Shape=Shape, log=True)-np.log(dRW(X, phi_vec, gamma_vec)))
 
     return part1 + part21 + part22 + part23
+def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, phi_vec, gamma_vec, R_vec, cholesky_U):
+    if(isinstance(Y, (int, np.int64, float))): Y=np.array([Y], dtype='float64')
+
+
+    ## Initialize space to store the log-likelihoods for each observation:
+    W_vec = X/R_vec**phi_vec
+
+    Z_vec = pareto1_to_Norm(W_vec)
+    # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
+    cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
+    part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+
+    ## Jacobian determinant
+    part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
+    part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) # R_j^phi_j/X_j^2
+    part23 = np.sum(dgev(Y, Loc=Loc, Scale=Scale, Shape=Shape, log=True))
+    part24 = np.sum(-np.log(dRW(X, phi_vec, gamma_vec)))
+
+    return np.array([part1,part21 ,part22, part23, part24])
