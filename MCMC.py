@@ -244,7 +244,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-random_generator = np.random.RandomState()
+random_generator = np.random.RandomState((rank+1)*7) # use of this avoids impacting the global np state
 
 if rank == 0:
     start_time = time.time()
