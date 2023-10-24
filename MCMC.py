@@ -23,8 +23,8 @@ from time import strftime, localtime
 ## space setting
 np.random.seed(2345) # 1
 # np.random.seed(79) # 2
-N = 4 # number of time replicates
-num_sites = 100 # number of sites/stations
+N = 16 # number of time replicates
+num_sites = 625 # number of sites/stations
 k = 9 # number of knots
 
 ## unchanged constants or parameters
@@ -42,7 +42,7 @@ nu = 0.5 # exponential kernel for matern with nu = 1/2
 # phi_at_knots
 # phi_post_cov
 # range_post_cov
-n_iters = 100
+n_iters = 5000
 
 # %%
 # ------- 1. Generate Sites and Knots --------------------------------
@@ -856,6 +856,7 @@ for iter in range(1, n_iters):
         GEV_knots_proposal = GEV_knots_current + random_walk_3x3
         GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot, GEV params spatial stationary
         GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
+        # GEV_knots_proposal[0:2,:] = GEV_knots_current[0:2,:] # hold location and scale constant
     else:
         GEV_knots_proposal = None
     GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
@@ -966,7 +967,7 @@ if rank == 0:
     np.save('loglik_detail_trace', loglik_detail_trace)
 
 # # %%
-# # Plotting
+# # Results
 
 # folder = './data/20230904_5knots_10000_500_32_phi_range/'
 # phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
@@ -975,7 +976,27 @@ if rank == 0:
 # GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
 # xs = np.arange(10000)
 
+###########################################################################################
+# Posterior Covariance Matrix
+###########################################################################################
+
+# GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
+#                                 GEV_knots_trace[:,1,0].ravel()])) # tau scale
+
+# phi_post_cov = np.cov(np.array([phi_knots_trace[:,i].ravel() for i in range(k)]))
+
+# range_post_cov = np.cov(np.array([range_knots_trace[:,i].ravel() for i in range(k)]))
+
+
+
+
+
+###########################################################################################
+# Plotting
+###########################################################################################
+
 # # %%
+# # Plotting
 # # Plot phi
 # plt.plot(xs, phi_knots_trace) # 1 knot
 
@@ -1048,57 +1069,6 @@ if rank == 0:
 # plt.plot(xs, GEV_knots_trace[:,1,1], label='tau knot 1') # scale
 # plt.plot(xs, GEV_knots_trace[:,2,1], label='ksi knot 1') # shape
 # plt.legend()
-
-# # %%
-# np.corrcoef(np.array([phi_knots_trace[:,0].ravel(), 
-#                       GEV_knots_trace[:,0,0].ravel(), 
-#                       GEV_knots_trace[:,1,0].ravel()]))
-
-# np.corrcoef(np.array([phi_knots_trace[:,1].ravel(), 
-#                       GEV_knots_trace[:,0,1].ravel(), 
-#                       GEV_knots_trace[:,1,1].ravel()]))
-
-# np.cov(np.array([phi_knots_trace[:,0].ravel(), 
-#                 GEV_knots_trace[:,0,0].ravel(), 
-#                 GEV_knots_trace[:,1,0].ravel()]))
-
-# np.cov(np.array([phi_knots_trace[:,1].ravel(), 
-#                 GEV_knots_trace[:,0,1].ravel(), 
-#                 GEV_knots_trace[:,1,1].ravel()]))
-
-# # %%
-# phi_post_cov = np.cov(np.array([phi_knots_trace[:,0].ravel(), 
-#                                 phi_knots_trace[:,1].ravel(),
-#                                 phi_knots_trace[:,2].ravel(),
-#                                 phi_knots_trace[:,3].ravel(),
-#                                 phi_knots_trace[:,4].ravel()]))
-
-# range_post_cov = np.cov(np.array([range_knots_trace[:,0].ravel(), 
-#                                 range_knots_trace[:,1].ravel(),
-#                                 range_knots_trace[:,2].ravel(),
-#                                 range_knots_trace[:,3].ravel(),
-#                                 range_knots_trace[:,4].ravel()]))
-
-
-# ###########################################################################################
-# Posterior Covariance Matrix
-# ###########################################################################################
-
-# GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
-#                                 GEV_knots_trace[:,1,0].ravel()])) # tau scale
-
-# phi_post_cov = np.cov(np.array([phi_knots_trace[:,i].ravel() for i in range(k)]))
-
-# range_post_cov = np.cov(np.array([range_knots_trace[:,i].ravel() for i in range(k)]))
-
-
-
-
-
-
-
-
-
 
 
 # ###########################################################################################
