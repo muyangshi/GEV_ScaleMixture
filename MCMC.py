@@ -23,8 +23,8 @@ from time import strftime, localtime
 ## space setting
 np.random.seed(2345) # 1
 # np.random.seed(79) # 2
-N = 16 # number of time replicates
-num_sites = 625 # number of sites/stations
+N = 64 # number of time replicates
+num_sites = 500 # number of sites/stations
 k = 9 # number of knots
 
 ## unchanged constants or parameters
@@ -408,6 +408,7 @@ else:
 ## ---- R ----
 # log-scale number(s), at "rank time", at the knots
 R_current_log = np.array(R_init_log[:,rank])
+R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
 
 ## ---- phi ----
 phi_knots_current = phi_knots_init
@@ -897,9 +898,13 @@ for iter in range(1, n_iters):
         prior_scale = -np.log(Scale_matrix_current[0][0])
         prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
 
+        prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+        prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+        
+
         GEV_accepted = False
-        lik = sum(lik_gathered) + prior_scale
-        lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal
+        lik = sum(lik_gathered) + prior_scale + prior_mu
+        lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal + prior_mu_proposal
 
         u = random_generator.uniform()
         ratio = np.exp(lik_proposal - lik)
