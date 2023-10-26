@@ -2,6 +2,10 @@
 .DS_Store
 data/.DS_Store
 
+# Custom
+Notes.txt # notes
+script.py # scratch
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
