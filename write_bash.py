@@ -40,7 +40,7 @@ for i in range(n_sim):
 
             '$CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB p_inte.cpp -shared -fPIC -o p_inte.so -lgsl -lgslcblas',
 
-            'mpirun -n 64 python3 MCMC.py']
+            'mpirun -n 64 python3 MCMC.py' + ' ' + (i+1)*7+13]
     
     # Create subfolder ./data/scenario2/simulation_#
     os.makedirs('./data/scenario2/simulation_' + sim_id, exist_ok=True)
