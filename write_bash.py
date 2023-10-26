@@ -20,11 +20,11 @@ for i in range(n_sim):
     sim_id = str(i + 1)
     lines = ['#!/bin/bash',
             '#SBATCH --nodes 1',
-            '#SBATCH --ntasks 32',
+            '#SBATCH --ntasks 64',
             '#SBATCH --job-name simulation_' + sim_id,
             '#SBATCH --constraint ib',
             '#SBATCH --partition amilan',
-            '#SBATCH --time 0:60:00',
+            '#SBATCH --time 24:00:00',
             '#SBATCH --output simulation_' + sim_id + '.out',
 
             'module purge',
@@ -40,7 +40,7 @@ for i in range(n_sim):
 
             '$CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB p_inte.cpp -shared -fPIC -o p_inte.so -lgsl -lgslcblas',
 
-            'mpirun -n 32 python3 MCMC_test.py']
+            'mpirun -n 64 python3 MCMC.py']
     
     # Create subfolder ./data/scenario2/simulation_#
     os.makedirs('./data/scenario2/simulation_' + sim_id, exist_ok=True)
@@ -51,10 +51,12 @@ for i in range(n_sim):
 
     # Paste over the necessary files
     shutil.copy('./p_inte.cpp', './data/scenario2/simulation_' + sim_id)
-    shutil.copy('./MCMC_test.py', './data/scenario2/simulation_' + sim_id)
+    shutil.copy('./MCMC.py', './data/scenario2/simulation_' + sim_id)
     shutil.copy('./model_sim.py', './data/scenario2/simulation_' + sim_id)
+    shutil.copy('./utilities.py', './data/scenario2/simulation_' + sim_id)
+    shutil.copy('./RW_inte_mpmath.py', './data/scenario2/simulation_' + sim_id)
+    shutil.copy('./ns_cov.py', './data/scenario2/simulation_' + sim_id)
 
-    sim_id = str(i + 1)
     directory = './data/scenario2/simulation_' + sim_id
     directories.append(directory)
 
@@ -69,4 +71,10 @@ for i in range(n_sim):
 with open('master_scenario2.sh', 'w') as f:
     for i in range(n_sim):
         f.write('cd' + ' ' + '/projects/$USER/GEV_simulation/' + directories[i] + '\n')
-        f.write('bash' + ' ' + bash_files[i] + '\n')
+        f.write('sbatsh' + ' ' + bash_files[i] + '\n')
+
+# %%
+# execute the coverage analysis
+# ------------------------------------------------------
+
+# 'bash master_scenario2.sh' would execue all the 'sbatch simulation_#.sh' commands
