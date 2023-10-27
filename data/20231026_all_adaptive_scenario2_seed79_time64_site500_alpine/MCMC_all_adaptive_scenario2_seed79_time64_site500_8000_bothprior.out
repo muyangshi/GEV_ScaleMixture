@@ -1,0 +1,1956 @@
+1
+10
+2023-10-26 11:33:48
+20
+2023-10-26 11:34:34
+30
+2023-10-26 11:35:21
+40
+2023-10-26 11:36:10
+50
+2023-10-26 11:37:00
+60
+2023-10-26 11:37:45
+70
+2023-10-26 11:38:36
+80
+2023-10-26 11:39:20
+90
+2023-10-26 11:40:02
+100
+2023-10-26 11:40:41
+elapsed:  455.0  seconds
+110
+2023-10-26 11:41:33
+120
+2023-10-26 11:42:14
+130
+2023-10-26 11:42:56
+140
+2023-10-26 11:43:40
+150
+2023-10-26 11:44:16
+160
+2023-10-26 11:44:48
+170
+2023-10-26 11:45:22
+180
+2023-10-26 11:45:58
+190
+2023-10-26 11:46:47
+200
+2023-10-26 11:47:36
+elapsed:  869.9  seconds
+210
+2023-10-26 11:48:21
+220
+2023-10-26 11:49:08
+230
+2023-10-26 11:49:56
+240
+2023-10-26 11:50:55
+250
+2023-10-26 11:51:46
+260
+2023-10-26 11:52:42
+270
+2023-10-26 11:53:36
+280
+2023-10-26 11:54:26
+290
+2023-10-26 11:55:18
+300
+2023-10-26 11:56:13
+elapsed:  1386.4  seconds
+310
+2023-10-26 11:57:07
+320
+2023-10-26 11:57:54
+330
+2023-10-26 11:58:48
+340
+2023-10-26 11:59:34
+350
+2023-10-26 12:00:31
+360
+2023-10-26 12:01:28
+370
+2023-10-26 12:02:19
+380
+2023-10-26 12:03:07
+390
+2023-10-26 12:04:05
+400
+2023-10-26 12:04:59
+elapsed:  1912.8  seconds
+410
+2023-10-26 12:05:54
+420
+2023-10-26 12:06:52
+430
+2023-10-26 12:07:42
+440
+2023-10-26 12:08:41
+450
+2023-10-26 12:09:40
+460
+2023-10-26 12:10:38
+470
+2023-10-26 12:11:32
+480
+2023-10-26 12:12:28
+490
+2023-10-26 12:13:17
+500
+2023-10-26 12:14:13
+elapsed:  2466.6  seconds
+510
+2023-10-26 12:15:07
+520
+2023-10-26 12:16:03
+530
+2023-10-26 12:16:52
+540
+2023-10-26 12:17:41
+550
+2023-10-26 12:18:31
+560
+2023-10-26 12:19:25
+570
+2023-10-26 12:20:23
+580
+2023-10-26 12:21:26
+590
+2023-10-26 12:22:22
+600
+2023-10-26 12:23:19
+elapsed:  3012.1  seconds
+610
+2023-10-26 12:24:13
+620
+2023-10-26 12:25:08
+630
+2023-10-26 12:26:02
+640
+2023-10-26 12:27:01
+650
+2023-10-26 12:27:53
+660
+2023-10-26 12:28:43
+670
+2023-10-26 12:29:39
+680
+2023-10-26 12:30:33
+690
+2023-10-26 12:31:27
+700
+2023-10-26 12:32:21
+elapsed:  3554.6  seconds
+710
+2023-10-26 12:33:19
+720
+2023-10-26 12:34:16
+730
+2023-10-26 12:35:08
+740
+2023-10-26 12:36:06
+750
+2023-10-26 12:37:01
+760
+2023-10-26 12:37:58
+770
+2023-10-26 12:38:46
+780
+2023-10-26 12:39:46
+790
+2023-10-26 12:40:43
+800
+2023-10-26 12:41:37
+elapsed:  4110.2  seconds
+810
+2023-10-26 12:42:26
+820
+2023-10-26 12:43:25
+830
+2023-10-26 12:44:22
+840
+2023-10-26 12:45:17
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+850
+2023-10-26 12:46:06
+860
+2023-10-26 12:47:02
+870
+2023-10-26 12:47:57
+880
+2023-10-26 12:48:55
+890
+2023-10-26 12:49:50
+900
+2023-10-26 12:50:49
+elapsed:  4662.4  seconds
+910
+2023-10-26 12:51:45
+920
+2023-10-26 12:52:40
+930
+2023-10-26 12:53:38
+940
+2023-10-26 12:54:40
+950
+2023-10-26 12:55:37
+960
+2023-10-26 12:56:33
+970
+2023-10-26 12:57:27
+980
+2023-10-26 12:58:30
+990
+2023-10-26 12:59:16
+1000
+2023-10-26 13:00:14
+elapsed:  5227.5  seconds
+1010
+2023-10-26 13:01:15
+1020
+2023-10-26 13:02:18
+1030
+2023-10-26 13:03:13
+1040
+2023-10-26 13:04:18
+1050
+2023-10-26 13:05:20
+1060
+2023-10-26 13:06:17
+1070
+2023-10-26 13:07:12
+1080
+2023-10-26 13:08:12
+1090
+2023-10-26 13:09:06
+1100
+2023-10-26 13:10:08
+elapsed:  5821.4  seconds
+1110
+2023-10-26 13:11:09
+1120
+2023-10-26 13:12:10
+1130
+2023-10-26 13:13:02
+1140
+2023-10-26 13:13:54
+1150
+2023-10-26 13:14:52
+1160
+2023-10-26 13:15:49
+1170
+2023-10-26 13:16:49
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1180
+2023-10-26 13:17:46
+1190
+2023-10-26 13:18:36
+1200
+2023-10-26 13:19:27
+elapsed:  6381.1  seconds
+1210
+2023-10-26 13:20:20
+1220
+2023-10-26 13:21:21
+1230
+2023-10-26 13:22:18
+1240
+2023-10-26 13:23:02
+1250
+2023-10-26 13:23:54
+1260
+2023-10-26 13:24:55
+1270
+2023-10-26 13:25:54
+1280
+2023-10-26 13:26:53
+1290
+2023-10-26 13:27:59
+1300
+2023-10-26 13:28:56
+elapsed:  6949.5  seconds
+1310
+2023-10-26 13:29:53
+1320
+2023-10-26 13:30:55
+1330
+2023-10-26 13:31:58
+1340
+2023-10-26 13:32:55
+1350
+2023-10-26 13:33:52
+1360
+2023-10-26 13:34:44
+1370
+2023-10-26 13:35:38
+1380
+2023-10-26 13:36:40
+1390
+2023-10-26 13:37:41
+1400
+2023-10-26 13:38:35
+elapsed:  7528.3  seconds
+1410
+2023-10-26 13:39:32
+1420
+2023-10-26 13:40:32
+1430
+2023-10-26 13:41:25
+1440
+2023-10-26 13:42:22
+1450
+2023-10-26 13:43:22
+1460
+2023-10-26 13:44:18
+1470
+2023-10-26 13:45:20
+1480
+2023-10-26 13:46:16
+1490
+2023-10-26 13:47:11
+1500
+2023-10-26 13:48:13
+elapsed:  8106.2  seconds
+1510
+2023-10-26 13:49:19
+1520
+2023-10-26 13:50:23
+1530
+2023-10-26 13:51:15
+1540
+2023-10-26 13:52:10
+1550
+2023-10-26 13:53:00
+1560
+2023-10-26 13:53:56
+1570
+2023-10-26 13:54:59
+1580
+2023-10-26 13:55:55
+1590
+2023-10-26 13:56:45
+1600
+2023-10-26 13:57:47
+elapsed:  8680.2  seconds
+1610
+2023-10-26 13:58:51
+1620
+2023-10-26 13:59:54
+1630
+2023-10-26 14:01:00
+1640
+2023-10-26 14:01:54
+1650
+2023-10-26 14:02:50
+1660
+2023-10-26 14:03:51
+1670
+2023-10-26 14:04:49
+1680
+2023-10-26 14:05:47
+1690
+2023-10-26 14:06:48
+1700
+2023-10-26 14:07:51
+elapsed:  9284.3  seconds
+1710
+2023-10-26 14:08:55
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1720
+2023-10-26 14:09:49
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1730
+2023-10-26 14:10:43
+1740
+2023-10-26 14:11:39
+1750
+2023-10-26 14:12:30
+1760
+2023-10-26 14:13:22
+1770
+2023-10-26 14:14:14
+1780
+2023-10-26 14:15:03
+1790
+2023-10-26 14:16:02
+1800
+2023-10-26 14:17:00
+elapsed:  9833.9  seconds
+1810
+2023-10-26 14:17:57
+1820
+2023-10-26 14:19:03
+1830
+2023-10-26 14:19:58
+1840
+2023-10-26 14:20:56
+1850
+2023-10-26 14:21:44
+1860
+2023-10-26 14:22:47
+1870
+2023-10-26 14:23:45
+1880
+2023-10-26 14:24:39
+1890
+2023-10-26 14:25:47
+1900
+2023-10-26 14:26:49
+elapsed:  10423.0  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1910
+2023-10-26 14:27:54
+1920
+2023-10-26 14:28:57
+1930
+2023-10-26 14:29:54
+1940
+2023-10-26 14:30:54
+1950
+2023-10-26 14:31:53
+1960
+2023-10-26 14:32:46
+1970
+2023-10-26 14:33:44
+1980
+2023-10-26 14:34:37
+1990
+2023-10-26 14:35:46
+2000
+2023-10-26 14:36:45
+elapsed:  11018.3  seconds
+2010
+2023-10-26 14:37:47
+2020
+2023-10-26 14:38:44
+2030
+2023-10-26 14:39:34
+2040
+2023-10-26 14:40:27
+2050
+2023-10-26 14:41:27
+2060
+2023-10-26 14:42:22
+2070
+2023-10-26 14:43:16
+2080
+2023-10-26 14:44:08
+2090
+2023-10-26 14:45:11
+2100
+2023-10-26 14:46:01
+elapsed:  11574.9  seconds
+2110
+2023-10-26 14:46:56
+2120
+2023-10-26 14:47:51
+2130
+2023-10-26 14:48:55
+2140
+2023-10-26 14:49:51
+2150
+2023-10-26 14:50:42
+2160
+2023-10-26 14:51:37
+2170
+2023-10-26 14:52:41
+2180
+2023-10-26 14:53:33
+2190
+2023-10-26 14:54:30
+2200
+2023-10-26 14:55:31
+elapsed:  12144.8  seconds
+2210
+2023-10-26 14:56:29
+2220
+2023-10-26 14:57:20
+2230
+2023-10-26 14:58:15
+2240
+2023-10-26 14:59:12
+2250
+2023-10-26 15:00:09
+2260
+2023-10-26 15:00:59
+2270
+2023-10-26 15:01:51
+2280
+2023-10-26 15:02:41
+2290
+2023-10-26 15:03:28
+2300
+2023-10-26 15:04:21
+elapsed:  12674.3  seconds
+2310
+2023-10-26 15:05:24
+2320
+2023-10-26 15:06:16
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2330
+2023-10-26 15:07:12
+2340
+2023-10-26 15:08:08
+2350
+2023-10-26 15:09:07
+2360
+2023-10-26 15:10:06
+2370
+2023-10-26 15:10:57
+2380
+2023-10-26 15:11:54
+2390
+2023-10-26 15:12:58
+2400
+2023-10-26 15:14:03
+elapsed:  13256.7  seconds
+2410
+2023-10-26 15:15:09
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2420
+2023-10-26 15:16:06
+2430
+2023-10-26 15:17:01
+2440
+2023-10-26 15:18:03
+2450
+2023-10-26 15:19:00
+2460
+2023-10-26 15:20:01
+2470
+2023-10-26 15:20:47
+2480
+2023-10-26 15:21:38
+2490
+2023-10-26 15:22:39
+2500
+2023-10-26 15:23:35
+elapsed:  13828.4  seconds
+2510
+2023-10-26 15:24:38
+2520
+2023-10-26 15:25:37
+2530
+2023-10-26 15:26:34
+2540
+2023-10-26 15:27:28
+2550
+2023-10-26 15:28:24
+2560
+2023-10-26 15:29:28
+2570
+2023-10-26 15:30:29
+2580
+2023-10-26 15:31:31
+2590
+2023-10-26 15:32:25
+2600
+2023-10-26 15:33:22
+elapsed:  14415.5  seconds
+2610
+2023-10-26 15:34:29
+2620
+2023-10-26 15:35:23
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2630
+2023-10-26 15:36:22
+2640
+2023-10-26 15:37:24
+2650
+2023-10-26 15:38:10
+2660
+2023-10-26 15:39:02
+2670
+2023-10-26 15:39:52
+2680
+2023-10-26 15:40:51
+2690
+2023-10-26 15:41:50
+2700
+2023-10-26 15:42:42
+elapsed:  14975.9  seconds
+2710
+2023-10-26 15:43:41
+2720
+2023-10-26 15:44:41
+2730
+2023-10-26 15:45:43
+2740
+2023-10-26 15:46:38
+2750
+2023-10-26 15:47:43
+2760
+2023-10-26 15:48:36
+2770
+2023-10-26 15:49:38
+2780
+2023-10-26 15:50:33
+2790
+2023-10-26 15:51:25
+2800
+2023-10-26 15:52:26
+elapsed:  15559.9  seconds
+2810
+2023-10-26 15:53:29
+2820
+2023-10-26 15:54:18
+2830
+2023-10-26 15:55:22
+2840
+2023-10-26 15:56:17
+2850
+2023-10-26 15:57:17
+2860
+2023-10-26 15:58:18
+2870
+2023-10-26 15:59:13
+2880
+2023-10-26 16:00:05
+2890
+2023-10-26 16:01:08
+2900
+2023-10-26 16:02:07
+elapsed:  16140.5  seconds
+2910
+2023-10-26 16:03:07
+2920
+2023-10-26 16:04:08
+2930
+2023-10-26 16:05:12
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2940
+2023-10-26 16:06:09
+2950
+2023-10-26 16:07:04
+2960
+2023-10-26 16:07:59
+2970
+2023-10-26 16:08:53
+2980
+2023-10-26 16:09:52
+2990
+2023-10-26 16:10:52
+3000
+2023-10-26 16:11:54
+elapsed:  16727.7  seconds
+3010
+2023-10-26 16:12:58
+3020
+2023-10-26 16:14:05
+3030
+2023-10-26 16:15:02
+3040
+2023-10-26 16:15:56
+3050
+2023-10-26 16:16:57
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3060
+2023-10-26 16:17:50
+3070
+2023-10-26 16:18:51
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3080
+2023-10-26 16:19:48
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3090
+2023-10-26 16:20:48
+3100
+2023-10-26 16:21:36
+elapsed:  17309.9  seconds
+3110
+2023-10-26 16:22:38
+3120
+2023-10-26 16:23:37
+3130
+2023-10-26 16:24:31
+3140
+2023-10-26 16:25:28
+3150
+2023-10-26 16:26:21
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3160
+2023-10-26 16:27:14
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3170
+2023-10-26 16:28:10
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3180
+2023-10-26 16:29:03
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3190
+2023-10-26 16:30:07
+3200
+2023-10-26 16:30:59
+elapsed:  17873.1  seconds
+3210
+2023-10-26 16:32:01
+3220
+2023-10-26 16:32:48
+3230
+2023-10-26 16:33:33
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3240
+2023-10-26 16:34:30
+3250
+2023-10-26 16:35:28
+3260
+2023-10-26 16:36:25
+3270
+2023-10-26 16:37:24
+3280
+2023-10-26 16:38:28
+3290
+2023-10-26 16:39:24
+3300
+2023-10-26 16:40:24
+elapsed:  18438.0  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3310
+2023-10-26 16:41:30
+3320
+2023-10-26 16:42:21
+3330
+2023-10-26 16:43:23
+3340
+2023-10-26 16:44:18
+3350
+2023-10-26 16:45:12
+3360
+2023-10-26 16:46:01
+3370
+2023-10-26 16:47:00
+3380
+2023-10-26 16:47:54
+3390
+2023-10-26 16:48:49
+3400
+2023-10-26 16:49:42
+elapsed:  18996.1  seconds
+3410
+2023-10-26 16:50:37
+3420
+2023-10-26 16:51:32
+3430
+2023-10-26 16:52:32
+3440
+2023-10-26 16:53:23
+3450
+2023-10-26 16:54:20
+3460
+2023-10-26 16:55:23
+3470
+2023-10-26 16:56:27
+3480
+2023-10-26 16:57:08
+3490
+2023-10-26 16:58:04
+3500
+2023-10-26 16:58:47
+elapsed:  19541.0  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3510
+2023-10-26 16:59:37
+3520
+2023-10-26 17:00:13
+3530
+2023-10-26 17:01:08
+3540
+2023-10-26 17:02:04
+3550
+2023-10-26 17:02:57
+3560
+2023-10-26 17:03:49
+3570
+2023-10-26 17:04:53
+3580
+2023-10-26 17:05:47
+3590
+2023-10-26 17:06:42
+3600
+2023-10-26 17:07:42
+elapsed:  20075.8  seconds
+3610
+2023-10-26 17:08:52
+3620
+2023-10-26 17:09:45
+3630
+2023-10-26 17:10:40
+3640
+2023-10-26 17:11:38
+3650
+2023-10-26 17:12:25
+3660
+2023-10-26 17:13:32
+3670
+2023-10-26 17:14:24
+3680
+2023-10-26 17:15:30
+3690
+2023-10-26 17:16:15
+3700
+2023-10-26 17:17:02
+elapsed:  20635.4  seconds
+3710
+2023-10-26 17:17:51
+3720
+2023-10-26 17:18:29
+3730
+2023-10-26 17:19:12
+3740
+2023-10-26 17:19:53
+3750
+2023-10-26 17:20:45
+3760
+2023-10-26 17:21:35
+3770
+2023-10-26 17:22:10
+3780
+2023-10-26 17:23:05
+3790
+2023-10-26 17:23:57
+3800
+2023-10-26 17:24:50
+elapsed:  21103.3  seconds
+3810
+2023-10-26 17:25:41
+3820
+2023-10-26 17:26:37
+3830
+2023-10-26 17:27:30
+3840
+2023-10-26 17:28:17
+3850
+2023-10-26 17:29:10
+3860
+2023-10-26 17:29:53
+3870
+2023-10-26 17:30:42
+3880
+2023-10-26 17:31:29
+3890
+2023-10-26 17:32:16
+3900
+2023-10-26 17:33:06
+elapsed:  21599.9  seconds
+3910
+2023-10-26 17:34:18
+3920
+2023-10-26 17:35:13
+3930
+2023-10-26 17:36:02
+3940
+2023-10-26 17:36:51
+3950
+2023-10-26 17:38:00
+3960
+2023-10-26 17:39:02
+3970
+2023-10-26 17:39:59
+3980
+2023-10-26 17:40:49
+3990
+2023-10-26 17:41:49
+4000
+2023-10-26 17:42:48
+elapsed:  22181.6  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+4010
+2023-10-26 17:43:40
+4020
+2023-10-26 17:44:41
+4030
+2023-10-26 17:45:38
+4040
+2023-10-26 17:46:33
+4050
+2023-10-26 17:47:29
+4060
+2023-10-26 17:48:30
+4070
+2023-10-26 17:49:25
+4080
+2023-10-26 17:50:19
+4090
+2023-10-26 17:51:19
+4100
+2023-10-26 17:52:09
+elapsed:  22742.3  seconds
+4110
+2023-10-26 17:53:08
+4120
+2023-10-26 17:54:08
+4130
+2023-10-26 17:55:05
+4140
+2023-10-26 17:56:05
+4150
+2023-10-26 17:56:57
+4160
+2023-10-26 17:57:50
+4170
+2023-10-26 17:58:35
+4180
+2023-10-26 17:59:24
+4190
+2023-10-26 18:00:11
+4200
+2023-10-26 18:01:08
+elapsed:  23281.4  seconds
+4210
+2023-10-26 18:02:13
+4220
+2023-10-26 18:03:13
+4230
+2023-10-26 18:04:09
+4240
+2023-10-26 18:05:01
+4250
+2023-10-26 18:06:06
+4260
+2023-10-26 18:07:06
+4270
+2023-10-26 18:08:04
+4280
+2023-10-26 18:09:03
+4290
+2023-10-26 18:10:01
+4300
+2023-10-26 18:10:58
+elapsed:  23871.4  seconds
+4310
+2023-10-26 18:11:59
+4320
+2023-10-26 18:12:57
+4330
+2023-10-26 18:13:49
+4340
+2023-10-26 18:14:39
+4350
+2023-10-26 18:15:39
+4360
+2023-10-26 18:16:36
+4370
+2023-10-26 18:17:41
+4380
+2023-10-26 18:18:38
+4390
+2023-10-26 18:19:29
+4400
+2023-10-26 18:20:22
+elapsed:  24435.9  seconds
+4410
+2023-10-26 18:21:27
+4420
+2023-10-26 18:22:17
+4430
+2023-10-26 18:23:08
+4440
+2023-10-26 18:24:07
+4450
+2023-10-26 18:24:54
+4460
+2023-10-26 18:25:49
+4470
+2023-10-26 18:26:50
+4480
+2023-10-26 18:27:52
+4490
+2023-10-26 18:28:46
+4500
+2023-10-26 18:29:44
+elapsed:  24997.9  seconds
+4510
+2023-10-26 18:30:42
+4520
+2023-10-26 18:31:35
+4530
+2023-10-26 18:32:42
+4540
+2023-10-26 18:33:42
+4550
+2023-10-26 18:34:46
+4560
+2023-10-26 18:35:52
+4570
+2023-10-26 18:36:56
+4580
+2023-10-26 18:37:58
+4590
+2023-10-26 18:38:57
+4600
+2023-10-26 18:39:56
+elapsed:  25610.1  seconds
+4610
+2023-10-26 18:40:53
+4620
+2023-10-26 18:41:54
+4630
+2023-10-26 18:42:56
+4640
+2023-10-26 18:44:04
+4650
+2023-10-26 18:45:04
+4660
+2023-10-26 18:46:06
+4670
+2023-10-26 18:47:03
+4680
+2023-10-26 18:48:02
+4690
+2023-10-26 18:49:02
+4700
+2023-10-26 18:50:04
+elapsed:  26217.9  seconds
+4710
+2023-10-26 18:51:01
+4720
+2023-10-26 18:51:52
+4730
+2023-10-26 18:52:44
+4740
+2023-10-26 18:53:48
+4750
+2023-10-26 18:54:40
+4760
+2023-10-26 18:55:40
+4770
+2023-10-26 18:56:34
+4780
+2023-10-26 18:57:32
+4790
+2023-10-26 18:58:38
+4800
+2023-10-26 18:59:40
+elapsed:  26793.4  seconds
+4810
+2023-10-26 19:00:37
+4820
+2023-10-26 19:01:27
+4830
+2023-10-26 19:02:19
+4840
+2023-10-26 19:03:20
+4850
+2023-10-26 19:04:17
+4860
+2023-10-26 19:05:11
+4870
+2023-10-26 19:06:03
+4880
+2023-10-26 19:06:49
+4890
+2023-10-26 19:07:46
+4900
+2023-10-26 19:08:36
+elapsed:  27329.5  seconds
+4910
+2023-10-26 19:09:38
+4920
+2023-10-26 19:10:36
+4930
+2023-10-26 19:11:41
+4940
+2023-10-26 19:12:39
+4950
+2023-10-26 19:13:37
+4960
+2023-10-26 19:14:35
+4970
+2023-10-26 19:15:28
+4980
+2023-10-26 19:16:15
+4990
+2023-10-26 19:17:08
+5000
+2023-10-26 19:18:07
+elapsed:  27900.6  seconds
+5010
+2023-10-26 19:19:01
+5020
+2023-10-26 19:20:05
+5030
+2023-10-26 19:20:59
+5040
+2023-10-26 19:21:47
+5050
+2023-10-26 19:22:41
+5060
+2023-10-26 19:23:29
+5070
+2023-10-26 19:24:29
+5080
+2023-10-26 19:25:24
+5090
+2023-10-26 19:26:20
+5100
+2023-10-26 19:27:05
+elapsed:  28438.4  seconds
+5110
+2023-10-26 19:27:56
+5120
+2023-10-26 19:28:49
+5130
+2023-10-26 19:29:42
+5140
+2023-10-26 19:30:32
+5150
+2023-10-26 19:31:21
+5160
+2023-10-26 19:32:14
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+5170
+2023-10-26 19:33:11
+5180
+2023-10-26 19:34:08
+5190
+2023-10-26 19:35:14
+5200
+2023-10-26 19:36:13
+elapsed:  28986.7  seconds
+5210
+2023-10-26 19:37:12
+5220
+2023-10-26 19:38:12
+5230
+2023-10-26 19:39:02
+5240
+2023-10-26 19:40:07
+5250
+2023-10-26 19:41:06
+5260
+2023-10-26 19:42:07
+5270
+2023-10-26 19:43:03
+5280
+2023-10-26 19:43:57
+5290
+2023-10-26 19:44:51
+5300
+2023-10-26 19:45:49
+elapsed:  29562.7  seconds
+5310
+2023-10-26 19:46:52
+5320
+2023-10-26 19:47:43
+5330
+2023-10-26 19:48:40
+5340
+2023-10-26 19:49:48
+5350
+2023-10-26 19:50:37
+5360
+2023-10-26 19:51:35
+5370
+2023-10-26 19:52:43
+5380
+2023-10-26 19:53:42
+5390
+2023-10-26 19:54:46
+5400
+2023-10-26 19:55:51
+elapsed:  30164.9  seconds
+5410
+2023-10-26 19:56:46
+5420
+2023-10-26 19:57:45
+5430
+2023-10-26 19:58:47
+5440
+2023-10-26 19:59:44
+5450
+2023-10-26 20:00:55
+5460
+2023-10-26 20:01:48
+5470
+2023-10-26 20:02:46
+5480
+2023-10-26 20:03:42
+5490
+2023-10-26 20:04:34
+5500
+2023-10-26 20:05:26
+elapsed:  30740.1  seconds
+5510
+2023-10-26 20:06:29
+5520
+2023-10-26 20:07:34
+5530
+2023-10-26 20:08:35
+5540
+2023-10-26 20:09:37
+5550
+2023-10-26 20:10:40
+5560
+2023-10-26 20:11:41
+5570
+2023-10-26 20:12:30
+5580
+2023-10-26 20:13:23
+5590
+2023-10-26 20:14:19
+5600
+2023-10-26 20:15:20
+elapsed:  31334.0  seconds
+5610
+2023-10-26 20:16:23
+5620
+2023-10-26 20:17:16
+5630
+2023-10-26 20:18:11
+5640
+2023-10-26 20:19:08
+5650
+2023-10-26 20:20:04
+5660
+2023-10-26 20:21:04
+5670
+2023-10-26 20:22:02
+5680
+2023-10-26 20:22:59
+5690
+2023-10-26 20:23:55
+5700
+2023-10-26 20:24:50
+elapsed:  31903.3  seconds
+5710
+2023-10-26 20:25:45
+5720
+2023-10-26 20:26:37
+5730
+2023-10-26 20:27:26
+5740
+2023-10-26 20:28:14
+5750
+2023-10-26 20:29:04
+5760
+2023-10-26 20:29:59
+5770
+2023-10-26 20:30:57
+5780
+2023-10-26 20:31:54
+5790
+2023-10-26 20:32:42
+5800
+2023-10-26 20:33:39
+elapsed:  32433.0  seconds
+5810
+2023-10-26 20:34:36
+5820
+2023-10-26 20:35:33
+5830
+2023-10-26 20:36:23
+5840
+2023-10-26 20:37:19
+5850
+2023-10-26 20:38:23
+5860
+2023-10-26 20:39:23
+5870
+2023-10-26 20:40:22
+5880
+2023-10-26 20:41:21
+5890
+2023-10-26 20:42:23
+5900
+2023-10-26 20:43:13
+elapsed:  33006.8  seconds
+5910
+2023-10-26 20:44:14
+5920
+2023-10-26 20:45:12
+5930
+2023-10-26 20:46:13
+5940
+2023-10-26 20:47:13
+5950
+2023-10-26 20:48:14
+5960
+2023-10-26 20:49:15
+5970
+2023-10-26 20:50:14
+5980
+2023-10-26 20:51:07
+5990
+2023-10-26 20:52:03
+6000
+2023-10-26 20:53:04
+elapsed:  33597.6  seconds
+6010
+2023-10-26 20:54:01
+6020
+2023-10-26 20:54:57
+6030
+2023-10-26 20:55:48
+6040
+2023-10-26 20:56:56
+6050
+2023-10-26 20:57:43
+6060
+2023-10-26 20:58:32
+6070
+2023-10-26 20:59:22
+6080
+2023-10-26 21:00:09
+6090
+2023-10-26 21:00:54
+6100
+2023-10-26 21:01:39
+elapsed:  34112.2  seconds
+6110
+2023-10-26 21:02:26
+6120
+2023-10-26 21:03:14
+6130
+2023-10-26 21:04:08
+6140
+2023-10-26 21:05:03
+6150
+2023-10-26 21:05:55
+6160
+2023-10-26 21:06:46
+6170
+2023-10-26 21:07:38
+6180
+2023-10-26 21:08:36
+6190
+2023-10-26 21:09:35
+6200
+2023-10-26 21:10:28
+elapsed:  34641.2  seconds
+6210
+2023-10-26 21:11:17
+6220
+2023-10-26 21:12:15
+6230
+2023-10-26 21:13:10
+6240
+2023-10-26 21:14:06
+6250
+2023-10-26 21:14:57
+6260
+2023-10-26 21:15:58
+6270
+2023-10-26 21:16:54
+6280
+2023-10-26 21:17:46
+6290
+2023-10-26 21:18:45
+6300
+2023-10-26 21:19:40
+elapsed:  35193.7  seconds
+6310
+2023-10-26 21:20:36
+6320
+2023-10-26 21:21:30
+6330
+2023-10-26 21:22:28
+6340
+2023-10-26 21:23:24
+6350
+2023-10-26 21:24:30
+6360
+2023-10-26 21:25:30
+6370
+2023-10-26 21:26:23
+6380
+2023-10-26 21:27:22
+6390
+2023-10-26 21:28:17
+6400
+2023-10-26 21:29:14
+elapsed:  35767.6  seconds
+6410
+2023-10-26 21:30:19
+6420
+2023-10-26 21:31:14
+6430
+2023-10-26 21:32:13
+6440
+2023-10-26 21:33:04
+6450
+2023-10-26 21:34:06
+6460
+2023-10-26 21:35:08
+6470
+2023-10-26 21:36:02
+6480
+2023-10-26 21:36:58
+6490
+2023-10-26 21:37:57
+6500
+2023-10-26 21:38:55
+elapsed:  36349.1  seconds
+6510
+2023-10-26 21:40:05
+6520
+2023-10-26 21:41:06
+6530
+2023-10-26 21:42:02
+6540
+2023-10-26 21:42:58
+6550
+2023-10-26 21:44:03
+6560
+2023-10-26 21:44:55
+6570
+2023-10-26 21:45:53
+6580
+2023-10-26 21:46:49
+6590
+2023-10-26 21:47:44
+6600
+2023-10-26 21:48:49
+elapsed:  36942.3  seconds
+6610
+2023-10-26 21:49:45
+6620
+2023-10-26 21:50:37
+6630
+2023-10-26 21:51:26
+6640
+2023-10-26 21:52:20
+6650
+2023-10-26 21:53:07
+6660
+2023-10-26 21:53:54
+6670
+2023-10-26 21:54:53
+6680
+2023-10-26 21:55:51
+6690
+2023-10-26 21:56:56
+6700
+2023-10-26 21:57:57
+elapsed:  37490.7  seconds
+6710
+2023-10-26 21:58:48
+6720
+2023-10-26 21:59:35
+6730
+2023-10-26 22:00:22
+6740
+2023-10-26 22:01:13
+6750
+2023-10-26 22:02:07
+6760
+2023-10-26 22:03:00
+6770
+2023-10-26 22:03:59
+6780
+2023-10-26 22:05:01
+6790
+2023-10-26 22:05:53
+6800
+2023-10-26 22:06:46
+elapsed:  38019.7  seconds
+6810
+2023-10-26 22:07:44
+6820
+2023-10-26 22:08:44
+6830
+2023-10-26 22:09:33
+6840
+2023-10-26 22:10:19
+6850
+2023-10-26 22:11:12
+6860
+2023-10-26 22:12:13
+6870
+2023-10-26 22:13:19
+6880
+2023-10-26 22:14:19
+6890
+2023-10-26 22:15:13
+6900
+2023-10-26 22:16:01
+elapsed:  38574.8  seconds
+6910
+2023-10-26 22:16:59
+6920
+2023-10-26 22:17:59
+6930
+2023-10-26 22:18:50
+6940
+2023-10-26 22:19:55
+6950
+2023-10-26 22:20:56
+6960
+2023-10-26 22:21:50
+6970
+2023-10-26 22:22:45
+6980
+2023-10-26 22:23:44
+6990
+2023-10-26 22:24:41
+7000
+2023-10-26 22:25:43
+elapsed:  39156.6  seconds
+7010
+2023-10-26 22:26:50
+7020
+2023-10-26 22:27:54
+7030
+2023-10-26 22:28:50
+7040
+2023-10-26 22:29:51
+7050
+2023-10-26 22:30:49
+7060
+2023-10-26 22:31:43
+7070
+2023-10-26 22:32:38
+7080
+2023-10-26 22:33:32
+7090
+2023-10-26 22:34:24
+7100
+2023-10-26 22:35:28
+elapsed:  39741.6  seconds
+7110
+2023-10-26 22:36:32
+7120
+2023-10-26 22:37:38
+7130
+2023-10-26 22:38:42
+7140
+2023-10-26 22:39:45
+7150
+2023-10-26 22:40:45
+7160
+2023-10-26 22:41:44
+7170
+2023-10-26 22:42:38
+7180
+2023-10-26 22:43:34
+7190
+2023-10-26 22:44:37
+7200
+2023-10-26 22:45:28
+elapsed:  40342.0  seconds
+7210
+2023-10-26 22:46:32
+7220
+2023-10-26 22:47:23
+7230
+2023-10-26 22:48:28
+7240
+2023-10-26 22:49:26
+7250
+2023-10-26 22:50:28
+7260
+2023-10-26 22:51:31
+7270
+2023-10-26 22:52:36
+7280
+2023-10-26 22:53:29
+7290
+2023-10-26 22:54:33
+7300
+2023-10-26 22:55:36
+elapsed:  40949.5  seconds
+7310
+2023-10-26 22:56:46
+7320
+2023-10-26 22:57:57
+7330
+2023-10-26 22:58:55
+7340
+2023-10-26 23:00:04
+7350
+2023-10-26 23:01:05
+7360
+2023-10-26 23:02:13
+7370
+2023-10-26 23:03:21
+7380
+2023-10-26 23:04:24
+7390
+2023-10-26 23:05:25
+7400
+2023-10-26 23:06:33
+elapsed:  41606.9  seconds
+7410
+2023-10-26 23:07:38
+7420
+2023-10-26 23:08:42
+7430
+2023-10-26 23:09:38
+7440
+2023-10-26 23:10:41
+7450
+2023-10-26 23:11:33
+7460
+2023-10-26 23:12:34
+7470
+2023-10-26 23:13:43
+7480
+2023-10-26 23:14:49
+7490
+2023-10-26 23:15:49
+7500
+2023-10-26 23:16:44
+elapsed:  42217.8  seconds
+7510
+2023-10-26 23:17:54
+7520
+2023-10-26 23:18:55
+7530
+2023-10-26 23:19:57
+7540
+2023-10-26 23:20:52
+7550
+2023-10-26 23:21:51
+7560
+2023-10-26 23:22:57
+7570
+2023-10-26 23:23:55
+7580
+2023-10-26 23:24:52
+7590
+2023-10-26 23:25:44
+7600
+2023-10-26 23:26:41
+elapsed:  42814.2  seconds
+7610
+2023-10-26 23:27:39
+7620
+2023-10-26 23:28:40
+7630
+2023-10-26 23:29:42
+7640
+2023-10-26 23:30:36
+7650
+2023-10-26 23:31:32
+7660
+2023-10-26 23:32:27
+7670
+2023-10-26 23:33:23
+7680
+2023-10-26 23:34:23
+7690
+2023-10-26 23:35:20
+7700
+2023-10-26 23:36:15
+elapsed:  43388.3  seconds
+7710
+2023-10-26 23:37:15
+7720
+2023-10-26 23:38:07
+7730
+2023-10-26 23:38:55
+7740
+2023-10-26 23:39:53
+7750
+2023-10-26 23:40:48
+7760
+2023-10-26 23:41:48
+7770
+2023-10-26 23:42:40
+7780
+2023-10-26 23:43:41
+7790
+2023-10-26 23:44:40
+7800
+2023-10-26 23:45:38
+elapsed:  43951.8  seconds
+7810
+2023-10-26 23:46:38
+7820
+2023-10-26 23:47:31
+7830
+2023-10-26 23:48:34
+7840
+2023-10-26 23:49:35
+7850
+2023-10-26 23:50:33
+7860
+2023-10-26 23:51:27
+7870
+2023-10-26 23:52:25
+7880
+2023-10-26 23:53:35
+7890
+2023-10-26 23:54:41
+7900
+2023-10-26 23:55:47
+elapsed:  44561.0  seconds
+7910
+2023-10-26 23:56:47
+7920
+2023-10-26 23:57:48
+7930
+2023-10-26 23:58:47
+7940
+2023-10-26 23:59:44
+7950
+2023-10-27 00:00:35
+7960
+2023-10-27 00:01:24
+7970
+2023-10-27 00:02:20
+7980
+2023-10-27 00:03:15
+7990
+2023-10-27 00:04:18
+elapsed:  45113.7  seconds
+total time:  45120.6  seconds
+true R:  [[3.02580373e-01 1.29304965e-01 1.49519524e+02 1.00659296e+01
+  2.54423739e-01 2.24782474e+01 2.90244762e-01 6.81737189e-01
+  4.02058144e+00 1.69109769e+00 1.50130482e+00 2.42557349e-01
+  5.01528890e-01 1.56534344e+00 3.70328592e-01 1.68639267e+00
+  2.44007683e+00 1.11065126e+00 1.56633539e+03 2.78551576e+01
+  1.17155863e+01 1.94195082e+00 9.26934605e-01 1.19322057e+00
+  3.86905633e+00 2.05191977e-01 2.11664892e-01 3.07781622e+00
+  1.49239065e-01 4.05643075e-01 6.92483463e+00 1.02260601e+01
+  3.82484419e-01 2.30293945e+00 9.42369263e-01 1.07009962e-01
+  2.06970257e+00 6.42634975e+00 2.02370709e+03 1.05163913e+00
+  7.79419154e-01 3.98471863e-01 7.88792831e+00 7.63480413e+00
+  3.42239015e+00 1.59631761e+01 4.65920062e-01 2.66361423e+00
+  2.97786463e-01 8.92792397e-01 2.07238119e-01 7.75443555e-01
+  2.56655646e-01 2.46454265e-01 6.83499767e+00 2.88389595e+00
+  1.31071448e+02 1.45345453e+01 1.43498545e+02 3.42258433e+00
+  2.09304579e+01 2.56313133e-01 1.45701397e+00 8.63209392e-01]
+ [1.90179871e+01 1.66925503e+00 5.45655844e+00 3.78873547e-01
+  1.79837856e+01 8.80801217e+00 1.36956667e-01 7.24782491e-01
+  7.85222239e-01 2.99262771e+01 6.47773942e-01 2.13509993e+01
+  1.05661604e+00 3.57043760e+00 2.91596047e+00 4.17112064e+01
+  8.27676076e+00 3.85184663e+01 4.30554421e-01 2.12595914e+00
+  2.57550414e-01 7.11088408e+02 3.00658603e+01 1.46377535e+01
+  1.35275248e+01 5.48577132e-01 2.86520589e+01 8.92535794e+00
+  2.52716875e+00 2.57768385e+00 8.24775910e-01 1.58610665e+01
+  1.76439987e-01 1.38127933e+01 2.77258964e+00 2.95383984e-01
+  6.52058737e-01 2.89487873e-01 1.68254904e+00 1.67525726e-01
+  1.50799014e+01 1.95213180e+00 6.75091068e+00 1.86155068e+01
+  7.71485433e-01 5.40367238e+00 2.49589192e-01 4.27759419e-01
+  2.64473973e-01 6.95840707e+02 2.52515308e-01 2.22854875e+00
+  7.71423228e-01 1.09633349e+00 1.39905467e+00 1.05479875e-01
+  1.53658469e-01 5.20206799e+00 3.48200320e+03 3.78357781e+01
+  1.19138163e+02 2.02654587e-01 3.89221887e-01 4.89080863e-01]
+ [8.92129231e+00 1.57284892e-01 2.96484226e+00 2.24931852e+00
+  7.43108666e+00 6.93410951e-01 3.53119280e-01 4.02063526e+00
+  1.90370604e+02 3.08223139e+05 3.86414058e-01 5.19480075e-01
+  6.23286075e+00 2.63095676e-01 3.72007765e-01 4.31207966e-01
+  4.67472524e+00 1.16229486e+00 5.42625892e-01 5.21795725e+00
+  5.51037632e+00 1.04981154e-01 2.87674734e-01 4.27983509e+00
+  5.03691400e-01 4.99487981e-01 4.24036503e+02 5.79068659e-01
+  2.46994938e+01 1.65232943e-01 9.32233289e-01 6.68995491e+00
+  3.04351725e-01 2.37881212e+00 2.19679573e-01 1.43244794e+00
+  1.15167157e+02 3.91884938e-01 1.56779331e-01 3.55982288e+00
+  2.38678726e-01 4.89292165e-01 3.22015585e-01 2.09545562e+00
+  1.72288194e+01 9.00938967e-02 2.13782246e+00 3.39184262e-01
+  1.25940438e+00 6.19467383e+01 2.65626084e-01 3.11653958e+00
+  2.63393557e-01 3.63005252e+00 2.38765466e-01 7.06235369e+00
+  8.82580311e-01 3.87999158e+00 4.52520620e-01 4.50270683e+00
+  3.31477493e+00 1.23573538e+00 2.20609374e+00 1.94016853e-01]
+ [5.35858447e+00 6.03717736e+00 8.65771780e-01 4.12666444e-01
+  9.22672833e+00 4.44463482e-01 6.06995640e-01 1.79558426e-01
+  3.58362589e+00 5.03702081e-01 5.40910014e+01 4.21310002e+01
+  4.84916865e-01 1.70850844e+01 4.63846274e+00 4.04498526e+00
+  4.63652228e-01 2.79452883e+00 5.29442963e+01 2.58739459e+00
+  3.81431619e+00 6.82752315e-01 3.51853279e-01 3.58257803e+01
+  1.82801415e+00 5.95280344e-01 1.47971194e+00 6.77018516e-01
+  1.29207648e-01 3.80644963e-01 2.56019009e+00 1.74866114e-01
+  1.94104148e-01 5.04265495e+00 3.05303056e-01 3.49376836e+00
+  8.70818705e-01 8.16516484e-01 1.48737304e+00 1.73797620e-01
+  1.41370954e-01 1.30880504e+00 2.72705019e+00 6.06143753e-01
+  2.02243005e+00 4.90936148e-01 6.24740856e-02 1.05020728e+02
+  1.36509965e+01 7.75619210e-01 1.43825702e+01 2.63313712e+00
+  8.30368743e+00 3.37390492e+00 2.98766518e-01 4.40831758e+00
+  8.55346396e-01 8.47232577e-01 3.60699713e+01 1.19649446e+01
+  4.55645652e-01 4.75925471e+00 1.10326265e+01 5.21396051e-01]
+ [6.40079707e-01 2.54014033e-01 7.33107714e-01 4.08988397e-01
+  9.53719579e-01 2.03022889e-01 9.64849852e+00 7.11740687e-01
+  1.58072088e-01 6.66557124e+00 7.72484045e+00 9.19511890e-01
+  1.82954796e+00 1.10468956e+00 1.31638661e+00 1.02312775e+01
+  5.99513205e-02 7.23683864e-01 9.16684097e-01 8.31234907e-02
+  1.76765293e-01 1.31311732e+00 1.83147934e+00 5.20227035e-01
+  1.79730464e+00 1.83090157e+01 2.59295093e-01 4.08432306e+00
+  9.68764077e-01 1.67456696e+01 3.40956690e+00 6.66993095e+00
+  5.18584367e-01 1.77090182e+00 5.79706160e+02 2.69536220e+00
+  1.59175798e-01 1.37902163e+00 2.78546303e-01 3.22742282e-01
+  2.97816676e+00 3.08192119e-01 2.95496754e-01 5.03459401e-01
+  4.40590094e+00 5.15680074e+00 4.55526801e-01 6.32273603e-01
+  1.32066848e-01 2.08415124e+01 4.97835684e-01 3.31998110e-01
+  1.14969265e-01 4.94743153e+01 5.04177560e-01 1.43841948e+00
+  3.76668938e+02 2.54524955e-01 9.74202163e+00 4.45506441e-01
+  1.89428197e-01 8.11874128e-01 2.77545429e-01 2.37745812e+00]
+ [9.03198858e+00 2.15471911e-01 2.31702535e-01 4.47008778e+01
+  9.16745559e-01 2.69984154e+00 4.00615031e-01 1.01166114e+00
+  1.47680828e-01 5.46682569e-01 9.15664232e-01 3.82940924e+00
+  6.10530875e-01 4.78389486e-01 1.46297750e+00 5.84653662e+02
+  7.15310438e-01 2.05581319e-01 1.14336143e+00 2.33769595e+00
+  3.29330699e+00 2.60534085e-01 7.96604462e+00 2.54619572e-01
+  2.64444803e-01 1.57428175e+00 6.33709453e-01 2.31879001e-01
+  5.86735218e-01 1.29777289e-01 4.91357093e+00 3.09172402e+00
+  6.86128604e+00 6.65699749e-01 8.81119620e-01 1.40246119e-01
+  5.91867634e+00 1.80564308e+00 6.99098183e-01 2.72835152e+00
+  3.00988793e+00 2.35102036e+03 5.12088165e+00 1.92493353e+01
+  9.52914818e-01 2.44977460e+02 3.87310133e-01 1.23746115e+01
+  2.07394381e+00 3.81346436e-01 1.51986241e+01 2.16708294e-01
+  5.03532702e-01 2.96888582e-01 1.98265759e-01 3.35831617e-01
+  4.01863223e+00 5.80051134e-01 2.78175173e-01 6.27493086e+00
+  4.93703432e-01 6.40078704e-01 1.04768354e-01 1.33483405e+02]
+ [3.93488783e-01 3.74097005e-01 1.02075132e+03 1.05638932e+00
+  1.66621504e+00 3.16815113e+00 3.22247515e+00 1.42492361e+00
+  8.50741057e-01 1.03428567e+00 1.89976887e-01 1.51961654e+00
+  1.20548123e+01 7.85590310e-01 7.73794559e+00 6.62926240e-01
+  4.08463086e-01 1.11614710e-01 2.77979051e+00 2.53259427e+01
+  9.63265447e-02 1.19440389e+00 3.07056767e+01 5.11024091e-01
+  1.79983060e+00 1.80947249e+00 5.75320867e-01 4.28886293e-01
+  1.23513088e+00 6.12931791e-01 1.05978972e+01 1.97762930e+00
+  4.07800030e-01 1.22388123e+02 2.02223432e+00 1.70475594e-01
+  2.10713442e+00 5.79882321e-01 1.46185472e+01 2.50887061e-01
+  6.10900852e-01 1.45457517e-01 1.72025079e+04 2.33220805e-01
+  3.65192089e-01 5.56996905e-01 4.97694706e-01 2.85748748e-01
+  1.78914848e-01 5.50196382e-01 4.87366131e+01 7.14599558e+00
+  7.54679750e+00 1.69937545e+00 1.54515775e+00 3.21780322e+01
+  1.74797524e+01 1.62211780e-01 6.37838621e+01 9.83070057e-01
+  3.17548356e+00 2.10927220e+01 1.52837813e+01 2.34316783e-01]
+ [4.03881453e-01 3.84726172e-01 1.02413386e+00 1.81217828e-01
+  3.41694094e-01 8.09152294e-01 3.63051348e-01 6.39510824e-01
+  3.48841754e+00 5.71283007e+03 1.59903276e+00 5.37476048e+00
+  6.95203586e+00 6.58816755e-01 5.18547246e+03 1.03489067e+00
+  2.68714896e+00 3.46480752e+00 1.26362115e+01 8.54473012e-01
+  5.52935595e-01 7.21955499e+00 5.12184724e-01 4.29739468e-01
+  6.21765605e+00 8.14886556e-02 1.54511333e-01 5.70844244e+00
+  3.93983293e-01 6.83625159e+00 3.23300226e+00 3.43399212e-01
+  1.48868342e+00 9.77750602e-01 1.96720466e-01 1.46774305e+03
+  1.45850456e+01 3.08101741e-01 3.58065513e+01 1.69230957e+02
+  1.24519786e+00 3.51420787e-01 2.98964806e+01 1.22918892e+00
+  3.93624434e-01 6.53423431e+00 3.36535527e+00 5.80705260e-01
+  4.54963216e+01 1.54008683e+01 9.93085221e+00 3.45299134e+00
+  3.30892747e-01 3.69341861e-01 3.44922124e-01 2.78656857e+00
+  7.06744823e-01 1.24121075e+00 1.45598553e-01 1.83648759e-01
+  1.74226997e+00 9.67598904e+01 7.75092242e-01 6.97273069e-01]
+ [4.71497846e-01 4.55352268e-01 6.80861241e+00 5.41356134e+00
+  1.63020550e+00 9.74488935e+00 4.58913155e-01 5.27843526e-01
+  3.07877364e-01 4.18456083e+00 2.19325242e+00 1.57930764e+00
+  3.72863473e+01 4.84274098e+00 7.37807811e-01 9.71954378e-02
+  1.09466453e+02 8.50467185e-01 2.65153141e+00 7.98133942e+01
+  2.78458641e-01 2.09799298e+00 2.60804151e-01 1.85238535e+00
+  4.20697539e-01 4.66237918e+01 3.27827372e-01 1.13867819e+01
+  1.23262014e+00 1.17499039e+00 8.51266666e+00 1.12342843e-01
+  9.11441443e-01 1.72903625e-01 1.81742096e-01 6.57607112e-01
+  1.96865836e+00 6.69561154e-01 6.46550926e-01 2.78492664e-01
+  8.60853227e-02 2.91546620e-01 2.11706710e+00 1.75654941e+00
+  6.63450766e+01 2.06296088e+02 2.59575035e+00 3.35115500e+02
+  3.44886576e-01 2.23985600e+03 1.24206842e-01 1.68343265e-01
+  2.66314023e+00 6.08971406e+01 1.29077022e+01 4.58219717e+00
+  1.22554797e+00 7.43066208e-02 5.86362530e-01 5.51429704e-01
+  5.92888020e+01 3.02361028e+00 4.23174253e-01 5.99238589e+02]]
