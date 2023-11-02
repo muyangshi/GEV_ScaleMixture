@@ -207,21 +207,6 @@ if __name__ == "__main__":
     for t in np.arange(N):
         R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
 
-    # # %%
-    # # ------- 5. Generate mu(s) = C(s)Beta ----------------------
-
-    # # C(s) is the covariate
-    # Loc_at_knots = np.tile(
-    #                 np.array([0, 1, 0,
-    #                          1, 2, 1,
-    #                          0, 1, 0]),
-    #                 (N, 1)).T
-    # Beta = 0.8
-    # # Which basis should I use? Gaussian or Wendland?
-    # Loc_matrix = gaussian_weight_matrix @ Loc_at_knots*Beta
-
-
-
     # %%
     # ------- 5. Generate X and Y--------------------------------
     X_star = R_phi * W
