@@ -173,6 +173,7 @@ if __name__ == "__main__":
 
     ## phi_vec
     phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
+    # phi_at_knots = np.array([0.3]*k)
     phi_vec = gaussian_weight_matrix @ phi_at_knots
 
     # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
@@ -665,6 +666,7 @@ if __name__ == "__main__":
             random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
             random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+            # random_walk_perturb = np.array([random_walk_perturn[0]]*9) # keep phi spatially constant
             phi_knots_proposal = phi_knots_current + random_walk_perturb
         else:
             phi_knots_proposal = None
