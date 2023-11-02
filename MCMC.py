@@ -1,9 +1,10 @@
 # This is a MCMC sampler that constantly gets updated
 # Scratch work and modifications are done in this file
 if __name__ == "__main__":
+    # %%
     import sys
     data_seed = sys.argv[1] if len(sys.argv) == 2 else 2345
-    #%%
+    # %%
     # Imports
     import os
     os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
@@ -205,6 +206,21 @@ if __name__ == "__main__":
     R_phi = np.full(shape = (num_sites, N), fill_value = np.nan)
     for t in np.arange(N):
         R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
+
+    # # %%
+    # # ------- 5. Generate mu(s) = C(s)Beta ----------------------
+
+    # # C(s) is the covariate
+    # Loc_at_knots = np.tile(
+    #                 np.array([0, 1, 0,
+    #                          1, 2, 1,
+    #                          0, 1, 0]),
+    #                 (N, 1)).T
+    # Beta = 0.8
+    # # Which basis should I use? Gaussian or Wendland?
+    # Loc_matrix = gaussian_weight_matrix @ Loc_at_knots*Beta
+
+
 
     # %%
     # ------- 5. Generate X and Y--------------------------------
@@ -778,8 +794,10 @@ if __name__ == "__main__":
         # Accept or Reject
         if rank == 0:
             range_accepted = False
-            lik = sum(lik_gathered)
-            lik_proposal = sum(lik_proposal_gathered)
+
+            # use Half-Normal Prior on each one of the k range parameters
+            lik = sum(lik_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
+            lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
 
             u = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik)
