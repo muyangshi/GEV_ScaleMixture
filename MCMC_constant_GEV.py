@@ -632,6 +632,7 @@ if __name__ == "__main__":
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # log-prior density
         prior = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log)) + R_current_log)
+        # prior = prior/k # if R(t) is spatially constant
 
         # Conditional Likelihood at Proposal
         R_vec_proposal = wendland_weight_matrix @ np.exp(R_proposal_log)
@@ -640,6 +641,7 @@ if __name__ == "__main__":
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                         phi_vec_current, gamma_vec, R_vec_proposal, cholesky_matrix_current)
         prior_proposal = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log)) + R_proposal_log)
+        # prior_proposal = prior_proposal/k # if R(t) is spatially constant
 
         # Accept or Reject
         u = random_generator.uniform()
