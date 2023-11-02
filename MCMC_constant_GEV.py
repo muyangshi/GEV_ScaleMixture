@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 5000
+    n_iters = 15000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -198,7 +198,8 @@ if __name__ == "__main__":
     ## Generate them at the knots
     R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
     for t in np.arange(N):
-        R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t
+        R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+        # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
 
     ## Matrix Multiply to the sites
     R_at_sites = wendland_weight_matrix @ R_at_knots
@@ -620,6 +621,7 @@ if __name__ == "__main__":
 
         # Propose a R using adaptive update
         R_proposal_log = np.sqrt(sigma_m_sq_Rt)*random_generator.normal(loc = 0.0, scale = 1.0, size = k) + R_current_log
+        # R_proposal_log = np.sqrt(sigma_m_sq_Rt)*np.repeat(random_generator.normal(loc = 0.0, scale = 1.0, size = 1), k) + R_current_log # spatially cst R(t)
 
         # Conditional Likelihood at Current
         R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
@@ -666,7 +668,7 @@ if __name__ == "__main__":
             random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
             random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-            # random_walk_perturb = np.array([random_walk_perturn[0]]*9) # keep phi spatially constant
+            # random_walk_perturb = np.repeat(random_walk_perturb[0], k) # keep phi spatially constant
             phi_knots_proposal = phi_knots_current + random_walk_perturb
         else:
             phi_knots_proposal = None
