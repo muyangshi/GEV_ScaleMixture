@@ -3,7 +3,7 @@
 if __name__ == "__main__":
     # %%
     import sys
-    data_seed = sys.argv[1] if len(sys.argv) == 2 else 2345
+    data_seed = int(sys.argv[1]) if len(sys.argv) == 2 else 2345
     # %%
     # Imports
     import os
