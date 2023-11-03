@@ -209,8 +209,28 @@ if __name__ == "__main__":
     for t in np.arange(N):
         R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
 
+    # ------- 5. Generate mu(s) = C(s)Beta ----------------------
+
+    # # C(s) is the covariate
+    # Beta = 0.3
+    # Loc_at_knots = np.tile(np.sqrt(0.5*knots_x + 0.2*knots_y),
+    #                        (N, 1)).T * Beta
+    # # Which basis should I use? Gaussian or Wendland?
+    # Loc_matrix = gaussian_weight_matrix @ Loc_at_knots # shape (N, num_sites)
+
+    # Loc_site_for_plot = gaussian_weight_matrix_for_plot @ Loc_at_knots
+    # Loc_site_for_plot = Loc_site_for_plot[:,0] # look at time t=0
+    # fig = plt.figure()
+    # ax = fig.add_subplot(projection='3d')
+    # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(Loc_site_for_plot).reshape(25,25))
+    # ax.set_xlabel('X')
+    # ax.set_ylabel('Y')
+    # ax.set_zlabel('mu(s)')
+    # ax.scatter(knots_x, knots_y, Loc_at_knots[:,0], c='red', marker='o', s=100)
+
+
     # %%
-    # ------- 5. Generate X and Y--------------------------------
+    # ------- 6. Generate X and Y--------------------------------
     X_star = R_phi * W
 
     # Calculation of Y can(?) be parallelized by time(?)
@@ -219,7 +239,7 @@ if __name__ == "__main__":
         Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
 
     # %%
-    # ------- 6. Other Preparational Stuff(?) --------------------------------
+    # ------- 7. Other Preparational Stuff(?) --------------------------------
 
     Loc_matrix = np.full(shape = Y.shape, fill_value = mu)
     Scale_matrix = np.full(shape = Y.shape, fill_value = tau)
