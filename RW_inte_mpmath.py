@@ -6,7 +6,7 @@
 
 from mpmath import mp
 import numpy as np
-mp.dps = 30
+mp.dps = 15
 
 # mpmath dRW
 def dRW_integrand_mpmath(r, x, phi, gamma):

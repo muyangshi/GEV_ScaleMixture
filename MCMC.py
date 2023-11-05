@@ -1,5 +1,7 @@
 # This is a MCMC sampler that constantly gets updated
 # Scratch work and modifications are done in this file
+# Require:
+#   - utilities.py
 if __name__ == "__main__":
     # %%
     import sys
@@ -29,7 +31,7 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 64 # number of time replicates
+    N = 4 # number of time replicates
     num_sites = 500 # number of sites/stations
     k = 9 # number of knots
 
@@ -49,7 +51,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 15000
+    n_iters = 1000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
     Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(num_sites,)),cov=K,size=N).T
-    W = norm_to_Pareto1(Z) 
+    W = norm_to_Pareto(Z) 
     # W = norm_to_std_Pareto(Z)
 
     # %%
