@@ -1,6 +1,7 @@
 # Platform
 .DS_Store
 data/.DS_Store
+.vscode/*
 
 # Custom
 scratch/*
