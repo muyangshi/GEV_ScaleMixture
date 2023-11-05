@@ -14,9 +14,17 @@
 #include <limits>
 #include <algorithm>
 #include <gsl/gsl_errno.h>
+#include <gsl/gsl_sf_gamma.h>
 
 extern "C"
 {
+
+double upper_gamma_C(double a, double x){ // x is the integration lower bound
+    return gsl_sf_gamma_inc(a, x);
+}
+double lower_gamma_C(double a, double x){ // x is the integration uppder bound
+    return gsl_sf_gamma(a) - upper_gamma_C(a, x);
+}
 
 struct my_f_params {double xval; double phi; double gamma;};
 

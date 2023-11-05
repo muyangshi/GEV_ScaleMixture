@@ -117,6 +117,10 @@ lib.F_X_part_1.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ct
 lib.F_X_part_2_QAG1.restype = ctypes.c_double
 lib.F_X_part_2_QAG1.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double) # xval, phi, gamma, tau
 
+lib.upper_gamma_C.restype = ctypes.c_double
+lib.upper_gamma_C.argtypes = (ctypes.c_double, ctypes.c_double)
+lib.lower_gamma_C.restype = ctypes.c_double
+lib.lower_gamma_C.argtypes = (ctypes.c_double, ctypes.c_double)
 
 # lib.my_gsl_cdf_gaussian_Q.restype = ctypes.c_double
 # lib.my_gsl_cdf_gaussian_Q.argtypes = (ctypes.c_double, ctypes.c_double)
