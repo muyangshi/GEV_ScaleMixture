@@ -84,11 +84,11 @@ dRW_stdPareto_vec = np.vectorize(dRW_stdPareto, otypes=[float])
 pRW_stdPareto_vec = np.vectorize(pRW_stdPareto, otypes=[float])
 qRW_stdPareto_vec = np.vectorize(qRW_stdPareto, otypes=[float])
 
-if norm_pareto == 'shifted':
+if norm_pareto == 'standard':
     dRW = dRW_stdPareto_vec
     pRW = pRW_stdPareto_vec
     qRW = qRW_stdPareto_vec
-else: # norm_pareto == 'standard'
+else: # norm_pareto == 'shifted'
     dRW = dRW_cpp if dRW_method == 'cpp' else dRW_mpmath
     pRW = pRW_cpp if pRW_method == 'cpp' else pRW_mpmath
     qRW = qRW_cpp if qRW_method == 'cpp' else qRW_mpmath
