@@ -561,6 +561,8 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.savefig('loglik_detail.pdf')
                 plt.close()
+        
+        comm.Barrier() # block for drawing
 
         # Adaptive Update autotunings
         if iter % 25 == 0:
@@ -631,7 +633,9 @@ if __name__ == "__main__":
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
-            
+        
+        comm.Barrier() # block for adaptive update
+
     #####################################################################################################################
     # Actual Param Update ###############################################################################################
     #####################################################################################################################
@@ -682,6 +686,8 @@ if __name__ == "__main__":
         
         if rank == 0:
             R_trace_log[iter,:,:] = np.vstack(R_current_log_gathered).T
+
+        comm.Barrier() # block for R_t updates
 
     #### ----- Update phi ----- parallelized likelihood calculation across N time
         # if rank == 0:
@@ -760,6 +766,8 @@ if __name__ == "__main__":
             X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
                                             phi_vec_current, gamma)
 
+        comm.Barrier() # block for phi updates
+
     #### ----- Update range_vec ----- parallelized likelihood calculation across N time
         # if rank == 0:
         #     print('Updating range')
@@ -837,6 +845,8 @@ if __name__ == "__main__":
             K_current = ns_cov(range_vec = range_vec_current,
                                 sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
             cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
+
+        comm.Barrier() # block for range updates
 
     #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
     #### ----- Do not update ksi -----
@@ -938,6 +948,7 @@ if __name__ == "__main__":
             X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
                                             phi_vec_current, gamma)
         
+        comm.Barrier() # block for GEV updates
 
         # Keeping track of likelihood after this iteration
         lik_final_1t_detail = marg_transform_data_mixture_likelihood_1t_detail(Y[:,rank], X_star_1t_current, 
@@ -950,6 +961,7 @@ if __name__ == "__main__":
             loglik_trace[iter,0] = round(sum(lik_final_gathered),3) # storing the overall log likelihood
             loglik_detail_trace[iter,:] = np.matrix(lik_final_detail_gathered).sum(axis=0) # storing the detail log likelihood
 
+        comm.Barrier() # block for one iteration of update
 
     # End of MCMC
     if rank == 0:
