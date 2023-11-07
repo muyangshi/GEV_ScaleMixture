@@ -134,8 +134,8 @@ def qRW_scipy(p, phi, gamma):
     return scipy.optimize.root_scalar(lambda x: pRW_transformed_scipy(x, phi, gamma) - p,
                                      bracket=[0.1, 1e12],
                                      fprime = lambda x: dRW_transformed_scipy(x, phi, gamma),
-                                     x0 = 10,
-                                     method='ridder').root
+                                     x0 = 50,
+                                     method='newton').root
 qRW_scipy_vec = np.vectorize(qRW_scipy, otypes=[float])
 
 # %%
