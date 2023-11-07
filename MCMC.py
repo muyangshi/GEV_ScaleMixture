@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 4 # number of time replicates
+    N = 64 # number of time replicates
     num_sites = 500 # number of sites/stations
     k = 9 # number of knots
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 1000
+    n_iters = 15000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -763,8 +763,9 @@ if __name__ == "__main__":
 
         # Update X_star
         if phi_accepted:
-            X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                            phi_vec_current, gamma)
+            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+            #                                 phi_vec_current, gamma)
+            X_star_1t_current = X_star_1t_proposal
 
         comm.Barrier() # block for phi updates
 
@@ -842,9 +843,11 @@ if __name__ == "__main__":
 
         # Update the K
         if range_accepted:
-            K_current = ns_cov(range_vec = range_vec_current,
-                                sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
-            cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
+            # K_current = ns_cov(range_vec = range_vec_current,
+            #                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
+            # cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
+            K_current = K_proposal
+            cholesky_matrix_current = cholesky_matrix_proposal
 
         comm.Barrier() # block for range updates
 
@@ -945,8 +948,9 @@ if __name__ == "__main__":
 
         # Update X_star
         if GEV_accepted:
-            X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                            phi_vec_current, gamma)
+            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+            #                                 phi_vec_current, gamma)
+            X_star_1t_current = X_star_1t_proposal
         
         comm.Barrier() # block for GEV updates
 

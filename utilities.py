@@ -15,7 +15,8 @@ import scipy
 
 # specify integration and transformation
 #############################
-inte_method = 'cpp'         #
+# inte_method = 'cpp'         #
+inte_method = 'scipy'       #
 # norm_pareto = 'shifted'   #
 norm_pareto = 'standard'    #
 #############################
@@ -63,9 +64,9 @@ else: # norm_pareto == 'shifted'
         pRW = RW_inte.pRW_mpmath_vec_float
         qRW = RW_inte.qRW_mpmath_vec_float
     elif inte_method == 'scipy':
-        dRW = RW_inte.dRW_scipy
-        pRW = RW_inte.pRW_scipy
-        qRW = RW_inte.qRW_scipy
+        dRW = RW_inte.dRW_scipy_vec
+        pRW = RW_inte.pRW_scipy_vec
+        qRW = RW_inte.qRW_scipy_vec
 
 # %%
 # marginal likelihood using integration and transformation specified above 

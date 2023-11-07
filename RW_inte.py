@@ -88,7 +88,7 @@ def qRW_mpmath_vec_float(p, phi, gamma): # return a np.array of floats
 ###########################################################
 
 # scipy dRW
-@jit
+@jit(nopython=True)
 def dRW_integrand_scipy(r, x, phi, gamma):
     return (r**(phi-3/2)) / ((x+r**phi)**2) * np.exp(-(gamma/(2*r)))
 def dRW_scipy(x, phi, gamma):
@@ -96,7 +96,7 @@ def dRW_scipy(x, phi, gamma):
 dRW_scipy_vec = np.vectorize(dRW_scipy, otypes=[float])
 
 # scipy pRW
-@jit
+@jit(nopython=True)
 def pRW_integrand_scipy(r, x, phi, gamma):
     numerator = np.power(r, phi-1.5)
     denominator = x + np.power(r, phi)
@@ -107,7 +107,7 @@ def pRW_scipy(x, phi, gamma):
 pRW_scipy_vec = np.vectorize(pRW_scipy, otypes=[float]) # return a np.array of mpf
 
 # scipy dRW transformed between [0,1]
-@jit
+@jit(nopython=True)
 def dRW_integrand_transformed_scipy(t, x, phi, gamma):
     ratio_numerator = np.power((1-t)/t, phi-1.5)
     ratio_denominator = (x + np.power((1-t)/t, phi))**2
@@ -119,7 +119,7 @@ def dRW_transformed_scipy(x, phi, gamma):
 dRW_transformed_scipy_vec = np.vectorize(dRW_transformed_scipy, otypes=[float])
 
 # scipy pRW transformed between [0,1]
-@jit
+@jit(nopython=True)
 def pRW_integrand_transformed_scipy(t, x, phi, gamma):
     numerator = np.power((1-t)/t, phi-1.5)
     denominator = x + np.power((1-t)/t, phi)
@@ -134,8 +134,7 @@ def qRW_scipy(p, phi, gamma):
     return scipy.optimize.root_scalar(lambda x: pRW_transformed_scipy(x, phi, gamma) - p,
                                      bracket=[0.1, 1e12],
                                      fprime = lambda x: dRW_transformed_scipy(x, phi, gamma),
-                                     x0 = 50,
-                                     method='newton').root
+                                     x0 = 10).root
 qRW_scipy_vec = np.vectorize(qRW_scipy, otypes=[float])
 
 # %%
