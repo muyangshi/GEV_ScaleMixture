@@ -222,19 +222,20 @@ for t in np.arange(N):
 
 # %%
 # load data and calculate statistics
-PE_matrix_phi = np.full(shape = (k, 15), fill_value = np.nan)
-lower_bound_matrix_phi = np.full(shape = (k, 15), fill_value = np.nan)
-upper_bound_matrix_phi = np.full(shape = (k, 15), fill_value = np.nan)
-PE_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
-lower_bound_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
-upper_bound_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
-PE_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
-lower_bound_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
-upper_bound_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
+nsim = 15
+PE_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
+lower_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
+upper_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
+PE_matrix_range = np.full(shape = (k, nsim), fill_value = np.nan)
+lower_bound_matrix_range = np.full(shape = (k, nsim), fill_value = np.nan)
+upper_bound_matrix_range = np.full(shape = (k, nsim), fill_value = np.nan)
+PE_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
+lower_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
+upper_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 
-sim_id = np.arange(15)
+sim_id = np.arange(nsim)
 folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
-for i in range(15):
+for i in range(nsim):
     folder = folders[i]
     phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
     R_trace_log = np.load(folder + 'R_trace_log.npy')
@@ -257,12 +258,16 @@ for i in range(15):
 # make plots for phi
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = phi_at_knots[knot_id], xmin = 1, xmax = 15,
-            color = 'red')
-    plt.errorbar(x = 1 + np.arange(15), y = PE_matrix_phi[knot_id,:], 
+    ax.hlines(y = phi_at_knots[knot_id], xmin = 1, xmax = nsim,
+            color = 'black')
+    coloring = ['red' if failed == True else 'green' 
+                for failed in np.logical_or(lower_bound_matrix_phi[knot_id,:] > phi_at_knots[knot_id], 
+                                            upper_bound_matrix_phi[knot_id,:] < phi_at_knots[knot_id])]
+    plt.errorbar(x = 1 + np.arange(nsim), y = PE_matrix_phi[knot_id,:], 
                 yerr = np.vstack((PE_matrix_phi[knot_id,:] - lower_bound_matrix_phi[knot_id,:], 
                                   upper_bound_matrix_phi[knot_id,:] - PE_matrix_phi[knot_id,:])), 
-                fmt = 'o') # errorbar yerr is for size
+                fmt = 'o',
+                ecolor = coloring) # errorbar yerr is for size
     plt.title('knot: ' + str(knot_id) + ' phi = ' + str(round(phi_at_knots[knot_id],3)))
     plt.xlabel('simulation number')
     plt.ylabel('phi')
@@ -274,12 +279,16 @@ for knot_id in range(k):
 # make plots for range
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = range_at_knots[knot_id], xmin = 1, xmax = 15,
-            color = 'red')
-    plt.errorbar(x = 1 + np.arange(15), y = PE_matrix_range[knot_id,:], 
+    ax.hlines(y = range_at_knots[knot_id], xmin = 1, xmax = nsim,
+            color = 'black')
+    coloring = ['red' if failed == True else 'green' 
+            for failed in np.logical_or(lower_bound_matrix_range[knot_id,:] > range_at_knots[knot_id], 
+                                        upper_bound_matrix_range[knot_id,:] < range_at_knots[knot_id])]
+    plt.errorbar(x = 1 + np.arange(nsim), y = PE_matrix_range[knot_id,:], 
                 yerr = np.vstack((PE_matrix_range[knot_id,:] - lower_bound_matrix_range[knot_id,:], 
                                   upper_bound_matrix_range[knot_id,:] - PE_matrix_range[knot_id,:])), 
-                fmt = 'o')
+                fmt = 'o',
+                ecolor = coloring)
     plt.title('knot: ' + str(knot_id) + ' range = ' + str(round(range_at_knots[knot_id],3)))
     plt.xlabel('simulation number')
     plt.ylabel('range')
@@ -292,19 +301,23 @@ for knot_id in range(k):
 t = 0
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = 15,
-            color = 'red')
-    plt.errorbar(x = 1 + np.arange(15), 
+    ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = nsim,
+            color = 'black')
+    coloring = ['red' if failed == True else 'green' 
+            for failed in np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
+                                        upper_bound_matrix_Rt_log[knot_id,t,:] < np.log(R_at_knots)[knot_id,t])]
+    plt.errorbar(x = 1 + np.arange(nsim), 
                 y = PE_matrix_Rt_log[knot_id,t,:], 
                 yerr = np.vstack((PE_matrix_Rt_log[knot_id,t,:] - lower_bound_matrix_Rt_log[knot_id,t,:], 
                                   upper_bound_matrix_Rt_log[knot_id,t,:] - PE_matrix_Rt_log[knot_id,t,:])), 
-                fmt = 'o')
+                fmt = 'o',
+                ecolor = coloring)
     plt.title('knot: ' + str(knot_id) + ' t = ' + str(t) +' log(Rt) = ' + str(round(np.log(R_at_knots[knot_id,t]),3)))
     plt.xlabel('simulation number')
     plt.ylabel('Rt')
     plt.show()
-    # fig.savefig('R_knot_' + str(knot_id) + '.pdf')
-    # plt.close()
+    fig.savefig('R_knot_' + str(knot_id) + '_t_' + str(t) + '.pdf')
+    plt.close()
 
 
 # %%
@@ -313,7 +326,7 @@ for knot_id in range(k):
 
 
 
-# coverage_x = np.arange(15)
+# coverage_x = np.arange(nsim)
 # phi_at_knots
 # PE = np.mean(phi_knots_trace,axis = 0)
 # lower_bound = np.quantile(phi_knots_trace, q = 0.025, axis = 0)
@@ -323,8 +336,8 @@ for knot_id in range(k):
 # np.vstack((lower_bound, upper_bound))
 
 # fig, ax = plt.subplots()
-# ax.hlines(y = phi_at_knots[0], xmin = 0, xmax = 15,
-#           color = 'red')
+# ax.hlines(y = phi_at_knots[0], xmin = 0, xmax = nsim,
+#           color = 'black')
 # plt.errorbar(x = 0, y = PE[0], 
 #              yerr = np.vstack((lower_bound, upper_bound))[:,0].reshape(2,1), fmt = 'o')
 # # plt.plot(0, phi_at_knots[0], fmt = 'o')
