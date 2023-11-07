@@ -228,9 +228,9 @@ upper_bound_matrix_phi = np.full(shape = (k, 15), fill_value = np.nan)
 PE_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
 lower_bound_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
 upper_bound_matrix_range = np.full(shape = (k, 15), fill_value = np.nan)
-PE_matrix_Rt = np.full(shape = (k, N, 15), fill_value = np.nan)
-lower_bound_matrix_Rt = np.full(shape = (k, N, 15), fill_value = np.nan)
-upper_bound_matrix_Rt = np.full(shape = (k, N, 15), fill_value = np.nan)
+PE_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
+lower_bound_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
+upper_bound_matrix_Rt_log = np.full(shape = (k, N, 15), fill_value = np.nan)
 
 sim_id = np.arange(15)
 folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
@@ -249,9 +249,9 @@ for i in range(15):
     lower_bound_matrix_range[:,i] = np.quantile(range_knots_trace, q = 0.025, axis = 0)
     upper_bound_matrix_range[:,i] = np.quantile(range_knots_trace, q = 0.975, axis = 0)
     # Rt
-    PE_matrix_Rt[:,:,i] = np.mean(np.exp(R_trace_log), axis = 0)
-    lower_bound_matrix_Rt[:,:,i] = np.quantile(np.exp(R_trace_log), q = 0.025, axis = 0)
-    upper_bound_matrix_Rt[:,:,i] = np.quantile(np.exp(R_trace_log), q = 0.975, axis = 0)
+    PE_matrix_Rt_log[:,:,i] = np.mean(R_trace_log, axis = 0)
+    lower_bound_matrix_Rt_log[:,:,i] = np.quantile(R_trace_log, q = 0.025, axis = 0)
+    upper_bound_matrix_Rt_log[:,:,i] = np.quantile(R_trace_log, q = 0.975, axis = 0)
 
 # %%
 # make plots for phi
@@ -260,8 +260,9 @@ for knot_id in range(k):
     ax.hlines(y = phi_at_knots[knot_id], xmin = 1, xmax = 15,
             color = 'red')
     plt.errorbar(x = 1 + np.arange(15), y = PE_matrix_phi[knot_id,:], 
-                yerr = np.vstack((lower_bound_matrix_phi[knot_id,:], upper_bound_matrix_phi[knot_id,:])), 
-                fmt = 'o')
+                yerr = np.vstack((PE_matrix_phi[knot_id,:] - lower_bound_matrix_phi[knot_id,:], 
+                                  upper_bound_matrix_phi[knot_id,:] - PE_matrix_phi[knot_id,:])), 
+                fmt = 'o') # errorbar yerr is for size
     plt.title('knot: ' + str(knot_id) + ' phi = ' + str(round(phi_at_knots[knot_id],3)))
     plt.xlabel('simulation number')
     plt.ylabel('phi')
@@ -276,7 +277,8 @@ for knot_id in range(k):
     ax.hlines(y = range_at_knots[knot_id], xmin = 1, xmax = 15,
             color = 'red')
     plt.errorbar(x = 1 + np.arange(15), y = PE_matrix_range[knot_id,:], 
-                yerr = np.vstack((lower_bound_matrix_range[knot_id,:], upper_bound_matrix_range[knot_id,:])), 
+                yerr = np.vstack((PE_matrix_range[knot_id,:] - lower_bound_matrix_range[knot_id,:], 
+                                  upper_bound_matrix_range[knot_id,:] - PE_matrix_range[knot_id,:])), 
                 fmt = 'o')
     plt.title('knot: ' + str(knot_id) + ' range = ' + str(round(range_at_knots[knot_id],3)))
     plt.xlabel('simulation number')
@@ -286,17 +288,18 @@ for knot_id in range(k):
     plt.close()
 
 # %%
-# make plots for R_t
+# make plots for log(R_t)
 t = 0
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = R_at_knots[knot_id,t], xmin = 1, xmax = 15,
+    ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = 15,
             color = 'red')
     plt.errorbar(x = 1 + np.arange(15), 
-                 y = PE_matrix_Rt[knot_id,t,:], 
-                yerr = np.vstack((lower_bound_matrix_Rt[knot_id,t,:], upper_bound_matrix_Rt[knot_id,t,:])), 
+                y = PE_matrix_Rt_log[knot_id,t,:], 
+                yerr = np.vstack((PE_matrix_Rt_log[knot_id,t,:] - lower_bound_matrix_Rt_log[knot_id,t,:], 
+                                  upper_bound_matrix_Rt_log[knot_id,t,:] - PE_matrix_Rt_log[knot_id,t,:])), 
                 fmt = 'o')
-    plt.title('knot: ' + str(knot_id) + ' Rt = ' + str(round(R_at_knots[knot_id,t],3)))
+    plt.title('knot: ' + str(knot_id) + ' t = ' + str(t) +' log(Rt) = ' + str(round(np.log(R_at_knots[knot_id,t]),3)))
     plt.xlabel('simulation number')
     plt.ylabel('Rt')
     plt.show()
@@ -304,7 +307,7 @@ for knot_id in range(k):
     # plt.close()
 
 
-
+# %%
 
 
 
