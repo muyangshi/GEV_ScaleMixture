@@ -1,3 +1,4 @@
+# %%
 import sys
 data_seed = 20
 # %%
@@ -220,6 +221,17 @@ for t in np.arange(N):
 # range_knots_trace = np.load(folder + 'range_knots_trace.npy')
 # GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
 
+
+
+
+
+
+
+
+########################
+# individual coverage  #
+########################
+
 # %%
 # load data and calculate statistics
 nsim = 15
@@ -344,5 +356,127 @@ np.mean(R_type1) # overall type 1 error
 np.mean(R_type1, axis = 2) # type 1 error of R at each knot each time
 
 
+
+
+
+
+########################
+# overall avg coverage #
+########################
+
+
+# %%
+# overall coverage for phi
+# load good simulations
+nsim = 15
+sim_id = np.arange(nsim)
+bad_sim_id = np.array([3]) - 1
+for bad_id in bad_sim_id:
+    sim_id = np.delete(sim_id, np.argwhere(sim_id == bad_id))
+nsim = len(sim_id)
+folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
+alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
+q_low = alphas/2
+q_high = 1 - q_low
+
+# summary by credible levels
+PE_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
+lower_bound_matrix_phi_alpha = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+upper_bound_matrix_phi_alpha = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for i in range(nsim):
+        folder = folders[i]
+        phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
+        # phi
+        PE_matrix_phi[:,i] = np.mean(phi_knots_trace, axis = 0)
+        lower_bound_matrix_phi_alpha[:,i, level_i] = np.quantile(phi_knots_trace, q = q_low[level_i], axis = 0)
+        upper_bound_matrix_phi_alpha[:,i, level_i] = np.quantile(phi_knots_trace, q = q_high[level_i], axis = 0)
+
+# coverage flag
+phi_covers = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for knot_id in range(k):
+        phi_covers[knot_id, :, level_i] = \
+            np.logical_and(lower_bound_matrix_phi_alpha[knot_id,:,level_i] < phi_at_knots[knot_id], 
+                            upper_bound_matrix_phi_alpha[knot_id,:, level_i] > phi_at_knots[knot_id])
+
+# average coverage
+avg_phi_covers = np.mean(phi_covers, axis = 1)
+# std_phi_covers = np.std(phi_covers, axis = 1)
+se_phi_covers = scipy.stats.sem(phi_covers, axis = 1)
+
+# plotting
+for knot_id in range(k):
+    fig, ax = plt.subplots()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    ax.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    plt.errorbar(x = 1 - alphas, 
+                y = avg_phi_covers[knot_id,:], 
+                yerr = 1.96*se_phi_covers[knot_id,:],
+                fmt = 'o')
+    plt.title('phi knot ' + str(knot_id))
+    plt.ylabel('empirical coverage w/ 1.96*SE')
+    plt.xlabel('1-alpha')
+    plt.show()
+    fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
+    plt.close()
+
+# %%
+# overall coverage for range
+# load good simulations
+nsim = 15
+sim_id = np.arange(nsim)
+# bad_sim_id = None
+# for bad_id in bad_sim_id:
+    # sim_id = np.delete(sim_id, np.argwhere(sim_id == bad_id))
+nsim = len(sim_id)
+folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
+alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
+q_low = alphas/2
+q_high = 1 - q_low
+
+# summary by credible levels
+PE_matrix_range = np.full(shape = (k, nsim), fill_value = np.nan)
+lower_bound_matrix_range_alpha = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+upper_bound_matrix_range_alpha = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for i in range(nsim):
+        folder = folders[i]
+        range_knots_trace = np.load(folder + 'range_knots_trace.npy')
+        # range
+        PE_matrix_range[:,i] = np.mean(range_knots_trace, axis = 0)
+        lower_bound_matrix_range_alpha[:,i, level_i] = np.quantile(range_knots_trace, q = q_low[level_i], axis = 0)
+        upper_bound_matrix_range_alpha[:,i, level_i] = np.quantile(range_knots_trace, q = q_high[level_i], axis = 0)
+
+# coverage flag
+range_covers = np.full(shape = (k, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for knot_id in range(k):
+        range_covers[knot_id, :, level_i] = \
+            np.logical_and(lower_bound_matrix_range_alpha[knot_id,:,level_i] < range_at_knots[knot_id], 
+                            upper_bound_matrix_range_alpha[knot_id,:, level_i] > range_at_knots[knot_id])
+
+# average coverage
+avg_range_covers = np.mean(range_covers, axis = 1)
+# std_range_covers = np.std(range_covers, axis = 1)
+se_range_covers = scipy.stats.sem(range_covers, axis = 1)
+
+# plotting
+for knot_id in range(k):
+    fig, ax = plt.subplots()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    ax.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    plt.errorbar(x = 1 - alphas, 
+                y = avg_range_covers[knot_id,:], 
+                yerr = 1.96*se_range_covers[knot_id,:],
+                fmt = 'o')
+    plt.title('range knot ' + str(knot_id))
+    plt.ylabel('empirical coverage w/ 1.96*SE')
+    plt.xlabel('1-alpha')
+    plt.show()
+    fig.savefig('range_knot_' + str(knot_id) + '_avg' + '.pdf')
+    plt.close()
 
 # %%
