@@ -131,10 +131,15 @@ def pRW_transformed_scipy(x, phi, gamma):
 pRW_transformed_scipy_vec = np.vectorize(pRW_transformed_scipy, otypes=[float])
 
 def qRW_scipy(p, phi, gamma):
-    return scipy.optimize.root_scalar(lambda x: pRW_transformed_scipy(x, phi, gamma) - p,
-                                     bracket=[0.1, 1e12],
-                                     fprime = lambda x: dRW_transformed_scipy(x, phi, gamma),
-                                     x0 = 10).root
+    try:
+        return scipy.optimize.root_scalar(lambda x: pRW_transformed_scipy(x, phi, gamma) - p,
+                                        bracket=[0, 1e12],
+                                        fprime = lambda x: dRW_transformed_scipy(x, phi, gamma),
+                                        x0 = 10,
+                                        method = 'ridder').root
+    except Exception as e:
+        print(e)
+        print('p=',p,',','phi=',phi,',','gamma',gamma)
 qRW_scipy_vec = np.vectorize(qRW_scipy, otypes=[float])
 
 # %%
