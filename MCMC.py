@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 15000
+    n_iters = 500
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -731,8 +731,10 @@ if __name__ == "__main__":
         # Accept or Reject
         if rank == 0:
             phi_accepted = False
-            lik = sum(lik_gathered)
-            lik_proposal = sum(lik_proposal_gathered)
+
+            # use Beta(5,5) prior on each one of the k range parameters
+            lik = sum(lik_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
+            lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
 
             u = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik)
