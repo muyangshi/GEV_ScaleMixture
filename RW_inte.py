@@ -164,11 +164,16 @@ def pRW_stdPareto(x, phi, gamma):
     survival = np.sqrt(1/np.pi) * lower_gamma + (1/x) * np.sqrt(1/np.pi) * np.power(gamma/2, phi) * upper_gamma
     return 1 - survival
 def qRW_stdPareto(p, phi, gamma):
-    return scipy.optimize.root_scalar(lambda x: pRW_stdPareto(x, phi, gamma) - p,
-                                      bracket=[0.1,1e12],
-                                      fprime = lambda x: dRW_stdPareto(x, phi, gamma),
-                                      x0 = 10,
-                                      method='ridder').root
+    try:
+        return scipy.optimize.root_scalar(lambda x: pRW_stdPareto(x, phi, gamma) - p,
+                                        bracket=[0.1,1e12],
+                                        fprime = lambda x: dRW_stdPareto(x, phi, gamma),
+                                        x0 = 10,
+                                        method='ridder').root
+    except Exception as e:
+        print(e)
+        print('p=',p,',','phi=',phi,',','gamma',gamma)
 dRW_stdPareto_vec = np.vectorize(dRW_stdPareto, otypes=[float])
 pRW_stdPareto_vec = np.vectorize(pRW_stdPareto, otypes=[float])
 qRW_stdPareto_vec = np.vectorize(qRW_stdPareto, otypes=[float])
+# %%
