@@ -234,7 +234,10 @@ for t in np.arange(N):
 
 # %%
 # load data and calculate statistics
-nsim = 15
+sim_id_from = 1
+sim_id_to = 30
+sim_ids = np.arange(start = sim_id_from, stop = sim_id_to+1)
+nsim = len(sim_ids)
 PE_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
 lower_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
 upper_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
@@ -245,8 +248,7 @@ PE_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 lower_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 upper_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 
-sim_id = np.arange(nsim)
-folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
+folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 for i in range(nsim):
     folder = folders[i]
     phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
@@ -284,8 +286,8 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('phi')
     plt.show()
-    fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
-    plt.close()
+    # fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
+    # plt.close()
 
 # %%
 # make plots for range
@@ -305,46 +307,49 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('range')
     plt.show()
-    fig.savefig('range_knot_' + str(knot_id) + '.pdf')
-    plt.close()
+    # fig.savefig('range_knot_' + str(knot_id) + '.pdf')
+    # plt.close()
 
-# %%
-# make plots for log(R_t)
-t = 0
-for knot_id in range(k):
-    fig, ax = plt.subplots()
-    ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = nsim,
-            color = 'black')
-    coloring = ['red' if type1 == True else 'green' 
-            for type1 in np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
-                                        upper_bound_matrix_Rt_log[knot_id,t,:] < np.log(R_at_knots)[knot_id,t])]
-    plt.errorbar(x = 1 + np.arange(nsim), 
-                y = PE_matrix_Rt_log[knot_id,t,:], 
-                yerr = np.vstack((PE_matrix_Rt_log[knot_id,t,:] - lower_bound_matrix_Rt_log[knot_id,t,:], 
-                                  upper_bound_matrix_Rt_log[knot_id,t,:] - PE_matrix_Rt_log[knot_id,t,:])), 
-                fmt = 'o',
-                ecolor = coloring)
-    plt.title('knot: ' + str(knot_id) + ' t = ' + str(t) +' log(Rt) = ' + str(round(np.log(R_at_knots[knot_id,t]),3)))
-    plt.xlabel('simulation number')
-    plt.ylabel('Rt')
-    plt.show()
-    fig.savefig('R_knot_' + str(knot_id) + '_t_' + str(t) + '.pdf')
-    plt.close()
+# # %%
+# # make plots for log(R_t)
+# #################################################################### #
+# Cannot make these plots because R_t is different for each simulation #
+# #################################################################### #
+# t = 0
+# for knot_id in range(k):
+#     fig, ax = plt.subplots()
+#     ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = nsim,
+#             color = 'black')
+#     coloring = ['red' if type1 == True else 'green' 
+#             for type1 in np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
+#                                         upper_bound_matrix_Rt_log[knot_id,t,:] < np.log(R_at_knots)[knot_id,t])]
+#     plt.errorbar(x = 1 + np.arange(nsim), 
+#                 y = PE_matrix_Rt_log[knot_id,t,:], 
+#                 yerr = np.vstack((PE_matrix_Rt_log[knot_id,t,:] - lower_bound_matrix_Rt_log[knot_id,t,:], 
+#                                   upper_bound_matrix_Rt_log[knot_id,t,:] - PE_matrix_Rt_log[knot_id,t,:])), 
+#                 fmt = 'o',
+#                 ecolor = coloring)
+#     plt.title('knot: ' + str(knot_id) + ' t = ' + str(t) +' log(Rt) = ' + str(round(np.log(R_at_knots[knot_id,t]),3)))
+#     plt.xlabel('simulation number')
+#     plt.ylabel('Rt')
+#     plt.show()
+#     fig.savefig('R_knot_' + str(knot_id) + '_t_' + str(t) + '.pdf')
+#     plt.close()
 
 
 # %%
 # Calculate Coverage
 phi_type1 = np.full(shape=(k, nsim), fill_value=np.nan)
 range_type1 = np.full(shape=(k,nsim), fill_value=np.nan)
-R_type1 = np.full(shape=(k,N,nsim), fill_value=np.nan)
+# R_type1 = np.full(shape=(k,N,nsim), fill_value=np.nan)
 for knot_id in range(k):
     phi_type1[knot_id,:] = np.logical_or(lower_bound_matrix_phi[knot_id,:] > phi_at_knots[knot_id],
                                          upper_bound_matrix_phi[knot_id,:] < phi_at_knots[knot_id])
     range_type1[knot_id,:] = np.logical_or(lower_bound_matrix_range[knot_id,:] > range_at_knots[knot_id], 
                                            upper_bound_matrix_range[knot_id,:] < range_at_knots[knot_id])
-    for t in range(N):
-        R_type1[knot_id,t,:] = np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
-                                        upper_bound_matrix_Rt_log[knot_id,t,:] < np.log(R_at_knots)[knot_id,t])
+    # for t in range(N):
+    #     R_type1[knot_id,t,:] = np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
+    #                                     upper_bound_matrix_Rt_log[knot_id,t,:] < np.log(R_at_knots)[knot_id,t])
 
 np.mean(phi_type1) # overall type 1 error
 np.mean(phi_type1, axis = 1) # type 1 error of phi at each knot
@@ -352,8 +357,8 @@ np.mean(phi_type1, axis = 1) # type 1 error of phi at each knot
 np.mean(range_type1) # overall type 1 error
 np.mean(phi_type1, axis = 1) # type 1 error of range at each knot
 
-np.mean(R_type1) # overall type 1 error
-np.mean(R_type1, axis = 2) # type 1 error of R at each knot each time
+# np.mean(R_type1) # overall type 1 error
+# np.mean(R_type1, axis = 2) # type 1 error of R at each knot each time
 
 
 
@@ -368,13 +373,15 @@ np.mean(R_type1, axis = 2) # type 1 error of R at each knot each time
 # %%
 # overall coverage for phi
 # load good simulations
-nsim = 15
-sim_id = np.arange(nsim)
-bad_sim_id = np.array([3]) - 1
-for bad_id in bad_sim_id:
-    sim_id = np.delete(sim_id, np.argwhere(sim_id == bad_id))
-nsim = len(sim_id)
-folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
+sim_id_from = 1
+sim_id_to = 30
+sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
+bad_sim_ids = np.array([3])
+for bad_sim_id in bad_sim_ids:
+    sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
+nsim = len(sim_ids)
+
+folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 q_low = alphas/2
 q_high = 1 - q_low
@@ -402,7 +409,6 @@ for level_i in range(len(alphas)):
 
 # average coverage
 avg_phi_covers = np.mean(phi_covers, axis = 1)
-# std_phi_covers = np.std(phi_covers, axis = 1)
 se_phi_covers = scipy.stats.sem(phi_covers, axis = 1)
 
 # plotting
@@ -419,19 +425,21 @@ for knot_id in range(k):
     plt.ylabel('empirical coverage w/ 1.96*SE')
     plt.xlabel('1-alpha')
     plt.show()
-    fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
-    plt.close()
+    # fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
+    # plt.close()
 
 # %%
 # overall coverage for range
 # load good simulations
-nsim = 15
-sim_id = np.arange(nsim)
-# bad_sim_id = None
-# for bad_id in bad_sim_id:
-    # sim_id = np.delete(sim_id, np.argwhere(sim_id == bad_id))
-nsim = len(sim_id)
-folders = ['./data/scenario2/simulation_' + str(i+1) + '/' for i in sim_id]
+sim_id_from = 1
+sim_id_to = 30
+sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
+bad_sim_ids = np.array([3])
+for bad_sim_id in bad_sim_ids:
+    sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
+nsim = len(sim_ids)
+
+folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 q_low = alphas/2
 q_high = 1 - q_low
@@ -476,7 +484,7 @@ for knot_id in range(k):
     plt.ylabel('empirical coverage w/ 1.96*SE')
     plt.xlabel('1-alpha')
     plt.show()
-    fig.savefig('range_knot_' + str(knot_id) + '_avg' + '.pdf')
-    plt.close()
+    # fig.savefig('range_knot_' + str(knot_id) + '_avg' + '.pdf')
+    # plt.close()
 
 # %%
