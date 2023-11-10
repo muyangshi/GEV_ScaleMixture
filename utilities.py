@@ -15,10 +15,10 @@ import scipy
 
 # specify integration and transformation
 #############################
-# inte_method = 'cpp'         #
-inte_method = 'scipy'       #
-# norm_pareto = 'shifted'   #
-norm_pareto = 'standard'    #
+inte_method = 'cpp'         #
+# inte_method = 'scipy'   # Scipy QUAD is bad don't use 
+norm_pareto = 'shifted'   #
+# norm_pareto = 'standard'    #
 #############################
 
 weights_fun = model_sim.weights_fun
@@ -78,8 +78,10 @@ def marg_transform_data_mixture_likelihood_1t_shifted(Y, X, Loc, Scale, Shape, p
 
     Z_vec = pareto_to_Norm(W_vec)
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
-    cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
-    part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
+    # part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    part1 = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
 
     ## Jacobian determinant
     part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
@@ -100,8 +102,10 @@ def marg_transform_data_mixture_likelihood_1t_standard(Y, X, Loc, Scale, Shape, 
 
     Z_vec = pareto_to_Norm(W_vec)
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
-    cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
-    part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
+    # part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    part1 = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
 
     ## Jacobian determinant
     part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
@@ -126,8 +130,10 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
 
     Z_vec = pareto_to_Norm(W_vec)
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
-    cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
-    part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
+    # part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
+    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    part1 = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
 
     ## Jacobian determinant
     part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
