@@ -248,7 +248,7 @@ PE_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 lower_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 upper_bound_matrix_Rt_log = np.full(shape = (k, N, nsim), fill_value = np.nan)
 
-folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
+folders = ['./data/scenario2_phiprior/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 for i in range(nsim):
     folder = folders[i]
     phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
@@ -286,8 +286,8 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('phi')
     plt.show()
-    # fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
-    # plt.close()
+    fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
+    plt.close()
 
 # %%
 # make plots for range
@@ -307,8 +307,8 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('range')
     plt.show()
-    # fig.savefig('range_knot_' + str(knot_id) + '.pdf')
-    # plt.close()
+    fig.savefig('range_knot_' + str(knot_id) + '.pdf')
+    plt.close()
 
 # # %%
 # # make plots for log(R_t)
@@ -376,12 +376,12 @@ np.mean(phi_type1, axis = 1) # type 1 error of range at each knot
 sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3])
+bad_sim_ids = np.array([])
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
 
-folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
+folders = ['./data/scenario2_phiprior/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 q_low = alphas/2
 q_high = 1 - q_low
@@ -425,8 +425,8 @@ for knot_id in range(k):
     plt.ylabel('empirical coverage w/ 1.96*SE')
     plt.xlabel('1-alpha')
     plt.show()
-    # fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
-    # plt.close()
+    fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
+    plt.close()
 
 # %%
 # overall coverage for range
@@ -439,7 +439,7 @@ for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
 
-folders = ['./data/scenario2/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
+folders = ['./data/scenario2_phiprior/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 q_low = alphas/2
 q_high = 1 - q_low
