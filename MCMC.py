@@ -32,7 +32,7 @@ if __name__ == "__main__":
     ## space setting
     np.random.seed(data_seed)
     N = 64 # number of time replicates
-    num_sites = 500 # number of sites/stations
+    num_sites = 4 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 500
+    n_iters = 15000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -163,6 +163,37 @@ if __name__ == "__main__":
     ## sigsq_vec
     sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
 
+    #####################################################################################################################
+    # Write my own covariance function ################################################################################################
+    #####################################################################################################################
+    
+    def matern_correlation(d, range, nu):
+        # using wikipedia definition
+        part1 = 2**(1-nu)/scipy.special.gamma(nu)
+        part2 = (np.sqrt(2*nu) * d / range)**nu
+        part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
+        return(part1*part2*part3)
+    matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
+    
+    # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
+    # matern_correlation_vec(pairwise_distance, 1, 0.5) # gives same result as skMatern(sites_xy)
+
+    # tri = np.zeros((4,4))
+    # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
+    # tri + tri.T + np.identity(4)
+
+    matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
+                                       fill_value = 0.0)
+    for i in range(num_sites):
+        for j in range(i+1, num_sites):
+            distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
+            variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
+            avg_range = (range_vec[i] + range_vec[j])/2
+            prod_range = np.sqrt(range_vec[i] * range_vec[j])
+            C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, 0.5)
+            matern_covariance_matrix[i,j] = C[0]
+    matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
+
     ## Covariance matrix K
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
@@ -243,12 +274,7 @@ if __name__ == "__main__":
     # %%
     # ------- 7. Other Preparational Stuff(?) --------------------------------
 
-    Loc_matrix = np.full(shape = Y.shape, fill_value = mu)
-    Scale_matrix = np.full(shape = Y.shape, fill_value = tau)
-    Shape_matrix = np.full(shape = Y.shape, fill_value = ksi)
-    R_matrix = R_at_sites
     gamma_vec = np.repeat(gamma, num_sites)
-    cholesky_matrix = scipy.linalg.cholesky(K, lower=False)
 
     #####################################################################################################################
     # Metropolis Updates ################################################################################################
@@ -892,6 +918,10 @@ if __name__ == "__main__":
                                                             Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
+        # When fixing the GEV parameters
+        # X_star_1t_proposal = np.NINF
+        # lik_1t_proposal = np.NINF 
+
         # Gather likelihood calculated across time
         lik_gathered = comm.gather(lik_1t, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
