@@ -528,3 +528,7 @@ if __name__ == "__main__":
 
 
 # %%
+# MLE results
+# from scipy.stats import genextreme
+# genextreme.fit(Y) # params order is (shape, loc, scale), and shape is scipy's negated
+# (-0.17235585204019163, 0.2633514101978924, 1.188742072832001)
