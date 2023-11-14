@@ -22,7 +22,6 @@ if __name__ == "__main__":
     from mpi4py import MPI
     from utilities import *
     from time import strftime, localtime
-    import pylab
 
     #####################################################################################################################
     # Generating Dataset ################################################################################################
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 15000
+    n_iters = 5000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -286,9 +285,22 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope = 1, color='black')
     #     plt.show()
 
-    # # log(W + 1) should look exponential (at each time t?)
+    # R_at_knots**(-1/2) should look normal(0, 1/sqrt(scale))
+    # for i in range(k):
+    #     scipy.stats.probplot((gamma**(1/4))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
+    #     plt.axline((0,0),slope=1,color='black')
+    #     plt.show()
+
+    # # log(W + 1) should look exponential (at each time t with num_site spatial points?)
     # for i in range(N):
     #     expo = np.log(W[:,i] + 1)
+    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    #     plt.axline((0,0), slope=1, color='black')
+    #     plt.show()
+
+    # # log(W + 1) should look exponential (at each site with N time replicates?)
+    # for i in range(num_sites):
+    #     expo = np.log(W[i,:] + 1)
     #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
@@ -297,6 +309,15 @@ if __name__ == "__main__":
     # for i in range(N):
     #     # fig, ax = plt.subplots()
     #     unif = pRW(X_star[:,i], phi_vec, gamma)
+    #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
+    #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    #     plt.axline((0,0), slope=1, color='black')
+    #     plt.show()
+
+    # # pRW(X_star) should look uniform (at each site with N time replicates?)
+    # for i in range(num_sites):
+    #     # fig, ax = plt.subplots()
+    #     unif = pRW(X_star[i,:], phi_vec[i], gamma)
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
