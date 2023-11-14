@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 4 # number of time replicates
+    N = 64 # number of time replicates
     num_sites = 500 # number of sites/stations
     k = 9 # number of knots
 
