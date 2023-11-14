@@ -22,6 +22,7 @@ if __name__ == "__main__":
     from mpi4py import MPI
     from utilities import *
     from time import strftime, localtime
+    import pylab
 
     #####################################################################################################################
     # Generating Dataset ################################################################################################
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     ## space setting
     np.random.seed(data_seed)
     N = 64 # number of time replicates
-    num_sites = 4 # number of sites/stations
+    num_sites = 500 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -167,39 +168,38 @@ if __name__ == "__main__":
     # Write my own covariance function ################################################################################################
     #####################################################################################################################
     
-    def matern_correlation(d, range, nu):
-        # using wikipedia definition
-        part1 = 2**(1-nu)/scipy.special.gamma(nu)
-        part2 = (np.sqrt(2*nu) * d / range)**nu
-        part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
-        return(part1*part2*part3)
-    matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
+    # def matern_correlation(d, range, nu):
+    #     # using wikipedia definition
+    #     part1 = 2**(1-nu)/scipy.special.gamma(nu)
+    #     part2 = (np.sqrt(2*nu) * d / range)**nu
+    #     part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
+    #     return(part1*part2*part3)
+    # matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
     
-    # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
-    # matern_correlation_vec(pairwise_distance, 1, 0.5) # gives same result as skMatern(sites_xy)
+    # # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
+    # # matern_correlation_vec(pairwise_distance, 1, nu) # gives same result as skMatern(sites_xy)
 
-    # tri = np.zeros((4,4))
-    # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
-    # tri + tri.T + np.identity(4)
+    # # tri = np.zeros((4,4))
+    # # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
+    # # tri + tri.T + np.identity(4)
 
-    matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
-                                       fill_value = 0.0)
-    for i in range(num_sites):
-        for j in range(i+1, num_sites):
-            distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
-            variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
-            avg_range = (range_vec[i] + range_vec[j])/2
-            prod_range = np.sqrt(range_vec[i] * range_vec[j])
-            C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, 0.5)
-            matern_covariance_matrix[i,j] = C[0]
-    matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
+    # matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
+    #                                    fill_value = 0.0)
+    # for i in range(num_sites):
+    #     for j in range(i+1, num_sites):
+    #         distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
+    #         variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
+    #         avg_range = (range_vec[i] + range_vec[j])/2
+    #         prod_range = np.sqrt(range_vec[i] * range_vec[j])
+    #         C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, nu)
+    #         matern_covariance_matrix[i,j] = C[0]
+    # matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
 
     ## Covariance matrix K
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
     Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(num_sites,)),cov=K,size=N).T
     W = norm_to_Pareto(Z) 
-    # W = norm_to_std_Pareto(Z)
 
     # %%
     # ------- 4. Generate Scaling Factor, R^phi --------------------------------
@@ -276,6 +276,33 @@ if __name__ == "__main__":
 
     gamma_vec = np.repeat(gamma, num_sites)
 
+    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma)
+    # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
+    # plt.hist(pRW(X_star[:,0], phi_vec, gamma))
+
+    # # R_at_knots should look levy (those are S)
+    # for i in range(k):
+    #     scipy.stats.probplot(R_at_knots[i,:], dist='levy', fit=False, plot=plt)
+    #     plt.axline((0,0), slope = 1, color='black')
+    #     plt.show()
+
+    # # log(W + 1) should look exponential (at each time t?)
+    # for i in range(N):
+    #     expo = np.log(W[:,i] + 1)
+    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    #     plt.axline((0,0), slope=1, color='black')
+    #     plt.show()
+
+    # # pRW(X_star) should look uniform (at each time t?)
+    # for i in range(N):
+    #     # fig, ax = plt.subplots()
+    #     unif = pRW(X_star[:,i], phi_vec, gamma)
+    #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
+    #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    #     plt.axline((0,0), slope=1, color='black')
+    #     plt.show()
+
+    # %%
     #####################################################################################################################
     # Metropolis Updates ################################################################################################
     #####################################################################################################################
@@ -683,7 +710,7 @@ if __name__ == "__main__":
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # log-prior density
-        prior = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log)) + R_current_log)
+        prior = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
         # prior = prior/k # if R(t) is spatially constant
 
         # Conditional Likelihood at Proposal
@@ -692,7 +719,7 @@ if __name__ == "__main__":
         lik_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                         phi_vec_current, gamma_vec, R_vec_proposal, cholesky_matrix_current)
-        prior_proposal = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log)) + R_proposal_log)
+        prior_proposal = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log), scale = gamma) + R_proposal_log)
         # prior_proposal = prior_proposal/k # if R(t) is spatially constant
 
         # Accept or Reject
