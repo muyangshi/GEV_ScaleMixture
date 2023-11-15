@@ -1,0 +1,538 @@
+1
+50
+2023-11-14 18:54:24
+100
+2023-11-14 18:57:16
+elapsed:  339.4  seconds
+150
+2023-11-14 19:00:10
+200
+2023-11-14 19:03:00
+elapsed:  683.6  seconds
+250
+2023-11-14 19:05:55
+300
+2023-11-14 19:08:46
+elapsed:  1029.8  seconds
+350
+2023-11-14 19:11:43
+400
+2023-11-14 19:14:36
+elapsed:  1379.6  seconds
+450
+2023-11-14 19:17:36
+500
+2023-11-14 19:20:37
+elapsed:  1740.6  seconds
+550
+2023-11-14 19:23:38
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+600
+2023-11-14 19:26:39
+elapsed:  2102.1  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+650
+2023-11-14 19:29:46
+700
+2023-11-14 19:32:55
+elapsed:  2478.2  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+750
+2023-11-14 19:36:06
+800
+2023-11-14 19:39:15
+elapsed:  2858.6  seconds
+850
+2023-11-14 19:42:28
+900
+2023-11-14 19:45:39
+elapsed:  3242.0  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+950
+2023-11-14 19:48:54
+1000
+2023-11-14 19:52:09
+elapsed:  3631.9  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1050
+2023-11-14 19:55:23
+1100
+2023-11-14 19:58:34
+elapsed:  4017.7  seconds
+1150
+2023-11-14 20:01:47
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1200
+2023-11-14 20:04:57
+elapsed:  4400.0  seconds
+1250
+2023-11-14 20:08:09
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1300
+2023-11-14 20:11:21
+elapsed:  4784.2  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1350
+2023-11-14 20:14:33
+1400
+2023-11-14 20:17:44
+elapsed:  5167.4  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1450
+2023-11-14 20:20:55
+1500
+2023-11-14 20:24:05
+elapsed:  5548.3  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1550
+2023-11-14 20:27:16
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1600
+2023-11-14 20:30:25
+elapsed:  5928.8  seconds
+1650
+2023-11-14 20:33:36
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1700
+2023-11-14 20:36:45
+elapsed:  6308.6  seconds
+1750
+2023-11-14 20:39:55
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1800
+2023-11-14 20:43:04
+elapsed:  6687.7  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+1850
+2023-11-14 20:46:20
+1900
+2023-11-14 20:49:36
+elapsed:  7079.2  seconds
+1950
+2023-11-14 20:52:57
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2000
+2023-11-14 20:56:20
+elapsed:  7483.8  seconds
+2050
+2023-11-14 20:59:45
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2100
+2023-11-14 21:03:07
+elapsed:  7890.7  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2150
+2023-11-14 21:06:31
+2200
+2023-11-14 21:09:53
+elapsed:  8296.0  seconds
+2250
+2023-11-14 21:13:15
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2300
+2023-11-14 21:16:36
+elapsed:  8699.0  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2350
+2023-11-14 21:19:57
+2400
+2023-11-14 21:23:19
+elapsed:  9102.7  seconds
+2450
+2023-11-14 21:26:46
+2500
+2023-11-14 21:30:08
+elapsed:  9511.7  seconds
+2550
+2023-11-14 21:33:34
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+2600
+2023-11-14 21:36:58
+elapsed:  9921.6  seconds
+2650
+2023-11-14 21:40:23
+2700
+2023-11-14 21:43:48
+elapsed:  10331.4  seconds
+2750
+2023-11-14 21:47:13
+2800
+2023-11-14 21:50:33
+elapsed:  10736.7  seconds
+2850
+2023-11-14 21:53:59
+2900
+2023-11-14 21:57:20
+elapsed:  11143.4  seconds
+2950
+2023-11-14 22:00:44
+3000
+2023-11-14 22:04:04
+elapsed:  11547.6  seconds
+3050
+2023-11-14 22:07:31
+3100
+2023-11-14 22:10:55
+elapsed:  11958.8  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3150
+2023-11-14 22:14:19
+3200
+2023-11-14 22:17:42
+elapsed:  12365.3  seconds
+3250
+2023-11-14 22:21:06
+3300
+2023-11-14 22:24:27
+elapsed:  12769.8  seconds
+3350
+2023-11-14 22:27:51
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3400
+2023-11-14 22:31:18
+elapsed:  13181.5  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3450
+2023-11-14 22:34:46
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3500
+2023-11-14 22:38:14
+elapsed:  13597.4  seconds
+3550
+2023-11-14 22:41:42
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3600
+2023-11-14 22:45:09
+elapsed:  14011.9  seconds
+3650
+2023-11-14 22:48:38
+3700
+2023-11-14 22:52:04
+elapsed:  14426.8  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3750
+2023-11-14 22:55:32
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3800
+2023-11-14 22:59:01
+elapsed:  14844.2  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+3850
+2023-11-14 23:02:30
+3900
+2023-11-14 23:05:56
+elapsed:  15259.6  seconds
+3950
+2023-11-14 23:09:24
+4000
+2023-11-14 23:12:51
+elapsed:  15673.9  seconds
+4050
+2023-11-14 23:16:19
+4100
+2023-11-14 23:19:45
+elapsed:  16088.5  seconds
+4150
+2023-11-14 23:23:13
+4200
+2023-11-14 23:26:39
+elapsed:  16502.1  seconds
+4250
+2023-11-14 23:30:06
+4300
+2023-11-14 23:33:32
+elapsed:  16915.1  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+4350
+2023-11-14 23:36:59
+4400
+2023-11-14 23:40:26
+elapsed:  17329.2  seconds
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+4450
+2023-11-14 23:43:54
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+4500
+2023-11-14 23:47:20
+elapsed:  17743.5  seconds
+4550
+2023-11-14 23:50:47
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: divide by zero encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+/projects/muyang@colostate.edu/software/anaconda/envs/testenv/lib/python3.11/site-packages/numpy/lib/function_base.py:2455: RuntimeWarning: invalid value encountered in func (vectorized)
+  outputs = ufunc(*inputs)
+4600
+2023-11-14 23:54:11
+elapsed:  18154.2  seconds
+4650
+2023-11-14 23:57:38
+4700
+2023-11-15 00:01:04
+elapsed:  18567.1  seconds
+4750
+2023-11-15 00:04:30
+4800
+2023-11-15 00:07:52
+elapsed:  18975.7  seconds
+4850
+2023-11-15 00:11:19
+4900
+2023-11-15 00:14:41
+elapsed:  19384.8  seconds
+4950
+2023-11-15 00:18:10
+elapsed:  19790.6  seconds
+total time:  19796.0  seconds
+true R:  [[4.92938919e-01 1.13744024e+00 1.41082502e-01 3.99063138e-01
+  2.93178655e-01 2.56224169e-01 2.20840428e-01 5.00317814e-01
+  1.45270631e+01 1.27458251e+01 1.33353915e+00 1.27176035e+01
+  3.28134616e-01 1.32228004e+00 7.00046442e+00 1.17712282e+00
+  1.46415007e+00 1.01460730e+00 6.80373560e-01 1.88308857e-01
+  3.99409360e+00 2.30733823e+00 8.02289076e+00 1.21370057e+00
+  8.88652471e+00 3.51083290e+00 1.06369557e+02 1.82089559e-01
+  1.79628418e+00 2.12066758e+00 3.13048775e-01 4.73166019e+00
+  1.32399700e-01 3.77272806e+00 4.16228863e+00 1.75471867e+01
+  2.25602946e-01 1.52608649e+02 6.70675092e+01 1.94808534e-01
+  2.27122944e+00 2.37211854e+00 1.16391942e+01 1.06772125e-01
+  2.29311444e-01 7.64577966e+00 2.46945198e+00 3.89397693e+00
+  6.75313352e-02 9.66245010e-01 5.45196333e-01 3.53274329e-01
+  4.53718342e-01 2.94214242e-01 4.28288334e+00 4.28347097e-01
+  4.16694528e-01 2.75334273e-01 1.69665893e+01 1.53695718e+02
+  3.51750447e-01 1.97027036e+00 2.69308681e+01 4.14508393e+00]
+ [1.47425330e+01 3.07806064e-01 1.92013929e-01 1.19693902e+01
+  2.83025124e-01 2.02853973e-01 6.04608272e+00 3.33369147e-01
+  9.74942760e-01 9.91412433e+01 1.52567135e-01 2.98865383e-01
+  7.60578497e+00 4.31105044e+00 1.36279954e+01 4.28163920e+00
+  4.66046716e+00 4.77846430e-01 5.19136713e+00 2.18530554e+00
+  6.33602982e+03 1.49562591e-01 3.96625528e-01 5.99529394e-02
+  1.02376207e+00 1.52744739e-01 1.43778050e-01 1.62529378e-01
+  1.69478374e+00 4.16396253e-01 2.23471824e+00 8.75189607e-01
+  3.29502674e-01 2.13485991e+00 2.58517712e+01 5.28203088e-01
+  1.82446749e-01 2.10689874e-01 2.52225938e+01 7.86035886e+00
+  5.02218598e+04 5.81362150e-01 1.99558592e+01 1.60141114e-01
+  1.39474768e+00 3.08058170e+00 4.91405038e+00 7.06707408e-01
+  2.82607783e-01 5.36527043e-01 2.77039084e-01 4.76287863e-01
+  3.09486096e+00 7.41952903e+00 2.40602025e-01 1.66942376e+01
+  2.67481872e+00 6.97974123e-01 4.17116971e+00 7.13643398e-01
+  1.00966413e+00 1.20232689e+00 7.60857738e-02 9.39141768e-01]
+ [1.68817477e+01 2.35928863e-01 1.88550155e-01 6.79225320e+02
+  2.67354745e-01 3.66759855e-01 3.57251121e-01 4.84924657e-01
+  2.48998527e+00 1.42441179e+00 4.81573572e-01 1.92431510e-01
+  8.05018628e-01 4.21277148e+00 6.15548103e-01 3.46523151e-01
+  3.44927426e-01 1.01916509e+02 3.19721389e+00 3.78720370e-01
+  7.45548261e+00 2.77441401e-01 4.06877793e+00 2.67254307e+00
+  1.45865530e+00 1.09577213e+00 3.31698482e-01 2.65440149e-01
+  6.03102978e+02 1.47944660e+00 4.79099865e-01 6.82944986e-01
+  1.44224300e+00 4.16902021e-01 3.40009072e-01 1.75935091e-01
+  8.77298639e+00 8.77259704e+03 3.06694786e+00 2.25324550e-01
+  1.70426969e-01 3.91048750e-01 6.57961011e+04 5.85679438e-01
+  1.51019858e+00 4.53384653e+00 3.86468902e-01 2.68440731e-01
+  3.54608998e+00 9.44901463e+00 6.98488144e-01 1.19519379e+00
+  1.13639333e+00 8.37782735e-01 3.21850615e-01 5.65071916e-01
+  4.19268817e+02 3.46710378e-01 1.40876118e+00 1.70941004e+02
+  1.27024479e+01 9.00589878e-01 1.31370150e+00 1.63290051e+01]
+ [9.05570999e-01 4.76590149e-01 5.17972623e+00 6.16368305e-01
+  2.54720966e+00 2.12468591e-01 4.37716095e-01 4.53648531e-02
+  2.88089185e-01 3.86330541e-01 1.58594650e-01 1.95085186e-01
+  2.98428870e+00 1.43390856e+03 2.32833690e-01 4.40368487e-01
+  5.89280722e-01 7.22200375e+01 2.90854150e+00 3.25000911e-01
+  7.17607510e+02 2.50165040e+00 1.15813496e+01 2.62940586e+01
+  3.59544446e+00 4.05488018e-01 3.26496896e+00 5.03240328e-01
+  3.61889820e+01 8.54282846e-01 1.13083829e+00 1.28935113e+01
+  2.40987721e-01 1.39788259e-01 7.51943900e-01 9.31302555e-01
+  1.80927212e-01 2.93072487e+01 4.38443892e-02 4.39872883e-01
+  3.65881880e-01 5.53200931e-01 2.13673418e-01 2.94934292e-01
+  7.24301694e-01 2.75238674e-01 1.04473368e+02 3.82005905e+00
+  7.74317530e-02 2.35272120e-01 3.67825292e-01 6.45732008e-01
+  2.50721617e-01 2.39593744e-01 2.45871428e+00 7.14753794e-01
+  7.68381256e-01 1.53749291e+00 1.35290370e+00 5.81908656e-01
+  3.94825862e-01 7.45138887e-01 1.04761475e+00 3.81721177e+01]
+ [1.70681285e+01 3.48591276e+00 1.69807858e+00 1.36538283e+00
+  1.36971881e+02 4.94523519e-02 1.22293201e+00 1.12387226e+01
+  1.36695842e+01 8.46270147e-01 2.22672636e-01 1.70673883e+00
+  3.16871522e-01 1.64673386e+01 2.44413862e+00 3.82224487e+00
+  1.88022198e+00 1.98338706e+01 3.35476256e-01 7.85358132e+00
+  2.13715425e+00 5.09303958e-01 1.58491287e-01 4.42239787e+00
+  1.18869197e+00 6.47257874e-01 9.64511985e-01 6.02175079e-01
+  6.20873505e+01 1.23869624e+00 4.87945636e+00 2.67753933e-01
+  5.19511546e-01 1.94899820e-01 9.82635876e-01 1.09033106e-01
+  3.10077920e-01 7.94964237e-01 3.02064814e-01 5.02392166e-01
+  4.58214982e+02 2.36429681e+00 7.23723654e-01 5.45019653e-01
+  3.26572744e+00 5.91734136e+00 7.31473835e+00 4.51328334e-01
+  1.94202914e-01 6.75324732e+00 3.11506970e+00 1.46238317e-01
+  3.39732375e-01 6.90453726e-01 1.02513393e+00 7.75246414e-01
+  8.76669742e-01 2.01611024e+00 1.86068559e+00 2.29328996e-01
+  3.59338659e+00 5.58749362e-01 1.84217839e-01 8.72246217e-02]
+ [9.25646552e+00 1.42073094e-01 4.82650562e-01 3.65277153e+00
+  9.93915508e-01 1.36461332e+01 1.66928392e+00 5.23589020e-01
+  1.56600407e+01 3.07475195e-01 7.72232392e+00 4.29052321e-01
+  6.73404922e-01 9.55042672e-01 4.11117557e+02 7.21129034e-01
+  3.51611846e+00 6.58436812e-01 2.63525442e-01 1.40638632e+01
+  3.44283735e+00 3.79032949e+04 4.90732238e-01 1.54414731e+00
+  3.18412508e+00 5.10591086e+00 1.60649835e+00 2.56741814e+01
+  6.73572839e+00 3.59179039e+00 4.67111719e+02 8.08104591e-01
+  2.60450386e+04 1.95070811e+00 1.65600193e+00 3.40487176e+00
+  1.69141019e+00 2.84078525e+02 5.78047541e+01 2.69846550e-01
+  1.31603873e+00 1.48310619e-01 1.39642513e+00 2.43920504e+00
+  9.14293051e-01 4.75219883e-01 1.63564768e+00 2.24298073e+00
+  1.34790803e+00 1.96097355e-01 8.77420409e-01 5.03560630e+01
+  7.08745969e-01 1.39114580e+00 8.05055744e-01 1.56159946e-01
+  9.58083080e-01 6.77181668e-01 6.16158660e-01 8.00141712e-01
+  2.90553224e-01 7.80390046e-01 1.23377073e+00 2.83185179e+01]
+ [5.74890842e-01 3.17200755e+00 6.05728887e+00 1.07918357e-01
+  3.40520507e-01 8.57254099e-01 9.77322957e-02 9.50095721e+01
+  1.46939516e-01 1.98402734e+00 6.09342432e-01 2.45539473e+00
+  1.12203790e+00 2.04240982e+00 9.51829880e-01 2.17056769e-01
+  3.17640495e+00 1.58605951e-01 4.38897636e-01 7.23378666e+00
+  8.00747196e+00 5.96031941e-01 1.09581827e+02 2.52317168e-01
+  8.21136988e-01 6.36449962e-02 2.66420136e-01 1.23303788e+02
+  4.21451732e+00 1.12569073e-01 8.47640406e-01 3.56283420e+00
+  8.75717016e-01 1.42320376e-01 1.13455855e+00 1.54124811e+00
+  1.58926175e+01 5.98858821e-01 7.89321697e-01 2.08040347e-01
+  2.55185783e-01 1.55225814e-01 1.66727072e-01 1.65174351e+00
+  6.97844472e+01 3.33298166e+01 8.39641840e-01 2.82031957e+00
+  6.47153412e-01 7.57023800e-01 1.22674376e+00 5.79453659e-01
+  2.27896423e+00 4.32947238e-01 3.62246778e-01 4.33171860e-01
+  5.37910584e-01 1.01348039e+01 9.90365175e-01 2.98501607e-01
+  4.41166743e-02 2.48286103e+01 2.93853116e+00 5.19199251e-01]
+ [1.15143239e+00 2.64748016e+00 1.36928253e+01 1.38523163e+01
+  1.99007730e-01 3.70555611e+00 9.83124589e-01 2.65406487e-01
+  2.91420293e+00 6.79856741e+00 4.37224004e+00 3.81105131e-01
+  1.55048897e+00 1.93011144e-01 9.59377272e-01 6.82858581e-01
+  1.14486828e+00 5.08213176e-01 2.71467314e-01 7.77416500e-01
+  2.05170507e+00 2.58969413e-01 6.24952587e-01 1.07650086e+00
+  3.83867323e+00 1.57750960e-01 2.57753377e+02 1.54410440e+01
+  1.86813531e-01 1.02053166e-01 1.19281109e+00 1.02191408e+00
+  2.74942682e-01 2.40770975e-01 7.35836168e-01 1.34643036e+03
+  3.42429825e-01 2.18959361e+01 3.34504482e+02 1.17186206e+01
+  1.50191226e+00 6.32075946e-01 9.99277414e-02 9.41512788e-01
+  3.84943001e-01 7.96019245e-01 1.63927197e+01 4.81384851e-01
+  1.83001556e+00 1.27938020e+01 1.64863539e-01 5.80659522e+00
+  3.39557010e-01 1.73751802e+00 1.58440354e+01 3.20599522e-01
+  9.45158158e-01 1.67887125e-01 6.20400226e+00 3.43554342e+00
+  6.44085272e+00 9.91246191e+01 7.27658836e-01 2.70945160e+02]
+ [3.07543028e+00 1.12363448e-01 1.28032211e+00 4.33613018e+01
+  1.63613628e-01 8.71551962e+00 1.48379185e+01 1.58419930e+03
+  1.03005358e+00 8.46265732e-02 4.92612764e-01 6.70371445e-01
+  1.33259594e+00 7.58742290e-01 7.07479482e-01 6.85877833e-01
+  1.15786586e+00 8.83262280e-01 2.57254196e+00 1.30546386e-01
+  2.39143369e+03 4.12256415e-01 1.02859633e+00 1.19885941e+00
+  2.43559449e+01 5.71461391e+00 8.82895174e-02 2.73460671e+00
+  2.09872806e+00 1.48553528e-01 9.10289848e-01 1.73064579e+00
+  4.23670621e+00 5.32905625e-02 1.80452776e+00 4.28900505e+01
+  6.09492307e-01 1.07874988e+01 3.36992951e+00 9.84019555e-02
+  4.37131873e-01 4.22103965e+01 2.75862014e-01 2.99888260e-01
+  7.88413607e+00 5.07717320e-01 2.14847441e+00 1.83828553e+00
+  2.14318040e-01 1.51716743e+00 4.97530743e+02 3.01423672e+01
+  3.47979932e+01 1.83174129e-01 3.08702716e+00 2.13313907e+01
+  5.31961907e-01 1.00678323e+00 1.75097910e+00 1.64223065e+00
+  3.37093380e+00 2.17081011e+02 1.54837896e-01 1.23867833e+01]]
