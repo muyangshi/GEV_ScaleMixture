@@ -33,7 +33,7 @@ if __name__ == "__main__":
     np.random.seed(data_seed)
     N = 64 # number of time replicates
     num_sites = 500 # number of sites/stations
-    k = 9 # number of knots
+    k = 10 # number of knots
 
     ## unchanged constants or parameters
     gamma = 0.5 # this is the gamma that goes in rlevy
@@ -71,6 +71,12 @@ if __name__ == "__main__":
     #                      [8,2],
     #                      [8,8],
     #                      [4.5,4.5]])
+
+    # putting two knots in the middle
+    knots_xy = np.delete(knots_xy, 4, axis = 0)
+    knots_xy = np.insert(knots_xy, 4, np.array([4,5]), axis = 0)
+    knots_xy = np.insert(knots_xy, 5, np.array([6,5]), axis = 0)
+
     knots_x = knots_xy[:,0]
     knots_y = knots_xy[:,1]
 
@@ -418,7 +424,7 @@ if __name__ == "__main__":
     #                         [1.13560517e-04, 6.40933053e-05,  0],
     #                         [0         , 0         , 1e-4]])
 
-    GEV_post_cov = 1e-4 * np.identity(3)
+    GEV_post_cov = 1e-4 * np.identity(k)
 
     ########## Adaptive Update Initialization ############################################
     # Scalors for adaptive updates
@@ -426,21 +432,21 @@ if __name__ == "__main__":
     if rank == 0: 
         sigma_m_sq = {}
         sigma_m_sq['phi_block1'] = (2.4**2)/3
-        sigma_m_sq['phi_block2'] = (2.4**2)/3
+        sigma_m_sq['phi_block2'] = (2.4**2)/4
         sigma_m_sq['phi_block3'] = (2.4**2)/3
         sigma_m_sq['range_block1'] = (2.4**2)/3
-        sigma_m_sq['range_block2'] = (2.4**2)/3
+        sigma_m_sq['range_block2'] = (2.4**2)/4
         sigma_m_sq['range_block3'] = (2.4**2)/3
         sigma_m_sq['GEV'] = (2.4**2)/3
 
         # initialize them with posterior covariance matrix
         Sigma_0 = {}
         Sigma_0['phi_block1'] = phi_post_cov[0:3,0:3]
-        Sigma_0['phi_block2'] = phi_post_cov[3:6,3:6]
-        Sigma_0['phi_block3'] = phi_post_cov[6:9,6:9]
+        Sigma_0['phi_block2'] = phi_post_cov[3:7,3:7]
+        Sigma_0['phi_block3'] = phi_post_cov[7:10,7:10]
         Sigma_0['range_block1'] = range_post_cov[0:3,0:3]
-        Sigma_0['range_block2'] = range_post_cov[3:6,3:6]
-        Sigma_0['range_block3'] = range_post_cov[6:9,6:9]
+        Sigma_0['range_block2'] = range_post_cov[3:7,3:7]
+        Sigma_0['range_block3'] = range_post_cov[7:10,7:10]
         Sigma_0['GEV'] = GEV_post_cov
 
         num_accepted = {}
@@ -797,7 +803,7 @@ if __name__ == "__main__":
         # Propose new phi at the knots --> new phi vector
         if rank == 0:
             random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
-            random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
+            random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(4), Sigma_0['phi_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
             random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
             # random_walk_perturb = np.repeat(random_walk_perturb[0], k) # keep phi spatially constant
@@ -879,7 +885,7 @@ if __name__ == "__main__":
         # Propose new range at the knots --> new range vector
         if rank == 0:
             random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
-            random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
+            random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(4), Sigma_0['range_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
             random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
             range_knots_proposal = range_knots_current + random_walk_perturb
