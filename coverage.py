@@ -94,7 +94,6 @@ radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
 # plt.show()
 # plt.close()
 
-# %%
 # ------- 2. Generate the weight matrices ------------------------------------
 
 # Weight matrix generated using Gaussian Smoothing Kernel
@@ -136,8 +135,6 @@ for site_id in np.arange(625):
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
 
-
-# %%
 # ------- 3. Generate covariance matrix, Z, and W --------------------------------
 
 ## range_vec
@@ -165,7 +162,6 @@ Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(num_sites,)),cov=K,
 W = norm_to_Pareto(Z) 
 # W = norm_to_std_Pareto(Z)
 
-# %%
 # ------- 4. Generate Scaling Factor, R^phi --------------------------------
 
 ## phi_vec
@@ -224,15 +220,15 @@ for t in np.arange(N):
 
 
 
+# %%
 
-
+burnins = 0 # length of burnin iterations
 
 
 ########################
 # individual coverage  #
 ########################
 
-burnins = 0 # length of burnin iterations
 
 # %%
 # load data and calculate statistics
