@@ -163,8 +163,14 @@ if __name__ == "__main__":
     # plt.show()
     # plt.close()
 
-    ## sigsq_vec
-    sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
+    # # heatplot of range surface
+    # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+    # graph, ax = plt.subplots()
+    # heatmap = ax.imshow(range_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest')
+    # ax.invert_yaxis()
+    # graph.colorbar(heatmap)
+    # plt.show()
+    # plt.close()
 
     #####################################################################################################################
     # Write my own covariance function ################################################################################################
@@ -198,6 +204,8 @@ if __name__ == "__main__":
     # matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
 
     ## Covariance matrix K
+    ## sigsq_vec
+    sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
     # K = np.identity(num_sites)
@@ -227,6 +235,15 @@ if __name__ == "__main__":
     # ax2.set_ylabel('Y')
     # ax2.set_zlabel('phi(s)')
     # ax2.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
+    # plt.show()
+    # plt.close()
+
+    # # heatplot of phi surface
+    # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+    # graph, ax = plt.subplots()
+    # heatmap = ax.imshow(phi_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest')
+    # ax.invert_yaxis()
+    # graph.colorbar(heatmap)
     # plt.show()
     # plt.close()
 
