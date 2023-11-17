@@ -1,0 +1,42 @@
+For some reason, as of 11/17/2023, loading anaconda at last will NOW (BUT NOT BEFORE) modify
+the path to mpicxx, from the one provided by CURC to the one from anaconda, however 
+the basic x86_64_linux_gcc is not installed in anaconda, so this will lead to error
+
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module purge
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load gcc
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load openmpi
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load gsl
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load boost
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ which $CXX
+/curc/sw/install/openmpi/4.1.1/gcc/11.2.0_slurmpmi/bin/mpicxx
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load anaconda
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ which $CXX
+/curc/sw/anaconda3/2023.09/bin/mpicxx
+
+A solution is to load anaconda first, then the gcc, openmpi, etc.
+this seems to leave the path unchanged.
+
+(testenv) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module purge
+[myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load anaconda
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load gcc
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load openmpi
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load gsl
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ module load boost
+(base) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ conda activate alpine_MCMC
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ which $CXX
+/curc/sw/install/openmpi/4.1.1/gcc/11.2.0_slurmpmi/bin/mpicxx
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ ls
+MCMC_10knots.py  model_sim.py  p_inte.cpp  __pycache__  test_10knots.out  utilities.py
+MCMC_10knots.sh  ns_cov.py     p_inte.so   RW_inte.py   test_mpi.py
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ rm p_inte.so
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ $CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB p_inte.cpp -shared -fPIC -o p_inte.so -lgsl -lgslcblas
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ python3
+Python 3.11.5 (main, Sep 11 2023, 13:54:46) [GCC 11.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from model_sim import *
+>>> lib.pmixture_C(200,1,2)
+0.8840737600381097
+>>> quit()
+(alpine_MCMC) [myself@c3cpu-a5-u9-4 20231117_test_10knots]$ mpirun -n 2 python3 test_mpi.py 
+Hello from processor 2 of 2
+Hello from processor 1 of 2
