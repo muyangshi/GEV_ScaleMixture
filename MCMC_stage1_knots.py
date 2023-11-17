@@ -319,9 +319,9 @@ if __name__ == "__main__":
     ## ---- GEV mu tau ksi (location, scale, shape) together ----
     GEV_knots_current = GEV_knots_init
     # will(?) be changed into matrix multiplication w/ more knots or Covariate:
-    Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
-    Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
-    Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
+    # Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
+    # Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
+    # Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
 
     ########## Loops ##################################################
     # %%
@@ -405,7 +405,7 @@ if __name__ == "__main__":
                 num_accepted['GEV'] = 0
                 sample_cov = np.cov(np.array([GEV_knots_trace_stage1[iter-25:iter,0,0].ravel(), # mu location
                                                 GEV_knots_trace_stage1[iter-25:iter,1,0].ravel(), # tau scale
-                                                GEV_knots_trace_stage1[iter-25:iter,2,0]])) # ksi shape
+                                                GEV_knots_trace_stage1[iter-25:iter,2,0].ravel()])) # ksi shape
                 Sigma_0_hat = sample_cov
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
@@ -421,14 +421,22 @@ if __name__ == "__main__":
         if rank == 0:
             random_walk = np.sqrt(sigma_m_sq['GEV']) * random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
             GEV_knots_proposal = GEV_knots_current + random_walk
-            GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0])
+            # GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0])
         else:
             GEV_knots_proposal = None
         GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
 
-        Loc_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[0,0])
-        Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
-        Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
+        # Loc_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[0,0])
+        # Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
+        # Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
+
+        Loc_matrix_current = gaussian_weight_matrix @ GEV_knots_current[0,:]
+        Scale_matrix_current = gaussian_weight_matrix @ GEV_knots_current[1,:]
+        Shape_matrix_current = gaussian_weight_matrix @ GEV_knots_current[2,:]
+
+        Loc_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[0,:]
+        Scale_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[1,:]
+        Shape_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[2,:]
 
         # GEV log likelihood at Current
         lik_1t = np.sum(dgev(Y[:,rank], 
@@ -455,16 +463,22 @@ if __name__ == "__main__":
 
         # Accept or Reject
         if rank == 0:
-
-            # for now there is only one set of GEV parameters
-            # (constant across all time and space)
-            # log-prior density for scale as P(tau) = 1/tau
-            prior_scale = -np.log(Scale_matrix_current[0][0])
-            prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
-
-            prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
-            prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+            # if we are doing knot level GEVs
+            # then, there are k by 3 parameters?
             
+            # log-prior density for scale as P(tau) = 1/tau
+            # prior_scale = -np.log(Scale_matrix_current[0][0])
+            # prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
+            prior_scale = np.sum(-np.log(GEV_knots_current[1,:]))
+            prior_scale_proposal = np.sum(-np.log(GEV_knots_proposal[1,:]))
+
+            # normal prior on mu
+            # prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+            # prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+            prior_mu = np.sum(scipy.stats.norm.logpdf(GEV_knots_current[0,:]))
+            prior_mu_proposal = np.sum(scipy.stats.norm.logpdf(GEV_knots_proposal[0,:]))
+
+            # we need to put a prior on the ksi...? or uniform(-0.5, 0.5) is good enough?
 
             GEV_accepted = False
             lik = sum(lik_gathered) + prior_scale + prior_mu
