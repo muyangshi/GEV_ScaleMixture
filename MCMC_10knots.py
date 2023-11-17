@@ -424,7 +424,7 @@ if __name__ == "__main__":
     #                         [1.13560517e-04, 6.40933053e-05,  0],
     #                         [0         , 0         , 1e-4]])
 
-    GEV_post_cov = 1e-4 * np.identity(k)
+    GEV_post_cov = 1e-4 * np.identity(3)
 
     ########## Adaptive Update Initialization ############################################
     # Scalors for adaptive updates
@@ -701,12 +701,12 @@ if __name__ == "__main__":
                 sigma_m_sq['phi_block1'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['phi_block1'] = Sigma_0['phi_block1'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block1'])
                 ## phi_block2
-                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(3,6)]))
+                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(3,7)]))
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block2']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['phi_block2'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['phi_block2'] = Sigma_0['phi_block2'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block2'])
                 ## phi_block3
-                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(6,9)]))
+                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-25:iter,i].ravel() for i in range(7,10)]))
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block3']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['phi_block3'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['phi_block3'] = Sigma_0['phi_block3'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block3'])
@@ -720,12 +720,12 @@ if __name__ == "__main__":
                 sigma_m_sq['range_block1'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['range_block1'] = Sigma_0['range_block1'] + gamma1*(Sigma_0_hat - Sigma_0['range_block1'])
                 ## range_block2
-                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(3,6)]))
+                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(3,7)]))
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block2']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['range_block2'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['range_block2'] = Sigma_0['range_block2'] + gamma1*(Sigma_0_hat - Sigma_0['range_block2'])
                 ## range_block3
-                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(6,9)]))
+                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-25:iter,i].ravel() for i in range(7,10)]))
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block3']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['range_block3'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['range_block3'] = Sigma_0['range_block3'] + gamma1*(Sigma_0_hat - Sigma_0['range_block3'])
