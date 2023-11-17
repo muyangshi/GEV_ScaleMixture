@@ -232,13 +232,15 @@ for t in np.arange(N):
 # individual coverage  #
 ########################
 
+burnins = 0 # length of burnin iterations
+
 # %%
 # load data and calculate statistics
 sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-# bad_sim_ids = np.array([3,6,26,29])
-bad_sim_ids = []
+bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
+# bad_sim_ids = []
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
@@ -264,10 +266,19 @@ upper_bound_matrix_scale = np.full(shape = (k, nsim), fill_value = np.nan)
 folders = ['./data/scenario2_20231114/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 for i in range(nsim):
     folder = folders[i]
+
+    # load
     phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
     R_trace_log = np.load(folder + 'R_trace_log.npy')
     range_knots_trace = np.load(folder + 'range_knots_trace.npy')
     GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
+
+    # drop burnins
+    phi_knots_trace = phi_knots_trace[burnins:]
+    R_trace_log = R_trace_log[burnins:]
+    range_knots_trace = range_knots_trace[burnins:]
+    GEV_knots_trace = GEV_knots_trace[burnins:]
+
     # phi
     PE_matrix_phi[:,i] = np.mean(phi_knots_trace, axis = 0)
     lower_bound_matrix_phi[:,i] = np.quantile(phi_knots_trace, q = 0.025, axis = 0)
@@ -311,8 +322,8 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('phi')
     plt.show()
-    fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
-    plt.close()
+    # fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
+    # plt.close()
 
 # %%
 # make plots for range
@@ -355,8 +366,8 @@ plt.title('knot: ' + str(knot_id) + ' loc = ' + str(mu))
 plt.xlabel('simulation number')
 plt.ylabel('loc')
 plt.show()
-fig.savefig('loc_knot_' + str(knot_id) + '.pdf')
-plt.close()
+# fig.savefig('loc_knot_' + str(knot_id) + '.pdf')
+# plt.close()
 
 # %%
 # make plots for scale
@@ -378,8 +389,8 @@ plt.title('knot: ' + str(knot_id) + ' scale = ' + str(tau))
 plt.xlabel('simulation number')
 plt.ylabel('scale')
 plt.show()
-fig.savefig('scale_knot_' + str(knot_id) + '.pdf')
-plt.close()
+# fig.savefig('scale_knot_' + str(knot_id) + '.pdf')
+# plt.close()
 
 # # %%
 # # make plots for log(R_t)
@@ -447,7 +458,9 @@ np.mean(phi_type1, axis = 1) # type 1 error of range at each knot
 sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3,6,26,29])
+# bad_sim_ids = np.array([3,6,26,29])
+bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
+
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
@@ -466,6 +479,8 @@ for level_i in range(len(alphas)):
     for i in range(nsim):
         folder = folders[i]
         phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
+        # drop burnins
+        phi_knots_trace = phi_knots_trace[burnins:]
         # phi
         PE_matrix_phi[:,i] = np.mean(phi_knots_trace, axis = 0)
         lower_bound_matrix_phi_alpha[:,i, level_i] = np.quantile(phi_knots_trace, q = q_low[level_i], axis = 0)
@@ -497,8 +512,8 @@ for knot_id in range(k):
     plt.ylabel('empirical coverage w/ 1.96*SE')
     plt.xlabel('1-alpha')
     plt.show()
-    fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
-    plt.close()
+    # fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
+    # plt.close()
 
 # %%
 # overall coverage for range
@@ -506,7 +521,7 @@ for knot_id in range(k):
 sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3,6,26,29])
+bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
@@ -525,6 +540,8 @@ for level_i in range(len(alphas)):
     for i in range(nsim):
         folder = folders[i]
         range_knots_trace = np.load(folder + 'range_knots_trace.npy')
+        # drop burnins
+        range_knots_trace = range_knots_trace[burnins:]
         # range
         PE_matrix_range[:,i] = np.mean(range_knots_trace, axis = 0)
         lower_bound_matrix_range_alpha[:,i, level_i] = np.quantile(range_knots_trace, q = q_low[level_i], axis = 0)
