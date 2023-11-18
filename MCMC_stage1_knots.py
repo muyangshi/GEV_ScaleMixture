@@ -353,7 +353,9 @@ if __name__ == "__main__":
                 # ---- GEV ----
                 ## location mu
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label = 'knot 0') # location
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label = 'knot 0') # location
+                for i in range(k):
+                    plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,i], label='knot ' + str(i))
                 plt.title('traceplot for location')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('mu')
@@ -363,7 +365,9 @@ if __name__ == "__main__":
 
                 ## scale tau
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label = 'knot 0') # scale
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label = 'knot 0') # scale
+                for i in range(k):
+                    plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,i], label='knot ' + str(i))
                 plt.title('traceplot for scale')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('tau')
@@ -373,7 +377,9 @@ if __name__ == "__main__":
 
                 ## shape ksi
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label = 'knot 0') # shape
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label = 'knot 0') # shape
+                for i in range(k):
+                    plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,i], label='knot ' + str(i))
                 plt.title('traceplot for shape')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('ksi')
@@ -430,13 +436,13 @@ if __name__ == "__main__":
         # Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
         # Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
 
-        Loc_matrix_current = gaussian_weight_matrix @ GEV_knots_current[0,:]
-        Scale_matrix_current = gaussian_weight_matrix @ GEV_knots_current[1,:]
-        Shape_matrix_current = gaussian_weight_matrix @ GEV_knots_current[2,:]
+        Loc_matrix_current = np.tile(gaussian_weight_matrix @ GEV_knots_current[0,:], (64, 1)).T
+        Scale_matrix_current = np.tile(gaussian_weight_matrix @ GEV_knots_current[1,:], (64, 1)).T
+        Shape_matrix_current = np.tile(gaussian_weight_matrix @ GEV_knots_current[2,:], (64, 1)).T
 
-        Loc_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[0,:]
-        Scale_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[1,:]
-        Shape_matrix_proposal = gaussian_weight_matrix @ GEV_knots_proposal[2,:]
+        Loc_matrix_proposal = np.tile(gaussian_weight_matrix @ GEV_knots_proposal[0,:], (64, 1)).T
+        Scale_matrix_proposal = np.tile(gaussian_weight_matrix @ GEV_knots_proposal[1,:], (64, 1)).T
+        Shape_matrix_proposal = np.tile(gaussian_weight_matrix @ GEV_knots_proposal[2,:], (64, 1)).T
 
         # GEV log likelihood at Current
         lik_1t = np.sum(dgev(Y[:,rank], 
