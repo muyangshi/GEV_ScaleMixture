@@ -28,7 +28,7 @@ from time import strftime, localtime
 np.random.seed(data_seed)
 N = 64 # number of time replicates
 num_sites = 500 # number of sites/stations
-k = 9 # number of knots
+k = 10 # number of knots
 
 ## unchanged constants or parameters
 gamma = 0.5 # this is the gamma that goes in rlevy
@@ -48,7 +48,7 @@ sigsq = 1.0 # for Z
 # range_post_cov
 n_iters = 1000
 
-# %%
+
 # ------- 1. Generate Sites and Knots --------------------------------
 
 sites_xy = np.random.random((num_sites, 2)) * 10
@@ -66,6 +66,14 @@ knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
 #                      [8,2],
 #                      [8,8],
 #                      [4.5,4.5]])
+
+# putting two knots in the middle
+knots_xy = np.delete(knots_xy, 4, axis = 0)
+knots_xy = np.insert(knots_xy, 4, np.array([4,5]), axis = 0)
+knots_xy = np.insert(knots_xy, 5, np.array([6,5]), axis = 0)
+
+
+
 knots_x = knots_xy[:,0]
 knots_y = knots_xy[:,1]
 
@@ -222,7 +230,7 @@ for t in np.arange(N):
 
 # %%
 
-burnins = 0 # length of burnin iterations
+burnins = 2000 # length of burnin iterations
 
 
 ########################
@@ -235,7 +243,8 @@ burnins = 0 # length of burnin iterations
 sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
+bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25]) # bad sim for 9 knots scenario 2
+# bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
 # bad_sim_ids = []
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
@@ -318,8 +327,8 @@ for knot_id in range(k):
     plt.xlabel('simulation number')
     plt.ylabel('phi')
     plt.show()
-    # fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
-    # plt.close()
+    fig.savefig('phi_knot_' + str(knot_id) + '.pdf')
+    plt.close()
 
 # %%
 # make plots for range
@@ -362,8 +371,8 @@ plt.title('knot: ' + str(knot_id) + ' loc = ' + str(mu))
 plt.xlabel('simulation number')
 plt.ylabel('loc')
 plt.show()
-# fig.savefig('loc_knot_' + str(knot_id) + '.pdf')
-# plt.close()
+fig.savefig('loc_knot_' + str(knot_id) + '.pdf')
+plt.close()
 
 # %%
 # make plots for scale
@@ -385,8 +394,8 @@ plt.title('knot: ' + str(knot_id) + ' scale = ' + str(tau))
 plt.xlabel('simulation number')
 plt.ylabel('scale')
 plt.show()
-# fig.savefig('scale_knot_' + str(knot_id) + '.pdf')
-# plt.close()
+fig.savefig('scale_knot_' + str(knot_id) + '.pdf')
+plt.close()
 
 # # %%
 # # make plots for log(R_t)
@@ -456,6 +465,8 @@ sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 # bad_sim_ids = np.array([3,6,26,29])
 bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
+# bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
+
 
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
@@ -508,8 +519,8 @@ for knot_id in range(k):
     plt.ylabel('empirical coverage w/ 1.96*SE')
     plt.xlabel('1-alpha')
     plt.show()
-    # fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
-    # plt.close()
+    fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
+    plt.close()
 
 # %%
 # overall coverage for range
@@ -518,6 +529,8 @@ sim_id_from = 1
 sim_id_to = 30
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
+# bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
+
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
