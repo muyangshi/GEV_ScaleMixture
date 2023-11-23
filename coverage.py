@@ -21,14 +21,13 @@ from time import strftime, localtime
 #####################################################################################################################
 # Generating Dataset ################################################################################################
 #####################################################################################################################
-# %%
 # ------- 0. Simulation Setting --------------------------------------
 
 ## space setting
 np.random.seed(data_seed)
 N = 64 # number of time replicates
 num_sites = 500 # number of sites/stations
-k = 10 # number of knots
+k = 9 # number of knots
 
 ## unchanged constants or parameters
 gamma = 0.5 # this is the gamma that goes in rlevy
@@ -68,9 +67,10 @@ knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
 #                      [4.5,4.5]])
 
 # putting two knots in the middle
-knots_xy = np.delete(knots_xy, 4, axis = 0)
-knots_xy = np.insert(knots_xy, 4, np.array([4,5]), axis = 0)
-knots_xy = np.insert(knots_xy, 5, np.array([6,5]), axis = 0)
+if k == 10:
+    knots_xy = np.delete(knots_xy, 4, axis = 0)
+    knots_xy = np.insert(knots_xy, 4, np.array([4,5]), axis = 0)
+    knots_xy = np.insert(knots_xy, 5, np.array([6,5]), axis = 0)
 
 
 
@@ -229,26 +229,37 @@ for t in np.arange(N):
 
 
 # %%
-
-burnins = 2000 # length of burnin iterations
-
-
-########################
-# individual coverage  #
-########################
-
-
-# %%
-# load data and calculate statistics
+# Coverage setup
+burnins = 6000 # length of burnin iterations
+simulation_case = 'scenario3'
 sim_id_from = 1
-sim_id_to = 30
+sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25]) # bad sim for 9 knots scenario 2
+
+# bad sim for scenario 1 with 9 knots
+# bad_sim_ids = np.array([32, # absolutely bad
+#                         5, 9, 24, 29, 33, 34, 35, 39, 43, # ah??
+#                         3, 26]) # biased
+
+# bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25]) # bad sim for 9 knots scenario 2
+
+# bad sim for scenario 3 with 9 knots
+bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
+                        12, 23, 25, 33, 34, 39, 42, 43, 44, # ah??
+                        4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
+
 # bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
-# bad_sim_ids = []
+
 for bad_sim_id in bad_sim_ids:
     sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
 nsim = len(sim_ids)
+
+
+# %%
+########################
+# individual coverage  #
+########################
+# load data and calculate statistics
 PE_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
 lower_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
 upper_bound_matrix_phi = np.full(shape = (k, nsim), fill_value = np.nan)
@@ -268,7 +279,7 @@ upper_bound_matrix_scale = np.full(shape = (k, nsim), fill_value = np.nan)
 # lower_bound_matrix_shape = np.full(shape = (k, nsim), fill_value = np.nan)
 # upper_bound_matrix_shape = np.full(shape = (k, nsim), fill_value = np.nan)
 
-folders = ['./data/scenario2_20231114/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
+folders = ['./data/'+simulation_case+'/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
 for i in range(nsim):
     folder = folders[i]
 
@@ -313,7 +324,7 @@ for i in range(nsim):
 # make plots for phi
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = phi_at_knots[knot_id], xmin = 1, xmax = 30,
+    ax.hlines(y = phi_at_knots[knot_id], xmin = sim_id_from, xmax = sim_id_to,
             color = 'black')
     coloring = ['red' if type1 == True else 'green' 
                 for type1 in np.logical_or(lower_bound_matrix_phi[knot_id,:] > phi_at_knots[knot_id], 
@@ -334,7 +345,7 @@ for knot_id in range(k):
 # make plots for range
 for knot_id in range(k):
     fig, ax = plt.subplots()
-    ax.hlines(y = range_at_knots[knot_id], xmin = 1, xmax = 30,
+    ax.hlines(y = range_at_knots[knot_id], xmin = sim_id_from, xmax = sim_id_to,
             color = 'black')
     coloring = ['red' if type1 == True else 'green' 
             for type1 in np.logical_or(lower_bound_matrix_range[knot_id,:] > range_at_knots[knot_id], 
@@ -356,7 +367,7 @@ for knot_id in range(k):
 # for knot_id in range(k):
 knot_id = 0
 fig, ax = plt.subplots()
-ax.hlines(y = mu, xmin = 1, xmax = 30,
+ax.hlines(y = mu, xmin = sim_id_from, xmax = sim_id_to,
         color = 'black')
 coloring = ['red' if type1 == True else 'green' 
             for type1 in np.logical_or(lower_bound_matrix_loc[knot_id,:] > mu, 
@@ -379,7 +390,7 @@ plt.close()
 # for knot_id in range(k):
 knot_id = 0
 fig, ax = plt.subplots()
-ax.hlines(y = tau, xmin = 1, xmax = 30,
+ax.hlines(y = tau, xmin = sim_id_from, xmax = sim_id_to,
         color = 'black')
 coloring = ['red' if type1 == True else 'green' 
             for type1 in np.logical_or(lower_bound_matrix_scale[knot_id,:] > tau, 
@@ -405,7 +416,7 @@ plt.close()
 # t = 0
 # for knot_id in range(k):
 #     fig, ax = plt.subplots()
-#     ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = 1, xmax = nsim,
+#     ax.hlines(y = np.log(R_at_knots[knot_id,t]), xmin = sim_id_from, xmax = nsim,
 #             color = 'black')
 #     coloring = ['red' if type1 == True else 'green' 
 #             for type1 in np.logical_or(lower_bound_matrix_Rt_log[knot_id,t,:] > np.log(R_at_knots)[knot_id,t], 
@@ -459,21 +470,6 @@ np.mean(phi_type1, axis = 1) # type 1 error of range at each knot
 
 # %%
 # overall coverage for phi
-# load good simulations
-sim_id_from = 1
-sim_id_to = 30
-sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-# bad_sim_ids = np.array([3,6,26,29])
-bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
-# bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
-
-
-for bad_sim_id in bad_sim_ids:
-    sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
-nsim = len(sim_ids)
-
-folders = ['./data/scenario2_20231114/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
-# alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 alphas = np.flip(np.linspace(0.05, 0.4, 15))
 q_low = alphas/2
 q_high = 1 - q_low
@@ -524,19 +520,6 @@ for knot_id in range(k):
 
 # %%
 # overall coverage for range
-# load good simulations
-sim_id_from = 1
-sim_id_to = 30
-sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
-bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25])
-# bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
-
-for bad_sim_id in bad_sim_ids:
-    sim_ids = np.delete(sim_ids, np.argwhere(sim_ids == bad_sim_id))
-nsim = len(sim_ids)
-
-folders = ['./data/scenario2_20231114/simulation_' + str(sim_id) + '/' for sim_id in sim_ids]
-# alphas = np.flip(np.array([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]))
 alphas = np.flip(np.linspace(0.05, 0.4, 15))
 q_low = alphas/2
 q_high = 1 - q_low
