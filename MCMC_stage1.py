@@ -32,8 +32,8 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 64 # number of time replicates
-    num_sites = 500 # number of sites/stations
+    N = 4 # number of time replicates
+    num_sites = 50 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 5000
+    n_iters = 50000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
