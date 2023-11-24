@@ -603,6 +603,7 @@ if __name__ == "__main__":
                 for i in range(k):
                     plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label='knot ' + str(i))
                     # plt.plot(xs_thin2, phi_knots_trace_thin[:,1], label='knot ' + i)
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], phi_knots_trace_thin[:,i][-1]))
                 plt.title('traceplot for phi')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('phi')
@@ -629,6 +630,8 @@ if __name__ == "__main__":
                 plt.subplots()
                 for i in range(k):
                     plt.plot(xs_thin2, range_knots_trace_thin[:,i], label='knot ' + str(i))
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], range_knots_trace_thin[:,i][-1]))
+                plt.title('traceplot for phi')
                 plt.title('traceplot for range')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('range')
@@ -680,6 +683,8 @@ if __name__ == "__main__":
                 plt.subplots()
                 for i in range(5):
                     plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
+                    plt.annotate('piece ' + str(i), xy=(xs_thin2[-1], loglik_detail_trace_thin[:,i][-1]))
+                plt.title('traceplot for phi')
                 plt.title('traceplot for detail log likelihood')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('log likelihood')
