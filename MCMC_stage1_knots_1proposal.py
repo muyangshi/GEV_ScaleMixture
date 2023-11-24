@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 5000
+    n_iters = 30000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -276,22 +276,33 @@ if __name__ == "__main__":
     # eps = 1e-6
 
     # posterior covariance matrix from trial run
-    GEV_post_cov = np.array([[1e-04, 0, 0],
-                            [0, 1e-04,  0],
-                            [0, 0      , 1e-4]])
+    mu_post_cov = 1e-4 * np.identity(k)
+    tau_post_cov = 1e-4 * np.identity(k)
+    ksi_post_cov = 1e-4 * np.identity(k)
 
     # Scalors for adaptive updates
     # (phi, range, GEV) these parameters are only proposed on worker 0
     if rank == 0: 
+        # initialize the proposal scaler
+        # each knot k has its own proposal variance
         sigma_m_sq = {}
-        # sigma_m_sq['GEV'] = (2.4**2)/3
+        # sigma_m_sq['mu'] = (2.4**2)/k
+        # sigma_m_sq['tau'] = (2.4**2)/k
+        # sigma_m_sq['ksi'] = (2.4**2)/k
         sigma_m_sq['GEV'] = (2.4**2)/3
 
-        # initialize them with posterior covariance matrix
+        # initialize the proposal covariance matrix
         Sigma_0 = {}
-        Sigma_0['GEV'] = GEV_post_cov
+        # Sigma_0['mu'] = mu_post_cov
+        # Sigma_0['tau'] = tau_post_cov
+        # Sigma_0['ksi'] = ksi_post_cov
+        Sigma_0['GEV'] = 1e-4 * np.identity(3)
 
+        # initialize the acceptance counter
         num_accepted = {}
+        # num_accepted['mu'] = 0
+        # num_accepted['tau'] = 0
+        # num_accepted['ksi'] = 0 
         num_accepted['GEV'] = 0
 
     ########## Storage Place ##################################################
@@ -333,10 +344,10 @@ if __name__ == "__main__":
             # print(sigma_m_sq['GEV'])
             if iter == 1:
                 print(iter)
-            if iter % 50 == 0:
+            if iter % 5000 == 0:
                 print(iter)
                 print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
-            if iter % 1000 == 0 or iter == n_iters-1:
+            if iter % 5000 == 0 or iter == n_iters-1:
                 # Save data every 1000 iterations
                 end_time = time.time()
                 print('elapsed: ', round(end_time - start_time, 1), ' seconds')
@@ -406,17 +417,48 @@ if __name__ == "__main__":
 
             # phi, range, and GEV
             if rank == 0:
+                # # mu
+                # r_hat = num_accepted['mu']/25
+                # num_accepted['mu'] = 0
+                # Sigma_0_hat = np.cov(np.array([
+                #     GEV_knots_trace_stage1[iter-25:iter, 0, i].ravel() for i in range(0, k)
+                # ]))
+                # log_sigma_m_sq_hat = np.log(sigma_m_sq['mu']) + gamma2*(r_hat - r_opt)
+                # sigma_m_sq['mu'] = np.exp(log_sigma_m_sq_hat)
+                # Sigma_0['mu'] = Sigma_0['mu'] + gamma1*(Sigma_0_hat - Sigma_0['mu'])  
+
+                # # tau
+                # r_hat = num_accepted['tau']/25
+                # num_accepted['tau'] = 0
+                # Sigma_0_hat = np.cov(np.array([
+                #     GEV_knots_trace_stage1[iter-25:iter, 0, i].ravel() for i in range(0, k)
+                # ]))
+                # log_sigma_m_sq_hat = np.log(sigma_m_sq['tau']) + gamma2*(r_hat - r_opt)
+                # sigma_m_sq['tau'] = np.exp(log_sigma_m_sq_hat)
+                # Sigma_0['tau'] = Sigma_0['tau'] + gamma1*(Sigma_0_hat - Sigma_0['tau'])  
+
+                # # ksi
+                # r_hat = num_accepted['ksi']/25
+                # num_accepted['ksi'] = 0
+                # Sigma_0_hat = np.cov(np.array([
+                #     GEV_knots_trace_stage1[iter-25:iter, 0, i].ravel() for i in range(0, k)
+                # ]))
+                # log_sigma_m_sq_hat = np.log(sigma_m_sq['ksi']) + gamma2*(r_hat - r_opt)
+                # sigma_m_sq['ksi'] = np.exp(log_sigma_m_sq_hat)
+                # Sigma_0['ksi'] = Sigma_0['ksi'] + gamma1*(Sigma_0_hat - Sigma_0['ksi'])
+
                 # GEV
                 r_hat = num_accepted['GEV']/25
                 num_accepted['GEV'] = 0
-                sample_cov = np.cov(np.array([GEV_knots_trace_stage1[iter-25:iter,0,0].ravel(), # mu location
-                                                GEV_knots_trace_stage1[iter-25:iter,1,0].ravel(), # tau scale
-                                                GEV_knots_trace_stage1[iter-25:iter,2,0].ravel()])) # ksi shape
-                Sigma_0_hat = sample_cov
+                Sigma_0_hat = np.cov(np.array([
+                    GEV_knots_trace_stage1[iter-25:iter, 0, 0].ravel(),
+                    GEV_knots_trace_stage1[iter-25:iter, 1, 0].ravel(),
+                    GEV_knots_trace_stage1[iter-25:iter, 2, 0].ravel()
+                ]))
+                print('Sigma_0_hat: ', Sigma_0_hat)
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
-        
         comm.Barrier() # block for adaptive update
 
     #####################################################################################################################
@@ -425,8 +467,18 @@ if __name__ == "__main__":
 
     #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
         if rank == 0:
-            random_walk = np.sqrt(sigma_m_sq['GEV']) * random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
-            GEV_knots_proposal = GEV_knots_current + random_walk
+            # ## propose mu change
+            # random_walk_mu = np.sqrt(sigma_m_sq['mu']) * random_generator.multivariate_normal(np.zeros(k), Sigma_0['mu'])
+            # ## propose tau change
+            # random_walk_tau = np.sqrt(sigma_m_sq['tau']) * random_generator.multivariate_normal(np.zeros(k), Sigma_0['tau'])
+            # ## propose ksi change
+            # random_walk_ksi = np.sqrt(sigma_m_sq['ksi']) * random_generator.multivariate_normal(np.zeros(k), Sigma_0['ksi'])
+
+            # random_walk_3xk = np.vstack((random_walk_mu,
+            #                              random_walk_tau,
+            #                              random_walk_ksi))
+            random_walk_3xk = np.sqrt(sigma_m_sq['GEV']) * random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
+            GEV_knots_proposal = GEV_knots_current + random_walk_3xk
             # GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0])
         else:
             GEV_knots_proposal = None
@@ -476,7 +528,7 @@ if __name__ == "__main__":
             # prior_scale = -np.log(Scale_matrix_current[0][0])
             # prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
             prior_scale = np.sum(-np.log(GEV_knots_current[1,:]))
-            prior_scale_proposal = np.sum(-np.log(GEV_knots_proposal[1,:]))
+            prior_scale_proposal = np.sum(-np.log(GEV_knots_proposal[1,:])) if not Scale_out_of_range else np.NINF
 
             # normal prior on mu
             # prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
@@ -505,6 +557,9 @@ if __name__ == "__main__":
                 Shape_matrix_update = Shape_matrix_proposal
                 GEV_knots_update = GEV_knots_proposal
                 GEV_accepted = True
+                # num_accepted['mu'] += 1
+                # num_accepted['tau'] += 1
+                # num_accepted['ksi'] += 1
                 num_accepted['GEV'] += 1
             
             # Store the result
