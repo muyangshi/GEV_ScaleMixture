@@ -7,6 +7,7 @@ data/.DS_Store
 scratch/*
 write_bash.py
 write_bash*.py
+data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
