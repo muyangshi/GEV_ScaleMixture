@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 5000
+    n_iters = 10000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -275,37 +275,29 @@ if __name__ == "__main__":
     r_opt = .35
     # eps = 1e-6
 
-    # posterior covariance matrix from trial run
-    GEV_post_cov = np.array([[1e-04, 0, 0],
-                            [0, 1e-04,  0],
-                            [0, 0      , 1e-4]])
-
     # Scalors for adaptive updates
     # (phi, range, GEV) these parameters are only proposed on worker 0
     if rank == 0: 
-        sigma_m_sq = {}
-        # sigma_m_sq['GEV'] = (2.4**2)/3
-        sigma_m_sq['GEV'] = (2.4**2)/3
-
-        # initialize them with posterior covariance matrix
-        Sigma_0 = {}
-        Sigma_0['GEV'] = GEV_post_cov
-
-        num_accepted = {}
-        num_accepted['GEV'] = 0
+        sigma_m_sq = {} # proposal scaler
+        Sigma_0 = {} # proposal covariance
+        num_accepted = {} # counter
+        for site in range(num_sites):
+            sigma_m_sq['GEV_site_' + str(site)] = (2.4**2)/3
+            Sigma_0['GEV_site_' + str(site)] = 1e-4 * np.identity(3)
+            num_accepted['GEV_site_' + str(site)] = 0
 
     ########## Storage Place ##################################################
     # %%
     # Storage Place
 
-    ## ---- GEV mu tau ksi (location, scale, shape) together ----
+    ## ---- site level GEV ----
     if rank == 0:
-        GEV_knots_trace_stage1 = np.full(shape=(n_iters, 3, k), fill_value = np.nan) # [n_iters, n_GEV, num_knots]
-        GEV_knots_trace_stage1[0,:,:] = np.tile(np.array([mu, tau, ksi]), (k,1)).T
-        GEV_knots_init = GEV_knots_trace_stage1[0,:,:]
+        GEV_sites_trace_stage1 = np.full(shape=(n_iters, 3, num_sites), fill_value = np.nan)
+        GEV_sites_trace_stage1[0,:,:] = np.tile(np.array([mu, tau, ksi]), (num_sites, 1)).T
+        GEV_sites_current = GEV_sites_trace_stage1[0,:,:]
     else:
-        GEV_knots_init = None
-    GEV_knots_init = comm.bcast(GEV_knots_init, root = 0)
+        GEV_sites_current = None
+    GEV_sites_current = comm.bcast(GEV_sites_current, root = 0)
 
     ## ---- overal likelihood? -----
     if rank == 0:
@@ -317,11 +309,12 @@ if __name__ == "__main__":
     # %%
     # Initialize
     ## ---- GEV mu tau ksi (location, scale, shape) together ----
-    GEV_knots_current = GEV_knots_init
-    # will(?) be changed into matrix multiplication w/ more knots or Covariate:
-    Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
-    Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
-    Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
+    # GEV_knots_current = GEV_knots_init
+    # # will(?) be changed into matrix multiplication w/ more knots or Covariate:
+    # Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
+    # Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
+    # Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
+
 
     ########## Loops ##################################################
     # %%
@@ -340,20 +333,22 @@ if __name__ == "__main__":
                 # Save data every 1000 iterations
                 end_time = time.time()
                 print('elapsed: ', round(end_time - start_time, 1), ' seconds')
-                np.save('GEV_knots_trace_stage1', GEV_knots_trace_stage1)
+                np.save('GEV_sites_trace_stage1', GEV_sites_trace_stage1)
                 np.save('loglik_trace', loglik_trace)
 
                 # Print traceplot every 1000 iterations
                 xs = np.arange(iter)
                 xs_thin = xs[0::10] # index 1, 11, 21, ...
                 xs_thin2 = np.arange(len(xs_thin)) # numbers 1, 2, 3, ...
-                GEV_knots_trace_thin = GEV_knots_trace_stage1[0:iter:10,:,:]
+                GEV_sites_trace_thin = GEV_sites_trace_stage1[0:iter:10,:,:]
                 loglik_trace_thin = loglik_trace[0:iter:10,:]
 
                 # ---- GEV ----
                 ## location mu
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label = 'knot 0') # location
+                for site in np.arange(num_sites)[np.arange(num_sites) % 50 == 0]:
+                    plt.plot(xs_thin2, GEV_sites_trace_thin[:,0,site], label = 'site '+str(site)) # location
+                    plt.annotate('site ' + str(site), xy=(xs_thin2[-1], GEV_sites_trace_thin[:,0,site][-1]))
                 plt.title('traceplot for location')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('mu')
@@ -363,7 +358,9 @@ if __name__ == "__main__":
 
                 ## scale tau
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label = 'knot 0') # scale
+                for site in np.arange(num_sites)[np.arange(num_sites) % 50 == 0]:
+                    plt.plot(xs_thin2, GEV_sites_trace_thin[:,1,site], label = 'site '+str(site)) # scale
+                    plt.annotate('site ' + str(site), xy=(xs_thin2[-1], GEV_sites_trace_thin[:,1,site][-1]))
                 plt.title('traceplot for scale')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('tau')
@@ -373,7 +370,9 @@ if __name__ == "__main__":
 
                 ## shape ksi
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label = 'knot 0') # shape
+                for site in np.arange(num_sites)[np.arange(num_sites) % 50 == 0]:
+                    plt.plot(xs_thin2, GEV_sites_trace_thin[:,2,site], label = 'site '+str(site)) # shape
+                    plt.annotate('site ' + str(site), xy=(xs_thin2[-1], GEV_sites_trace_thin[:,2,site][-1]))
                 plt.title('traceplot for shape')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('ksi')
@@ -400,16 +399,18 @@ if __name__ == "__main__":
 
             # phi, range, and GEV
             if rank == 0:
-                # GEV
-                r_hat = num_accepted['GEV']/25
-                num_accepted['GEV'] = 0
-                sample_cov = np.cov(np.array([GEV_knots_trace_stage1[iter-25:iter,0,0].ravel(), # mu location
-                                                GEV_knots_trace_stage1[iter-25:iter,1,0].ravel(), # tau scale
-                                                GEV_knots_trace_stage1[iter-25:iter,2,0]])) # ksi shape
-                Sigma_0_hat = sample_cov
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
+                for site in range(num_sites):
+                    r_hat = num_accepted['GEV_site_'+str(site)]/25
+                    num_accepted['GEV_site_'+str(site)] = 0
+                    sample_cov = np.cov(np.array([
+                                                GEV_sites_trace_stage1[iter-25:iter,0,site].ravel(), # mu location
+                                                GEV_sites_trace_stage1[iter-25:iter,1,site].ravel(), # tau scale
+                                                GEV_sites_trace_stage1[iter-25:iter,2,site].ravel()] # ksi shape
+                                        )) 
+                    Sigma_0_hat = sample_cov
+                    log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV_site_'+str(site)]) + gamma2*(r_hat - r_opt)
+                    sigma_m_sq['GEV_site_'+str(site)] = np.exp(log_sigma_m_sq_hat)
+                    Sigma_0['GEV_site_'+str(site)] = Sigma_0['GEV_site_'+str(site)] + gamma1*(Sigma_0_hat - Sigma_0['GEV_site_'+str(site)])
         
         comm.Barrier() # block for adaptive update
 
@@ -417,98 +418,78 @@ if __name__ == "__main__":
     # Actual Param Update ###############################################################################################
     #####################################################################################################################
 
-    #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
-        if rank == 0:
-            random_walk = np.sqrt(sigma_m_sq['GEV']) * random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
-            GEV_knots_proposal = GEV_knots_current + random_walk
-            GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0])
-        else:
-            GEV_knots_proposal = None
-        GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
+    #### ----- Update GEV for one site each time -----
+        for site in range(num_sites):
+            # current GEV at site
+            GEV_site_current = GEV_sites_current[:,site]
+            # print(GEV_site_current) if rank == 0 and site == 0 else None
 
-        Loc_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[0,0])
-        Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
-        Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
+            # current likelihood using only Nt observations at site
+            lik_site_1t = dgev(Y[site, rank],
+                               GEV_site_current[0],
+                               GEV_site_current[1],
+                               GEV_site_current[2],
+                               log = True)
+            lik_site_gathered = comm.gather(lik_site_1t, root = 0)
 
-        # GEV log likelihood at Current
-        lik_1t = np.sum(dgev(Y[:,rank], 
-                             Loc_matrix_current[:,rank], 
-                             Scale_matrix_current[:,rank], 
-                             Shape_matrix_current[:,rank],
-                             log = True))
+            # propose new GEV at site
+            GEV_site_proposal = GEV_site_current + np.sqrt(sigma_m_sq['GEV_site_'+str(site)]) * \
+                random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV_site_'+str(site)]) if rank == 0 else None
+            GEV_site_proposal = comm.bcast(GEV_site_proposal, root = 0)
+            # print(GEV_site_proposal) if rank == 0 and site == 0 else None
 
-        # GEV log likelihood at Proposal
-        Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:])
-        Shape_out_of_range = any(shape <= -0.5 for shape in GEV_knots_proposal[2,:]) or any(shape > 0.5 for shape in GEV_knots_proposal[2,:])
-        if Scale_out_of_range or Shape_out_of_range:
-            lik_1t_proposal = np.NINF
-        else:
-            lik_1t_proposal = np.sum(dgev(Y[:,rank],
-                                          Loc_matrix_proposal[:,rank],
-                                          Scale_matrix_proposal[:,rank],
-                                          Shape_matrix_proposal[:,rank],
-                                          log = True))
+            # calculate likelihood using only Nt observations at site
+            Scale_out_of_range = (GEV_site_proposal[1] <= 0)
+            Shape_out_of_range = (GEV_site_proposal[2] <= -0.5 or GEV_site_proposal[2] > 0.5)
+            if Scale_out_of_range or Shape_out_of_range:
+                lik_site_1t_proposal = np.NINF
+            else:
+                lik_site_1t_proposal = dgev(Y[site, rank],
+                                            GEV_site_proposal[0],
+                                            GEV_site_proposal[1],
+                                            GEV_site_proposal[2],
+                                            log = True)
+            lik_site_proposal_gathered = comm.gather(lik_site_1t_proposal, root = 0)
 
-        # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
-        lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+            # accept or reject
+            if rank == 0:
+                # normal prior for location
+                prior_loc = scipy.stats.norm.logpdf(GEV_site_current[0])
+                prior_loc_proposal = scipy.stats.norm.logpdf(GEV_site_proposal[0])
 
-        # Accept or Reject
-        if rank == 0:
+                # 1/tau prior for scale
+                prior_scale = -np.log(GEV_site_current[1])
+                prior_scale_proposal = -np.log(GEV_site_proposal[1]) if not Scale_out_of_range else np.NINF
 
-            # for now there is only one set of GEV parameters
-            # (constant across all time and space)
-            # log-prior density for scale as P(tau) = 1/tau
-            prior_scale = -np.log(Scale_matrix_current[0][0])
-            prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
-
-            prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
-            prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+                # totaled likelihood
+                lik_site = sum(lik_site_gathered) + prior_loc + prior_scale
+                lik_site_proposal = sum(lik_site_proposal_gathered) + prior_loc_proposal + prior_scale_proposal
+                
+                # accept or reject
+                u = random_generator.uniform()
+                ratio = np.exp(lik_site_proposal - lik_site)
+                if not np.isfinite(ratio):
+                    ratio = 0
+                if u > ratio: # reject
+                    GEV_site_update = GEV_site_current
+                else: # accept, u <= ratio
+                    GEV_site_update = GEV_site_proposal
+                    num_accepted['GEV_site_'+str(site)] += 1
+                
+                # store the result
+                GEV_sites_trace_stage1[iter,:,site] = GEV_site_update
             
+            comm.Barrier() # barrier for each site
 
-            GEV_accepted = False
-            lik = sum(lik_gathered) + prior_scale + prior_mu
-            lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal + prior_mu_proposal
-
-            u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik)
-            if not np.isfinite(ratio):
-                ratio = 0
-            if u > ratio: # Reject
-                Loc_matrix_update = Loc_matrix_current
-                Scale_matrix_update = Scale_matrix_current
-                Shape_matrix_update = Shape_matrix_current
-                GEV_knots_update = GEV_knots_current
-            else: # Accept, u <= ratio
-                Loc_matrix_update = Loc_matrix_proposal
-                Scale_matrix_update = Scale_matrix_proposal
-                Shape_matrix_update = Shape_matrix_proposal
-                GEV_knots_update = GEV_knots_proposal
-                GEV_accepted = True
-                num_accepted['GEV'] += 1
-            
-            # Store the result
-            GEV_knots_trace_stage1[iter,:,:] = GEV_knots_update
-
-            # Update the "current" value
-            Loc_matrix_current = Loc_matrix_update
-            Scale_matrix_current = Scale_matrix_update
-            Shape_matrix_current = Shape_matrix_update
-            GEV_knots_current = GEV_knots_update
-        else:
-            GEV_accepted = False
-
-        # Brodcast the updated values
-        Loc_matrix_current = comm.bcast(Loc_matrix_current, root = 0)
-        Scale_matrix_current = comm.bcast(Scale_matrix_current, root = 0)
-        Shape_matrix_current = comm.bcast(Shape_matrix_current, root = 0)
-        GEV_knots_current = comm.bcast(GEV_knots_current, root = 0)
-        GEV_accepted = comm.bcast(GEV_accepted, root = 0)
-        
-        comm.Barrier() # block for GEV updates
+        GEV_sites_current = GEV_sites_trace_stage1[iter,:,:] if rank == 0 else None
+        GEV_sites_current = comm.bcast(GEV_sites_current, root = 0)
 
         # Keeping track of likelihood after this iteration
-        lik_final_1t = lik_1t_proposal if GEV_accepted else lik_1t
+        lik_final_1t = np.sum(dgev(Y[:,rank],
+                              GEV_sites_current[0,:],
+                              GEV_sites_current[1,:],
+                              GEV_sites_current[2,:],
+                              log = True))
         lik_final_gathered = comm.gather(lik_final_1t, root = 0)
         if rank == 0:
             loglik_trace[iter,0] = round(sum(lik_final_gathered),3) # storing the overall log likelihood
@@ -523,7 +504,7 @@ if __name__ == "__main__":
         # np.save('R_trace_log', R_trace_log)
         # np.save('phi_knots_trace', phi_knots_trace)
         # np.save('range_knots_trace', range_knots_trace)
-        np.save('GEV_knots_trace_stage1', GEV_knots_trace_stage1)
+        np.save('GEV_sites_trace_stage1', GEV_sites_trace_stage1)
         np.save('loglik_trace', loglik_trace)
         # np.save('loglik_detail_trace', loglik_detail_trace)
 
