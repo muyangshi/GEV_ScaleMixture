@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_roots.h>
+#include <gsl/gsl_errno.h>
 // g++ -I/opt/homebrew/include -std=c++11 -Wall -pedantic RW_inte_cpp.cpp -shared -fPIC -L/opt/homebrew/lib -o RW_inte_cpp.so -lgsl -lgslcblas
 
 // double(*)[3] params_ptr ---- treats params_ptr as a pointer to double[3] isntead of a pointer to void
@@ -35,9 +37,9 @@ double pRW_transformed (double x, double phi, double gamma){
     }
     gsl_integration_workspace_free(w);
 
-    printf ("result          = % .18f\n", result);
-    printf ("estimated error = % .18f\n", error);
-    printf ("intervals       = %zu\n", w->size);
+    // printf ("result          = % .18f\n", result);
+    // printf ("estimated error = % .18f\n", error);
+    // printf ("intervals       = %zu\n", w->size);
 
     return 1 - result;
 }
@@ -105,11 +107,71 @@ double dRW_transformed (double x, double phi, double gamma){
     }
     gsl_integration_workspace_free(w);
 
-    printf ("result          = % .18f\n", result);
-    printf ("estimated error = % .18f\n", error);
-    printf ("intervals       = %zu\n", w->size);
+    // printf ("result          = % .18f\n", result);
+    // printf ("estimated error = % .18f\n", error);
+    // printf ("intervals       = %zu\n", w->size);
 
     return 1 - result;
+}
+
+double qRW_to_solve (double x, void * params_ptr) {
+    double p     = (*(double(*)[3]) params_ptr)[0];
+    double phi   = (*(double(*)[3]) params_ptr)[1];
+    double gamma = (*(double(*)[3]) params_ptr)[2];
+    return pRW_transformed(x, phi, gamma) - p;
+}
+double qRW_to_solve_df (double x, void * params_ptr){
+    // double p     = (*(double(*)[3]) params_ptr)[0];
+    double phi   = (*(double(*)[3]) params_ptr)[1];
+    double gamma = (*(double(*)[3]) params_ptr)[2];
+    return dRW_transformed(x, phi, gamma);
+}
+void qRW_to_solve_fdf (double x, void * params_ptr, double * f, double * df){
+    *f = qRW_to_solve(x, params_ptr);
+    *df = qRW_to_solve_df(x, params_ptr);
+}
+
+double qRW_transformed_brent (double p, double phi, double gamma){
+    int status;
+    int iter = 0, max_iter = 10000;
+    const gsl_root_fsolver_type *T;
+    gsl_root_fsolver *s;
+    double r = 10;
+    double x_lo = 0.01, x_hi = 2e14;
+    gsl_function F;
+    double params[4] = {p, phi, gamma};
+
+    F.function = &qRW_to_solve;
+    F.params = &params;
+
+    T = gsl_root_fsolver_brent;
+    s = gsl_root_fsolver_alloc (T);
+    gsl_root_fsolver_set(s, &F, x_lo, x_hi);
+
+    // printf ("using %s method\n",
+    //       gsl_root_fsolver_name (s));
+    // printf ("%5s [%9s, %9s] %9s %9s\n",
+    //       "iter", "lower", "upper", "root", "err(est)");
+
+    do
+        {
+            iter++;
+            status = gsl_root_fsolver_iterate (s);
+            r = gsl_root_fsolver_root (s);
+            x_lo = gsl_root_fsolver_x_lower (s);
+            x_hi = gsl_root_fsolver_x_upper (s);
+            status = gsl_root_test_interval (x_lo, x_hi, 1e-12, 1e-12);
+
+            // if (status == GSL_SUCCESS) printf ("Converged:\n");
+
+            // printf ("%5d [%.7f, %.7f] %.7f %.7f\n",
+            //     iter, x_lo, x_hi, r, x_hi - x_lo);
+        }
+    while (status == GSL_CONTINUE && iter < max_iter);
+
+    gsl_root_fsolver_free (s);
+
+    return r;
 }
 
 }

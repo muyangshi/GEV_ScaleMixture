@@ -187,21 +187,25 @@ RW_lib.pRW_transformed_2piece.restype = ctypes.c_double
 RW_lib.pRW_transformed_2piece.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 RW_lib.dRW_transformed.restype = ctypes.c_double
 RW_lib.dRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+RW_lib.qRW_transformed_brent.restype = ctypes.c_double
+RW_lib.qRW_transformed_brent.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 
 pRW_transformed_cpp = np.vectorize(RW_lib.pRW_transformed, otypes=[float])
 pRW_transformed_2piece_cpp = np.vectorize(RW_lib.pRW_transformed_2piece, otypes=[float])
 dRW_transformed_cpp = np.vectorize(RW_lib.dRW_transformed, otypes=[float])
+qRW_transformed_cpp = np.vectorize(RW_lib.qRW_transformed_brent, otypes=[float])
 
-def qRW_transformed_using_cpp(p, phi, gamma):
-    try:
-        return scipy.optimize.root_scalar(lambda x: pRW_transformed_cpp(x, phi, gamma) - p,
-                                        bracket=[0.1,1e12],
-                                        fprime = lambda x: dRW_transformed_cpp(x, phi, gamma),
-                                        x0 = 10,
-                                        method='ridder').root
-    except Exception as e:
-        print(e)
-        print('p=',p,',','phi=',phi,',','gamma',gamma)
-qRW_transformed_cpp = np.vectorize(qRW_transformed_using_cpp, otypes=[float])
+
+# def qRW_transformed_using_cpp(p, phi, gamma):
+#     try:
+#         return scipy.optimize.root_scalar(lambda x: pRW_transformed_cpp(x, phi, gamma) - p,
+#                                         bracket=[0.1,1e12],
+#                                         fprime = lambda x: dRW_transformed_cpp(x, phi, gamma),
+#                                         x0 = 10,
+#                                         method='ridder').root
+#     except Exception as e:
+#         print(e)
+#         print('p=',p,',','phi=',phi,',','gamma',gamma)
+# qRW_transformed_cpp = np.vectorize(qRW_transformed_using_cpp, otypes=[float])
 
 # %%
