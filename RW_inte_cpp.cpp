@@ -15,8 +15,8 @@ double pRW_transformed_integrand (double t, void * params_ptr) {
     double phi   = (*(double(*)[3]) params_ptr)[1];
     double gamma = (*(double(*)[3]) params_ptr)[2];
     double jacobian = 1/(t*t);
-    double integrand = jacobian * sqrt(gamma/(2*M_PI)) * 
-                                    pow((1-t)/t, phi-1.5) * exp(-gamma/(2*(1-t)/t)) / (x + pow((1-t)/t, phi));
+    double r = (1-t)/t;
+    double integrand = jacobian * pow(r, phi-1.5) * exp(-gamma/(2*r)) / (x + pow(r, phi));
     return integrand;
 }
 
@@ -31,7 +31,7 @@ double pRW_transformed (double x, double phi, double gamma){
     F.params = &params;
 
     int status = gsl_integration_qag (&F, 0, 1, 1e-12, 1e-12, 10000,
-                                    2, w, &result, &error);
+                                    1, w, &result, &error);
     if (status) {
         fprintf (stderr, "failed, gsl_errno=%d\n", status);
     }
@@ -41,7 +41,7 @@ double pRW_transformed (double x, double phi, double gamma){
     // printf ("estimated error = % .18f\n", error);
     // printf ("intervals       = %zu\n", w->size);
 
-    return 1 - result;
+    return 1 - sqrt(gamma/(2*M_PI)) * result;
 }
 
 // no gain
@@ -54,7 +54,7 @@ double pRW_transformed_2piece (double x, double phi, double gamma){
     F1.function = &pRW_transformed_integrand;
     F1.params = &params;
     int status1 = gsl_integration_qag (&F1, 0, 0.8, 1e-12, 1e-12, 10000,
-                                    2, w1, &result1, &error1);
+                                    1, w1, &result1, &error1);
     gsl_integration_workspace_free(w1);
     if (status1) {
         fprintf (stderr, "failed, gsl_errno1=%d\n", status1);
@@ -68,7 +68,7 @@ double pRW_transformed_2piece (double x, double phi, double gamma){
     F2.function = &pRW_transformed_integrand;
     F2.params = &params;
     int status2 = gsl_integration_qag (&F2, 0.8, 1, 1e-12, 1e-12, 10000,
-                                    2, w2, &result2, &error2);
+                                    1, w2, &result2, &error2);
     gsl_integration_workspace_free(w2);
     if (status2) {
         fprintf (stderr, "failed, gsl_errno2=%d\n", status2);
@@ -101,7 +101,7 @@ double dRW_transformed (double x, double phi, double gamma){
     F.params = &params;
 
     int status = gsl_integration_qag (&F, 0, 1, 1e-12, 1e-12, 10000,
-                                    2, w, &result, &error);
+                                    1, w, &result, &error);
     if (status) {
         fprintf (stderr, "failed, gsl_errno=%d\n", status);
     }
