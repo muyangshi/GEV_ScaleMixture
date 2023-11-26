@@ -176,4 +176,32 @@ def qRW_stdPareto(p, phi, gamma):
 dRW_stdPareto_vec = np.vectorize(dRW_stdPareto, otypes=[float])
 pRW_stdPareto_vec = np.vectorize(pRW_stdPareto, otypes=[float])
 qRW_stdPareto_vec = np.vectorize(qRW_stdPareto, otypes=[float])
+
+# %%
+# try my own C lib
+import os, ctypes
+RW_lib = ctypes.CDLL(os.path.abspath('./RW_inte_cpp.so'))
+RW_lib.pRW_transformed.restype = ctypes.c_double
+RW_lib.pRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+RW_lib.pRW_transformed_2piece.restype = ctypes.c_double
+RW_lib.pRW_transformed_2piece.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+RW_lib.dRW_transformed.restype = ctypes.c_double
+RW_lib.dRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+
+pRW_transformed_cpp = np.vectorize(RW_lib.pRW_transformed, otypes=[float])
+pRW_transformed_2piece_cpp = np.vectorize(RW_lib.pRW_transformed_2piece, otypes=[float])
+dRW_transformed_cpp = np.vectorize(RW_lib.dRW_transformed, otypes=[float])
+
+def qRW_transformed_using_cpp(p, phi, gamma):
+    try:
+        return scipy.optimize.root_scalar(lambda x: pRW_transformed_cpp(x, phi, gamma) - p,
+                                        bracket=[0.1,1e12],
+                                        fprime = lambda x: dRW_transformed_cpp(x, phi, gamma),
+                                        x0 = 10,
+                                        method='ridder').root
+    except Exception as e:
+        print(e)
+        print('p=',p,',','phi=',phi,',','gamma',gamma)
+qRW_transformed_cpp = np.vectorize(qRW_transformed_using_cpp, otypes=[float])
+
 # %%
