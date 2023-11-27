@@ -15,8 +15,9 @@ import scipy
 
 # specify integration and transformation
 #############################
-inte_method = 'cpp'         #
+# inte_method = 'cpp'         #
 # inte_method = 'scipy'   # Scipy QUAD is bad don't use 
+inte_method = 'cpp_transformed'
 norm_pareto = 'shifted'   #
 # norm_pareto = 'standard'    #
 #############################
@@ -55,7 +56,11 @@ if norm_pareto == 'standard':
     pRW = RW_inte.pRW_stdPareto_vec
     qRW = RW_inte.qRW_stdPareto_vec
 else: # norm_pareto == 'shifted'
-    if inte_method == 'cpp':
+    if inte_method == 'cpp_transformed':
+        dRW = RW_inte.dRW_transformed_cpp
+        pRW = RW_inte.pRW_transformed_cpp
+        qRW = RW_inte.qRW_transformed_cpp
+    elif inte_method == 'cpp':
         dRW = RW_inte.dRW_cpp
         pRW = RW_inte.pRW_cpp
         qRW = RW_inte.qRW_cpp
