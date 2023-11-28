@@ -352,6 +352,15 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
+    # unifs = scipy.stats.uniform.rvs(0,1,size=10000)
+    # Y_from_unifs = qgev(unifs, 0, 1, 0.2)
+    # scipy.stats.genextreme.fit(Y_from_unifs) # this is unbiased
+
+    # a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
+
+    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[1] for site in range(500)]) # loc
+    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[2] for site in range(500)]) # scale
+    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[0] for site in range(500)]) # -shape
     # %%
     #####################################################################################################################
     # Metropolis Updates ################################################################################################
