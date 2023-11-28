@@ -212,12 +212,12 @@ for t in np.arange(N):
 
 # # %%
 # # ------- 6. Generate X and Y--------------------------------
-# X_star = R_phi * W
+X_star = R_phi * W
 
-# # Calculation of Y can(?) be parallelized by time(?)
-# Y = np.full(shape=(num_sites, N), fill_value = np.nan)
-# for t in np.arange(N):
-#     Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
+# Calculation of Y can(?) be parallelized by time(?)
+Y = np.full(shape=(num_sites, N), fill_value = np.nan)
+for t in np.arange(N):
+    Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
 
 # folder = './data/scenario2/simulation_1/'
 # phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
@@ -231,7 +231,7 @@ for t in np.arange(N):
 # %%
 # Coverage setup
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario3'
+simulation_case = 'scenario2'
 sim_id_from = 1
 sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
@@ -241,12 +241,15 @@ sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 #                         5, 9, 24, 29, 33, 34, 35, 39, 43, # ah??
 #                         3, 26]) # biased
 
-# bad_sim_ids = np.array([3,5,6,12,26,29, 20,22,23,24,25]) # bad sim for 9 knots scenario 2
+# bad sim for 9 knots scenario 2
+bad_sim_ids = np.array([3,5,6,26,29,32,39, # absolutely bad
+                         8, 9, 11, 12, 13, 20, 22, 23, 24, 25, 33, 41, 42, 43,# biased
+                         1, 4, 19, 34, 35, 46]) # ah??
 
 # bad sim for scenario 3 with 9 knots
-bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
-                        12, 23, 25, 33, 34, 39, 42, 43, 44, # ah??
-                        4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
+# bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
+#                         12, 23, 25, 33, 34, 39, 42, 43, 44, # ah??
+#                         4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
 
 # bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
 
