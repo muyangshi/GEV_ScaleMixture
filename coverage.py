@@ -18,6 +18,9 @@ from mpi4py import MPI
 from utilities import *
 from time import strftime, localtime
 
+burnins = 6000 # length of burnin iterations
+simulation_case = 'scenario3'
+
 #####################################################################################################################
 # Generating Dataset ################################################################################################
 #####################################################################################################################
@@ -173,7 +176,19 @@ W = norm_to_Pareto(Z)
 # ------- 4. Generate Scaling Factor, R^phi --------------------------------
 
 ## phi_vec
-phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
+match simulation_case:
+    case 'scenario1':
+        phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10 # scenario 1
+    case 'scenario2':
+        phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
+    case 'scenario3':
+        phi_at_knots = 10*(0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+                                                               mean = np.array([2.5,3]), 
+                                                               cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+                        0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+                                                                mean = np.array([7,7.5]), 
+                                                                cov = 2*np.matrix([[1,-0.2],[-0.2,1]]))) + \
+                    0.37# scenario 3
 # phi_at_knots = np.array([0.3]*k)
 phi_vec = gaussian_weight_matrix @ phi_at_knots
 
@@ -228,10 +243,36 @@ for t in np.arange(N):
 
 
 
+
+
+
+
+
+
+
+
+
+
+####################################################################################################
 # %%
 # Coverage setup
-burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario2'
+####################################################################################################
+
+
+match simulation_case:
+    case 'scenario1':
+        assert (phi_at_knots == 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10).all() # scenario 1
+    case 'scenario2':
+        assert (phi_at_knots == 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6).all() # scenario 2
+    case 'scenario3':
+        assert (phi_at_knots == 10*(0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+                                                               mean = np.array([2.5,3]), 
+                                                               cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+                        0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+                                                                mean = np.array([7,7.5]), 
+                                                                cov = 2*np.matrix([[1,-0.2],[-0.2,1]]))) + \
+                    0.37).all()# scenario 3
+
 sim_id_from = 1
 sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
@@ -242,14 +283,14 @@ sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 #                         3, 26]) # biased
 
 # bad sim for 9 knots scenario 2
-bad_sim_ids = np.array([3,5,6,26,29,32,39, # absolutely bad
-                         8, 9, 11, 12, 13, 20, 22, 23, 24, 25, 33, 41, 42, 43,# biased
-                         1, 4, 19, 34, 35, 46]) # ah??
+# bad_sim_ids = np.array([3,5,6,26,29,32,39, # absolutely bad
+#                          8, 9, 11, 12, 13, 20, 22, 23, 24, 25, 33, 41, 42, 43,# biased
+#                          1, 4, 19, 34, 35, 46]) # ah??
 
 # bad sim for scenario 3 with 9 knots
-# bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
-#                         12, 23, 25, 33, 34, 39, 42, 43, 44, # ah??
-#                         4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
+bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
+                        12, 23, 25, 33, 34, 36, 39, 42, 43, 44, # ah??
+                        4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
 
 # bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
 
@@ -463,14 +504,9 @@ np.mean(phi_type1, axis = 1) # type 1 error of range at each knot
 
 
 
-
-
-
-########################
-# overall avg coverage #
-########################
-
-
+############################
+# overall avg coverage phi #
+############################
 # %%
 # overall coverage for phi
 alphas = np.flip(np.linspace(0.05, 0.4, 15))
@@ -521,8 +557,13 @@ for knot_id in range(k):
     fig.savefig('phi_knot_' + str(knot_id) + '_avg' + '.pdf')
     plt.close()
 
+
+##############################
+# overall avg coverage range #
+##############################
 # %%
 # overall coverage for range
+
 alphas = np.flip(np.linspace(0.05, 0.4, 15))
 q_low = alphas/2
 q_high = 1 - q_low
