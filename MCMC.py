@@ -31,8 +31,8 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 64 # number of time replicates
-    num_sites = 500 # number of sites/stations
+    N = 5000 # number of time replicates
+    num_sites = 1 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -142,6 +142,15 @@ if __name__ == "__main__":
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+    
+    constant_weight_matrix = np.full(shape = (num_sites, k), fill_value = np.nan)
+    for site_id in np.arange(num_sites):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = np.repeat(1, k)/k
+        constant_weight_matrix[site_id, :] = weight_from_knots
 
 
     # %%
@@ -151,6 +160,7 @@ if __name__ == "__main__":
     range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # scenario 2
     # range_at_knots = [0.3]*k
     range_vec = gaussian_weight_matrix @ range_at_knots
+    # range_vec = one_weight_matrix @ range_at_knots
 
     # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
     # fig2 = plt.figure()
@@ -216,8 +226,8 @@ if __name__ == "__main__":
     # ------- 4. Generate Scaling Factor, R^phi --------------------------------
 
     ## phi_vec
-    phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10 # scenario 1
-    # phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
+    # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10 # scenario 1
+    phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
     # phi_at_knots = 10*(0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
     #                                                            mean = np.array([2.5,3]), 
     #                                                            cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
@@ -227,6 +237,7 @@ if __name__ == "__main__":
     #                 0.37# scenario 3
     # phi_at_knots = np.array([0.3]*k)
     phi_vec = gaussian_weight_matrix @ phi_at_knots
+    # phi_vec = one_weight_matrix @ phi_at_knots
 
     # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
     # fig = plt.figure()
@@ -260,10 +271,12 @@ if __name__ == "__main__":
     R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
     for t in np.arange(N):
         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+        # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
         # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
 
     ## Matrix Multiply to the sites
-    R_at_sites = wendland_weight_matrix @ R_at_knots
+    # R_at_sites = wendland_weight_matrix @ R_at_knots
+    R_at_sites = constant_weight_matrix @ R_at_knots
 
     ## R^phi
     R_phi = np.full(shape = (num_sites, N), fill_value = np.nan)
@@ -314,9 +327,15 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope = 1, color='black')
     #     plt.show()
 
+    # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
+    for i in range(k):
+        scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
+        plt.axline((0,0), slope = 1, color = 'black')
+        plt.show()
+
     # R_at_knots**(-1/2) should look halfnormal(0, 1/sqrt(scale))
     # for i in range(k):
-    #     scipy.stats.probplot((gamma**(1/4))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
+    #     scipy.stats.probplot((gamma**(1/2))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
     #     plt.axline((0,0),slope=1,color='black')
     #     plt.show()
 
