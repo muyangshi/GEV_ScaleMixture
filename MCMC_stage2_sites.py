@@ -25,6 +25,12 @@ if __name__ == "__main__":
     from utilities import *
     from time import strftime, localtime
 
+    # %%
+    # MPI setup
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
     #####################################################################################################################
     # Generating Dataset ################################################################################################
     #####################################################################################################################
@@ -57,9 +63,10 @@ if __name__ == "__main__":
     GEV_sites_trace_stage1 = np.load('GEV_sites_trace_stage1.npy') # shape (n_iters, 3, num_sites)
     rng = np.random.default_rng(seed=data_seed)
     rng.shuffle(GEV_sites_trace_stage1, axis = 0) # shuffle the iteration orders
-    np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[0]) # mean location of stage 1
-    np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[1]) # mean scale of stage 1
-    np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[2]) # mean shape of stage 1
+    if rank == 0:
+        np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[0]) # mean location of stage 1
+        np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[1]) # mean scale of stage 1
+        np.mean(np.mean(GEV_sites_trace_stage1,axis=0)[2]) # mean shape of stage 1
     # GEV_sites_trace_stage1 = GEV_sites_trace_stage1[-n_iters:, :, :] # use the last n_iters elements
 
     # %%
@@ -272,11 +279,7 @@ if __name__ == "__main__":
     #####################################################################################################################
 
     # %%
-    # MPI setup
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-
+    # Metropolis setup
     random_generator = np.random.RandomState((rank+1)*7) # use of this avoids impacting the global np state
 
     if rank == 0:
