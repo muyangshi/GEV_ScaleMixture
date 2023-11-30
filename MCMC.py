@@ -622,12 +622,16 @@ if __name__ == "__main__":
 
                 # ---- R_t ----
                 plt.subplots()
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,0], label='knot 0 time 0')
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,1], label='knot 0 time 1')
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,2], label='knot 0 time 2')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,0], label='knot 1 time 0')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,1], label='knot 1 time 1')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,2], label='knot 1 time 2')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,0,0], label='knot 0 time 0')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,0,1], label='knot 0 time 1')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,0,2], label='knot 0 time 2')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,1,0], label='knot 1 time 0')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,1,1], label='knot 1 time 1')
+                # plt.plot(xs_thin2, R_trace_log_thin[:,1,2], label='knot 1 time 2')
+                for i in [0,4,8]:
+                    for t in np.arange(N)[np.arange(N) % 15 == 0]:
+                        plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
+                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,0,t][-1]))
                 plt.title('traceplot for some R_t')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('R_ts')
