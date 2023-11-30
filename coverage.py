@@ -289,8 +289,8 @@ sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 
 # bad sim for scenario 3 with 9 knots
 bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
-                        12, 23, 25, 33, 34, 36, 39, 42, 43, 44, # ah??
-                        4, 5, 8, 9, 11, 13, 22, 24, 26, 29, 35, 41, 48]) # biased
+                        4, 5, 12, 23, 25, 26, 33, 34, 36, 39, 41, 42, 43, 44]) # ah??
+                        # 8, 9, 11, 13, 22, 24, 29, 35, 48]) # biased
 
 # bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
 
