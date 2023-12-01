@@ -23,6 +23,12 @@ if __name__ == "__main__":
     from utilities import *
     from time import strftime, localtime
 
+    # %%
+    # MPI setup
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
     #####################################################################################################################
     # Generating Dataset ################################################################################################
     #####################################################################################################################
@@ -31,12 +37,12 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 5000 # number of time replicates
-    num_sites = 1 # number of sites/stations
+    N = 64 # number of time replicates
+    num_sites = 500 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
-    gamma = 0.5 # this is the gamma that goes in rlevy
+    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
     delta = 0.0 # this is the delta in levy, stays 0
     mu = 0.0 # GEV location
     tau = 1.0 # GEV scale
@@ -271,12 +277,13 @@ if __name__ == "__main__":
     R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
     for t in np.arange(N):
         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+        # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
         # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
         # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
 
     ## Matrix Multiply to the sites
-    # R_at_sites = wendland_weight_matrix @ R_at_knots
-    R_at_sites = constant_weight_matrix @ R_at_knots
+    R_at_sites = wendland_weight_matrix @ R_at_knots
+    # R_at_sites = constant_weight_matrix @ R_at_knots
 
     ## R^phi
     R_phi = np.full(shape = (num_sites, N), fill_value = np.nan)
@@ -307,19 +314,23 @@ if __name__ == "__main__":
     # ------- 6. Generate X and Y--------------------------------
     X_star = R_phi * W
 
+    alpha = 0.5
+    gamma_at_knots = np.repeat(gamma, k)
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                       axis = 1)**(1/alpha) # axis = 1 to sum over K knots
+    # gamma_vec is the gamma bar in the overleaf document
+
     # Calculation of Y can(?) be parallelized by time(?)
     Y = np.full(shape=(num_sites, N), fill_value = np.nan)
     for t in np.arange(N):
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
+        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, tau, ksi)
 
     # %%
     # ------- 7. Other Preparational Stuff(?) --------------------------------
 
-    gamma_vec = np.repeat(gamma, num_sites)
-
-    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma)
+    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma_vec)
     # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
-    # plt.hist(pRW(X_star[:,0], phi_vec, gamma))
+    # plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
 
     # # R_at_knots should look levy (those are S)
     # for i in range(k):
@@ -327,11 +338,11 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope = 1, color='black')
     #     plt.show()
 
-    # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
-    for i in range(k):
-        scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
-        plt.axline((0,0), slope = 1, color = 'black')
-        plt.show()
+    # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
+    # for i in range(k):
+    #     scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
+    #     plt.axline((0,0), slope = 1, color = 'black')
+    #     plt.show()
 
     # R_at_knots**(-1/2) should look halfnormal(0, 1/sqrt(scale))
     # for i in range(k):
@@ -356,7 +367,7 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each time t?)
     # for i in range(N):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[:,i], phi_vec, gamma)
+    #     unif = pRW(X_star[:,i], phi_vec, gamma_vec)
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
@@ -365,7 +376,7 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each site with N time replicates?)
     # for i in range(num_sites):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[i,:], phi_vec[i], gamma)
+    #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec)
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
@@ -377,6 +388,11 @@ if __name__ == "__main__":
 
     # a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
 
+    # myfits = [scipy.stats.genextreme.fit(Y[site,:]) for site in range(500)]
+    # plt.hist([fit[1] for fit in myfits]) # loc
+    # plt.hist([fit[2] for fit in myfits]) # scale
+    # plt.hist([fit[0] for fit in myfits]) # -shape
+
     # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[1] for site in range(500)]) # loc
     # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[2] for site in range(500)]) # scale
     # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[0] for site in range(500)]) # -shape
@@ -384,12 +400,6 @@ if __name__ == "__main__":
     #####################################################################################################################
     # Metropolis Updates ################################################################################################
     #####################################################################################################################
-
-    # %%
-    # MPI setup
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
 
     random_generator = np.random.RandomState((rank+1)*7) # use of this avoids impacting the global np state
 
@@ -883,7 +893,7 @@ if __name__ == "__main__":
             lik_1t_proposal = np.NINF
         else: # 0 < phi <= 1
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_proposal, gamma)
+                                        phi_vec_proposal, gamma_vec)
             lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                             phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -929,8 +939,6 @@ if __name__ == "__main__":
 
         # Update X_star
         if phi_accepted:
-            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-            #                                 phi_vec_current, gamma)
             X_star_1t_current = X_star_1t_proposal
 
         comm.Barrier() # block for phi updates
@@ -1051,7 +1059,7 @@ if __name__ == "__main__":
             lik_1t_proposal = np.NINF
         else:
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
-                                        phi_vec_current, gamma)
+                                        phi_vec_current, gamma_vec)
             lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                             Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -1118,8 +1126,6 @@ if __name__ == "__main__":
 
         # Update X_star
         if GEV_accepted:
-            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-            #                                 phi_vec_current, gamma)
             X_star_1t_current = X_star_1t_proposal
         
         comm.Barrier() # block for GEV updates
