@@ -393,9 +393,6 @@ if __name__ == "__main__":
     # plt.hist([fit[2] for fit in myfits]) # scale
     # plt.hist([fit[0] for fit in myfits]) # -shape
 
-    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[1] for site in range(500)]) # loc
-    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[2] for site in range(500)]) # scale
-    # plt.hist([scipy.stats.genextreme.fit(Y[site,:])[0] for site in range(500)]) # -shape
     # %%
     #####################################################################################################################
     # Metropolis Updates ################################################################################################

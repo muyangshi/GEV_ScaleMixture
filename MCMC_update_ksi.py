@@ -1,5 +1,4 @@
-# This is a MCMC sampler that constantly gets updated
-# Scratch work and modifications are done in this file
+# This is a MCMC sampler that does not hold ksi constant
 # Require:
 #   - utilities.py
 if __name__ == "__main__":
@@ -23,6 +22,12 @@ if __name__ == "__main__":
     from utilities import *
     from time import strftime, localtime
 
+    # %%
+    # MPI setup
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
     #####################################################################################################################
     # Generating Dataset ################################################################################################
     #####################################################################################################################
@@ -31,12 +36,12 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 64 # number of time replicates
-    num_sites = 500 # number of sites/stations
+    N = 32 # number of time replicates
+    num_sites = 100 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
-    gamma = 0.5 # this is the gamma that goes in rlevy
+    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
     delta = 0.0 # this is the delta in levy, stays 0
     mu = 0.0 # GEV location
     tau = 1.0 # GEV scale
@@ -51,7 +56,7 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 5000
+    n_iters = 15000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
@@ -82,6 +87,8 @@ if __name__ == "__main__":
     radius = 4 # 3.5 might make some points closer to the edge of circle
                 # might lead to numericla issues
     radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
+
+    assert k == len(knots_xy)
 
     # Plot the space
     # fig, ax = plt.subplots()
@@ -140,6 +147,15 @@ if __name__ == "__main__":
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+    
+    constant_weight_matrix = np.full(shape = (num_sites, k), fill_value = np.nan)
+    for site_id in np.arange(num_sites):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = np.repeat(1, k)/k
+        constant_weight_matrix[site_id, :] = weight_from_knots
 
 
     # %%
@@ -147,7 +163,9 @@ if __name__ == "__main__":
 
     ## range_vec
     range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # scenario 2
+    # range_at_knots = [0.3]*k
     range_vec = gaussian_weight_matrix @ range_at_knots
+    # range_vec = one_weight_matrix @ range_at_knots
 
     # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
     # fig2 = plt.figure()
@@ -160,8 +178,14 @@ if __name__ == "__main__":
     # plt.show()
     # plt.close()
 
-    ## sigsq_vec
-    sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
+    # # heatplot of range surface
+    # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+    # graph, ax = plt.subplots()
+    # heatmap = ax.imshow(range_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest')
+    # ax.invert_yaxis()
+    # graph.colorbar(heatmap)
+    # plt.show()
+    # plt.close()
 
     #####################################################################################################################
     # Write my own covariance function ################################################################################################
@@ -195,8 +219,11 @@ if __name__ == "__main__":
     # matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
 
     ## Covariance matrix K
+    ## sigsq_vec
+    sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
+    # K = np.identity(num_sites)
     Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(num_sites,)),cov=K,size=N).T
     W = norm_to_Pareto(Z) 
 
@@ -204,9 +231,18 @@ if __name__ == "__main__":
     # ------- 4. Generate Scaling Factor, R^phi --------------------------------
 
     ## phi_vec
+    # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10 # scenario 1
     phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6 # scenario 2
+    # phi_at_knots = 10*(0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+    #                                                            mean = np.array([2.5,3]), 
+    #                                                            cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+    #                     0.5*scipy.stats.multivariate_normal.pdf(knots_xy, 
+    #                                                             mean = np.array([7,7.5]), 
+    #                                                             cov = 2*np.matrix([[1,-0.2],[-0.2,1]]))) + \
+    #                 0.37# scenario 3
     # phi_at_knots = np.array([0.3]*k)
     phi_vec = gaussian_weight_matrix @ phi_at_knots
+    # phi_vec = one_weight_matrix @ phi_at_knots
 
     # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
     # fig = plt.figure()
@@ -226,15 +262,27 @@ if __name__ == "__main__":
     # plt.show()
     # plt.close()
 
+    # # heatplot of phi surface
+    # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+    # graph, ax = plt.subplots()
+    # heatmap = ax.imshow(phi_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest', extent = [0, 10, 10, 0])
+    # ax.invert_yaxis()
+    # graph.colorbar(heatmap)
+    # plt.show()
+    # plt.close()
+
     ## R
     ## Generate them at the knots
     R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
     for t in np.arange(N):
         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+        # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
+        # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
         # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
 
     ## Matrix Multiply to the sites
     R_at_sites = wendland_weight_matrix @ R_at_knots
+    # R_at_sites = constant_weight_matrix @ R_at_knots
 
     ## R^phi
     R_phi = np.full(shape = (num_sites, N), fill_value = np.nan)
@@ -265,19 +313,23 @@ if __name__ == "__main__":
     # ------- 6. Generate X and Y--------------------------------
     X_star = R_phi * W
 
+    alpha = 0.5
+    gamma_at_knots = np.repeat(gamma, k)
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                       axis = 1)**(1/alpha) # axis = 1 to sum over K knots
+    # gamma_vec is the gamma bar in the overleaf document
+
     # Calculation of Y can(?) be parallelized by time(?)
     Y = np.full(shape=(num_sites, N), fill_value = np.nan)
     for t in np.arange(N):
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
+        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, tau, ksi)
 
     # %%
     # ------- 7. Other Preparational Stuff(?) --------------------------------
 
-    gamma_vec = np.repeat(gamma, num_sites)
-
-    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma)
+    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma_vec)
     # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
-    # plt.hist(pRW(X_star[:,0], phi_vec, gamma))
+    # plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
 
     # # R_at_knots should look levy (those are S)
     # for i in range(k):
@@ -285,9 +337,15 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope = 1, color='black')
     #     plt.show()
 
-    # R_at_knots**(-1/2) should look normal(0, 1/sqrt(scale))
+    # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
     # for i in range(k):
-    #     scipy.stats.probplot((gamma**(1/4))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
+    #     scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
+    #     plt.axline((0,0), slope = 1, color = 'black')
+    #     plt.show()
+
+    # R_at_knots**(-1/2) should look halfnormal(0, 1/sqrt(scale))
+    # for i in range(k):
+    #     scipy.stats.probplot((gamma**(1/2))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
     #     plt.axline((0,0),slope=1,color='black')
     #     plt.show()
 
@@ -308,7 +366,7 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each time t?)
     # for i in range(N):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[:,i], phi_vec, gamma)
+    #     unif = pRW(X_star[:,i], phi_vec, gamma_vec)
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
@@ -317,22 +375,27 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each site with N time replicates?)
     # for i in range(num_sites):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[i,:], phi_vec[i], gamma)
+    #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec)
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
+    # unifs = scipy.stats.uniform.rvs(0,1,size=10000)
+    # Y_from_unifs = qgev(unifs, 0, 1, 0.2)
+    # scipy.stats.genextreme.fit(Y_from_unifs) # this is unbiased
+
+    # a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
+
+    # myfits = [scipy.stats.genextreme.fit(Y[site,:]) for site in range(500)]
+    # plt.hist([fit[1] for fit in myfits]) # loc
+    # plt.hist([fit[2] for fit in myfits]) # scale
+    # plt.hist([fit[0] for fit in myfits]) # -shape
+
     # %%
     #####################################################################################################################
     # Metropolis Updates ################################################################################################
     #####################################################################################################################
-
-    # %%
-    # MPI setup
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
 
     random_generator = np.random.RandomState((rank+1)*7) # use of this avoids impacting the global np state
 
@@ -382,6 +445,10 @@ if __name__ == "__main__":
          8.15222055e-05,  2.19050158e-04, -8.95240062e-04,
          2.86677573e-04, -1.17335363e-03,  1.74786663e-03]])
 
+    # phi_post_cov = 1e-3 * np.identity(k)
+
+    assert k == phi_post_cov.shape[0]
+
     range_post_cov = np.array([
        [ 0.00888606, -0.00964968,  0.00331823, -0.01147588,  0.01378476,
         -0.00456044,  0.00455141, -0.00561015,  0.0020646 ],
@@ -402,10 +469,17 @@ if __name__ == "__main__":
        [ 0.0020646 , -0.00600377,  0.00580562, -0.00803375,  0.0241972 ,
         -0.01946985,  0.00816378, -0.02429487,  0.01848764]])
 
+    # range_post_cov = 1e-2 * np.identity(k)
+
+    assert k == range_post_cov.shape[0]
+
     GEV_post_cov = np.array([[2.88511464e-04, 1.13560517e-04, 0],
                             [1.13560517e-04, 6.40933053e-05,  0],
                             [0         , 0         , 1e-4]])
 
+    # GEV_post_cov = 1e-4 * np.identity(3)
+
+    ########## Adaptive Update Initialization ############################################
     # Scalors for adaptive updates
     # (phi, range, GEV) these parameters are only proposed on worker 0
     if rank == 0: 
@@ -426,7 +500,7 @@ if __name__ == "__main__":
         Sigma_0['range_block1'] = range_post_cov[0:3,0:3]
         Sigma_0['range_block2'] = range_post_cov[3:6,3:6]
         Sigma_0['range_block3'] = range_post_cov[6:9,6:9]
-        Sigma_0['GEV'] = GEV_post_cov
+        Sigma_0['GEV'] = GEV_post_cov.copy()
 
         num_accepted = {}
         num_accepted['phi'] = 0
@@ -527,7 +601,9 @@ if __name__ == "__main__":
     # %%
     # Metropolis Updates
     for iter in range(1, n_iters):
-        # printing and drawings
+        ###################################
+        # Printing and Drawings
+        ###################################
         if rank == 0:
             if iter == 1:
                 print(iter)
@@ -561,6 +637,7 @@ if __name__ == "__main__":
                 for i in range(k):
                     plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label='knot ' + str(i))
                     # plt.plot(xs_thin2, phi_knots_trace_thin[:,1], label='knot ' + i)
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], phi_knots_trace_thin[:,i][-1]))
                 plt.title('traceplot for phi')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('phi')
@@ -570,12 +647,10 @@ if __name__ == "__main__":
 
                 # ---- R_t ----
                 plt.subplots()
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,0], label='knot 0 time 0')
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,1], label='knot 0 time 1')
-                plt.plot(xs_thin2, R_trace_log_thin[:,0,2], label='knot 0 time 2')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,0], label='knot 1 time 0')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,1], label='knot 1 time 1')
-                plt.plot(xs_thin2, R_trace_log_thin[:,1,2], label='knot 1 time 2')
+                for i in [0,4,8]:
+                    for t in np.arange(N)[np.arange(N) % 15 == 0]:
+                        plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
+                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,0,t][-1]))
                 plt.title('traceplot for some R_t')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('R_ts')
@@ -587,6 +662,8 @@ if __name__ == "__main__":
                 plt.subplots()
                 for i in range(k):
                     plt.plot(xs_thin2, range_knots_trace_thin[:,i], label='knot ' + str(i))
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], range_knots_trace_thin[:,i][-1]))
+                plt.title('traceplot for phi')
                 plt.title('traceplot for range')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('range')
@@ -638,6 +715,8 @@ if __name__ == "__main__":
                 plt.subplots()
                 for i in range(5):
                     plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
+                    plt.annotate('piece ' + str(i), xy=(xs_thin2[-1], loglik_detail_trace_thin[:,i][-1]))
+                plt.title('traceplot for phi')
                 plt.title('traceplot for detail log likelihood')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('log likelihood')
@@ -647,7 +726,9 @@ if __name__ == "__main__":
         
         comm.Barrier() # block for drawing
 
+        ###################################
         # Adaptive Update autotunings
+        ###################################
         if iter % 25 == 0:
                 
             gamma1 = 1 / ((iter/25 + offset) ** c_1)
@@ -708,11 +789,15 @@ if __name__ == "__main__":
                 # GEV
                 r_hat = num_accepted['GEV']/25
                 num_accepted['GEV'] = 0
-                sample_cov = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
-                                                GEV_knots_trace[iter-25:iter,1,0].ravel()])) # tau scale
-                Sigma_0_hat = np.zeros((3,3)) # doing the hack because we are not updating ksi
-                Sigma_0_hat[2,2] = 1
-                Sigma_0_hat[0:2,0:2] += sample_cov
+                # sample_cov = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
+                                                # GEV_knots_trace[iter-25:iter,1,0].ravel()])) # tau scale
+                # Sigma_0_hat = np.zeros((3,3)) # doing the hack because we are not updating ksi
+                # Sigma_0_hat[2,2] = 1
+                # Sigma_0_hat[0:2,0:2] += sample_cov
+                # stop doing the hack because we ARE updating ksi
+                Sigma_0_hat = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
+                                                GEV_knots_trace[iter-25:iter,1,0].ravel(), # tau scale
+                                                GEV_knots_trace[iter-25:iter,2,0].ravel()])) # ksi shape
                 log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
@@ -802,7 +887,7 @@ if __name__ == "__main__":
             lik_1t_proposal = np.NINF
         else: # 0 < phi <= 1
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_proposal, gamma)
+                                        phi_vec_proposal, gamma_vec)
             lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                             phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -848,8 +933,6 @@ if __name__ == "__main__":
 
         # Update X_star
         if phi_accepted:
-            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-            #                                 phi_vec_current, gamma)
             X_star_1t_current = X_star_1t_proposal
 
         comm.Barrier() # block for phi updates
@@ -942,11 +1025,11 @@ if __name__ == "__main__":
         #     print('Updating GEV')
         # Propose new GEV params at the knots --> new GEV params vector
         if rank == 0:
-            # random_walk_3x3 = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
-            random_walk_3x3 = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
-            GEV_knots_proposal = GEV_knots_current + random_walk_3x3
-            GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot, GEV params spatial stationary
-            GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
+            # random_walk = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
+            random_walk = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
+            GEV_knots_proposal = GEV_knots_current + random_walk
+            GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # GEV params spatial constant
+            # GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
             # GEV_knots_proposal[0:2,:] = GEV_knots_current[0:2,:] # hold location and scale constant
         else:
             GEV_knots_proposal = None
@@ -970,7 +1053,7 @@ if __name__ == "__main__":
             lik_1t_proposal = np.NINF
         else:
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
-                                        phi_vec_current, gamma)
+                                        phi_vec_current, gamma_vec)
             lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
                                                             Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
@@ -990,11 +1073,10 @@ if __name__ == "__main__":
             # (constant across all time and space)
             # log-prior density for scale as P(tau) = 1/tau
             prior_scale = -np.log(Scale_matrix_current[0][0])
-            prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
+            prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0]) if not Scale_out_of_range else np.NINF
 
             prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
             prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
-            
 
             GEV_accepted = False
             lik = sum(lik_gathered) + prior_scale + prior_mu
@@ -1037,8 +1119,6 @@ if __name__ == "__main__":
 
         # Update X_star
         if GEV_accepted:
-            # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-            #                                 phi_vec_current, gamma)
             X_star_1t_current = X_star_1t_proposal
         
         comm.Barrier() # block for GEV updates
@@ -1067,4 +1147,3 @@ if __name__ == "__main__":
         np.save('GEV_knots_trace', GEV_knots_trace)
         np.save('loglik_trace', loglik_trace)
         np.save('loglik_detail_trace', loglik_detail_trace)
-
