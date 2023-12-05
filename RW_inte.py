@@ -149,53 +149,59 @@ qRW_scipy_vec = np.vectorize(qRW_scipy, otypes=[float])
 # pRW_stdPareto, dRW_stdPareto, qRW_stdPareto             #
 ###########################################################
 
-# using the GSL incomplete gamma function is much (10x) faster than mpmath
-upper_gamma_C = np.vectorize(model_sim.lib.upper_gamma_C, otypes = [float])
-lower_gamma_C = np.vectorize(model_sim.lib.lower_gamma_C, otypes = [float])
-def dRW_stdPareto(x, phi, gamma):
-    upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2*np.power(x, 1/phi)))
-    # upper_gamma = float(mpmath.gammainc(0.5 - phi, a = gamma / (2*np.power(x, 1/phi))))
-    return (1/np.power(x,2)) * np.sqrt(1/np.pi) * np.power(gamma/2, phi) * upper_gamma
-def pRW_stdPareto(x, phi, gamma):
-    lower_gamma = lower_gamma_C(0.5, gamma / (2*np.power(x, 1/phi)))
-    upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2*np.power(x, 1/phi)))
-    # lower_gamma = float(mpmath.gammainc(0.5, b = gamma / (2*np.power(x, 1/phi))))
-    # upper_gamma = float(mpmath.gammainc(0.5 - phi, a = gamma / (2*np.power(x, 1/phi))))
-    survival = np.sqrt(1/np.pi) * lower_gamma + (1/x) * np.sqrt(1/np.pi) * np.power(gamma/2, phi) * upper_gamma
-    return 1 - survival
-def qRW_stdPareto(p, phi, gamma):
-    try:
-        return scipy.optimize.root_scalar(lambda x: pRW_stdPareto(x, phi, gamma) - p,
-                                        bracket=[0.1,1e12],
-                                        fprime = lambda x: dRW_stdPareto(x, phi, gamma),
-                                        x0 = 10,
-                                        method='ridder').root
-    except Exception as e:
-        print(e)
-        print('p=',p,',','phi=',phi,',','gamma',gamma)
-dRW_stdPareto_vec = np.vectorize(dRW_stdPareto, otypes=[float])
-pRW_stdPareto_vec = np.vectorize(pRW_stdPareto, otypes=[float])
-qRW_stdPareto_vec = np.vectorize(qRW_stdPareto, otypes=[float])
+# # using the GSL incomplete gamma function is much (10x) faster than mpmath
+# upper_gamma_C = np.vectorize(model_sim.lib.upper_gamma_C, otypes = [float])
+# lower_gamma_C = np.vectorize(model_sim.lib.lower_gamma_C, otypes = [float])
+# def dRW_stdPareto(x, phi, gamma):
+#     upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2*np.power(x, 1/phi)))
+#     # upper_gamma = float(mpmath.gammainc(0.5 - phi, a = gamma / (2*np.power(x, 1/phi))))
+#     return (1/np.power(x,2)) * np.sqrt(1/np.pi) * np.power(gamma/2, phi) * upper_gamma
+# def pRW_stdPareto(x, phi, gamma):
+#     lower_gamma = lower_gamma_C(0.5, gamma / (2*np.power(x, 1/phi)))
+#     upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2*np.power(x, 1/phi)))
+#     # lower_gamma = float(mpmath.gammainc(0.5, b = gamma / (2*np.power(x, 1/phi))))
+#     # upper_gamma = float(mpmath.gammainc(0.5 - phi, a = gamma / (2*np.power(x, 1/phi))))
+#     survival = np.sqrt(1/np.pi) * lower_gamma + (1/x) * np.sqrt(1/np.pi) * np.power(gamma/2, phi) * upper_gamma
+#     return 1 - survival
+# def qRW_stdPareto(p, phi, gamma):
+#     try:
+#         return scipy.optimize.root_scalar(lambda x: pRW_stdPareto(x, phi, gamma) - p,
+#                                         bracket=[0.1,1e12],
+#                                         fprime = lambda x: dRW_stdPareto(x, phi, gamma),
+#                                         x0 = 10,
+#                                         method='ridder').root
+#     except Exception as e:
+#         print(e)
+#         print('p=',p,',','phi=',phi,',','gamma',gamma)
+# dRW_stdPareto_vec = np.vectorize(dRW_stdPareto, otypes=[float])
+# pRW_stdPareto_vec = np.vectorize(pRW_stdPareto, otypes=[float])
+# qRW_stdPareto_vec = np.vectorize(qRW_stdPareto, otypes=[float])
 
 # %%
-# try my own C lib
+###########################################################
+# My own cpp GSL numerical integration RW_inte_cpp.cpp    #
+# for the shifted Pareto, no nugget                       #
+# pRW_transformed_cpp, dRW_transformed_cpp, qRW_transformed_cpp #
+###########################################################
 import os, ctypes
 RW_lib = ctypes.CDLL(os.path.abspath('./RW_inte_cpp.so'))
 RW_lib.pRW_transformed.restype = ctypes.c_double
 RW_lib.pRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
-RW_lib.pRW_transformed_2piece.restype = ctypes.c_double
-RW_lib.pRW_transformed_2piece.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+# RW_lib.pRW_transformed_2piece.restype = ctypes.c_double
+# RW_lib.pRW_transformed_2piece.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 RW_lib.dRW_transformed.restype = ctypes.c_double
 RW_lib.dRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 RW_lib.qRW_transformed_brent.restype = ctypes.c_double
 RW_lib.qRW_transformed_brent.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
 
 pRW_transformed_cpp = np.vectorize(RW_lib.pRW_transformed, otypes=[float])
-pRW_transformed_2piece_cpp = np.vectorize(RW_lib.pRW_transformed_2piece, otypes=[float])
+# pRW_transformed_2piece_cpp = np.vectorize(RW_lib.pRW_transformed_2piece, otypes=[float])
 dRW_transformed_cpp = np.vectorize(RW_lib.dRW_transformed, otypes=[float])
 qRW_transformed_cpp = np.vectorize(RW_lib.qRW_transformed_brent, otypes=[float])
 
-
+# scipy's solver is really sketchy, it can really give a WRONG ANSWER!!!
+# and it is also SLOW!!!
+# hence use C as much as possible
 # def qRW_transformed_using_cpp(p, phi, gamma):
 #     try:
 #         return scipy.optimize.root_scalar(lambda x: pRW_transformed_cpp(x, phi, gamma) - p,
@@ -209,3 +215,19 @@ qRW_transformed_cpp = np.vectorize(RW_lib.qRW_transformed_brent, otypes=[float])
 # qRW_transformed_cpp = np.vectorize(qRW_transformed_using_cpp, otypes=[float])
 
 # %%
+###########################################################
+# Incomplete gamma functions with mine GSL RW_inte_cpp.cpp#
+# for the Non-shifted (STANDARD) Pareto, no nugget        #
+# pRW_stdPareto, dRW_stdPareto, qRW_stdPareto             #
+###########################################################
+
+RW_lib.pRW_standard_Pareto_C.restype = ctypes.c_double
+RW_lib.pRW_standard_Pareto_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+RW_lib.dRW_standard_Pareto_C.restype = ctypes.c_double
+RW_lib.dRW_standard_Pareto_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+RW_lib.qRW_standard_Pareto_C_brent.restype = ctypes.c_double
+RW_lib.qRW_standard_Pareto_C_brent.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
+
+dRW_stdPareto_vec = np.vectorize(RW_lib.dRW_standard_Pareto_C, otypes=[float])
+pRW_stdPareto_vec = np.vectorize(RW_lib.pRW_standard_Pareto_C, otypes=[float])
+qRW_stdPareto_vec = np.vectorize(RW_lib.qRW_standard_Pareto_C_brent, otypes=[float])
