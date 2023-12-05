@@ -15,11 +15,12 @@ import scipy
 
 # specify integration and transformation
 #############################
-# inte_method = 'cpp'         #
+# inte_method = 'cpp'     # this is also bad beyond 5e3 don't use
 # inte_method = 'scipy'   # Scipy QUAD is bad don't use 
+# inte_method = 'mpmath'  # super slow don't use
 inte_method = 'cpp_transformed'
-norm_pareto = 'shifted'   #
-# norm_pareto = 'standard'    #
+# norm_pareto = 'shifted'   #
+norm_pareto = 'standard'    #
 #############################
 
 weights_fun = model_sim.weights_fun
@@ -114,7 +115,8 @@ def marg_transform_data_mixture_likelihood_1t_standard(Y, X, Loc, Scale, Shape, 
 
     ## Jacobian determinant
     part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
-    part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) # R_j^phi_j/X_j^2
+    # part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) # R_j^phi_j/X_j^2
+    part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec)) # standar Pareto no need W+1
     part23 = np.sum(dgev(Y, Loc=Loc, Scale=Scale, Shape=Shape, log=True)-np.log(dRW(X, phi_vec, gamma_vec)))
 
     return part1 + part21 + part22 + part23
@@ -133,6 +135,10 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
     ## Initialize space to store the log-likelihoods for each observation:
     W_vec = X/R_vec**phi_vec
 
+    # for standard Pareto, check for W out of range (W < 1 ?)
+    if norm_pareto == 'standard' and any(W_vec < 1):
+        return np.NINF
+
     Z_vec = pareto_to_Norm(W_vec)
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
     # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
@@ -142,8 +148,12 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
 
     ## Jacobian determinant
     part21 = 0.5*np.sum(Z_vec**2) # 1/standard Normal densities of each Z_j
-    part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) # R_j^phi_j/X_j^2
+    if norm_pareto == 'standard':
+        part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec))
+    else:
+        part22 = np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) # R_j^phi_j/X_j^2
     part23 = np.sum(dgev(Y, Loc=Loc, Scale=Scale, Shape=Shape, log=True))
     part24 = np.sum(-np.log(dRW(X, phi_vec, gamma_vec)))
 
     return np.array([part1,part21 ,part22, part23, part24])
+# %%
