@@ -1,17 +1,19 @@
-# combined utilitlies helpful to MCMC sampler
-# grab the functions from model_sim.py and data_simulation_1_radius.py
+# combine utilitlies helpful to MCMC sampler
+# grab useful functions from Likun's model_sim.py, ns_cov.py
 # Require:
-#   - model_sim.py, p_inte.cpp & p_inte.so
-#   - RW_inte.py
-#   - ns_cov.py
+#   - RW_inte.py, RW_inte_cpp.cpp & RW_inte.cpp.so
 # %%
 # general imports and ubiquitous utilities
+import sys
 import numpy as np
-from scipy.linalg import lapack
-from ns_cov import *
-import RW_inte
-import model_sim
 import scipy
+import scipy.special as sc
+from scipy.spatial import distance
+import RW_inte
+# import model_sim
+# from ns_cov import *
+# from scipy.linalg import lapack
+
 
 # specify integration and transformation
 #############################
@@ -23,28 +25,110 @@ inte_method = 'cpp_transformed'
 norm_pareto = 'standard'    #
 #############################
 
-weights_fun = model_sim.weights_fun
-wendland_weights_fun = model_sim.wendland_weights_fun
-rlevy = model_sim.rlevy
-pgev = model_sim.pgev
-qgev = model_sim.qgev
-dgev = model_sim.dgev
+# weights_fun = model_sim.weights_fun
+# wendland_weights_fun = model_sim.wendland_weights_fun
+# rlevy = model_sim.rlevy
+# pgev = model_sim.pgev
+# qgev = model_sim.qgev
+# dgev = model_sim.dgev
+
+# %%
+# utility function copied from model_sim
+
+# Gaussian Smoothing Kernel
+def weights_fun(d,radius,h=1, cutoff=True):
+    # When d > fit radius, the weight will be zero
+    # h is the bandwidth parameter
+    if(isinstance(d, (int, np.int64, float))): 
+        d=np.array([d])
+        tmp = np.exp(-d**2/(2*h))
+    if cutoff: 
+        tmp[d>radius] = 0
+    return tmp/np.sum(tmp)
+
+# Wendland compactly-supported basis
+def wendland_weights_fun(d, theta, k=0, dimension=2, derivative=0):
+    # fields_Wendland(d, theta = 1, dimension, k, derivative=0, phi=NA)
+    # theta: the range where the basis value is non-zero, i.e. [0, theta]
+    # dimension: dimension of locations 
+    # k: smoothness of the function at zero.
+    if(isinstance(d, (int, np.int64, float))): 
+        d=np.array([d])      
+        d = d/theta
+        l = np.floor(dimension/2) + k + 1
+    if (k==0): 
+        res = np.where(d < 1, (1-d)**l, 0)
+    if (k==1):
+        res = np.where(d < 1, (1-d)**(l+k) * ((l+1)*d + 1), 0)
+    if (k==2):
+        res = np.where(d < 1, (1-d)**(l+k) * ((l**2+4*l+3)*d**2 + (3*l+6) * d + 3), 0)
+    if (k==3):
+        res = np.where(d < 1, (1-d)**(l+k) * ((l**3+9*l**2+23*l+15)*d**3 + 
+                                            (6*l**2+36*l+45) * d**2 + (15*l+45) * d + 15), 0)
+    if (k>3):
+      sys.exit("k must be less than 4")
+    return res/np.sum(res)
+
+# generate levy random samples
+def rlevy(n, m = 0, s = 1):
+  if np.any(s < 0):
+    sys.exit("s must be positive")
+  return s/scipy.stats.norm.ppf(1-scipy.stats.uniform.rvs(0,1,n)/2)**2 + m
+
+# generalized extreme value distribution
+# note negative shape parametrization in scipy.genextreme
+def dgev(yvals, Loc, Scale, Shape, log=False):
+    if log:
+        return scipy.stats.genextreme.logpdf(yvals, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
+    else:
+        return scipy.stats.genextreme.pdf(yvals, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
+
+def pgev(yvals, Loc, Scale, Shape, log=False):
+    if log:
+        return scipy.stats.genextreme.logcdf(yvals, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
+    else:
+        return scipy.stats.genextreme.cdf(yvals, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
+
+def qgev(p, Loc, Scale, Shape):
+    if type(p).__module__!='numpy':
+        p = np.array(p)  
+    return scipy.stats.genextreme.ppf(p, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
+
 
 # %%
 # specify g(Z) transformation
 
+# transformation to standard Pareto
 def norm_to_stdPareto(Z):
     pNorm = scipy.stats.norm.cdf(x = Z)
     return(scipy.stats.pareto.ppf(q = pNorm, b = 1))
 norm_to_stdPareto_vec = np.vectorize(norm_to_stdPareto)
+
 def stdPareto_to_Norm(W):
     pPareto = scipy.stats.pareto.cdf(x = W, b = 1)
     return(scipy.stats.norm.ppf(q = pPareto))
 stdPareto_to_Norm_vec = np.vectorize(stdPareto_to_Norm)
 
+# transformation to shifted Pareto
+def norm_to_Pareto1(z):
+    if(isinstance(z, (int, np.int64, float))): 
+        z=np.array([z])
+        tmp = scipy.stats.norm.cdf(z)
+    if np.any(tmp==1): 
+        tmp[tmp==1]=1-1e-9
+    return 1/(1-tmp)-1
+
+def pareto1_to_Norm(W):
+    if(isinstance(W, (int, np.int64, float))): 
+        W=np.array([W])
+        tmp = 1-1/(W+1)
+    return scipy.stats.norm.ppf(tmp)
+
 if norm_pareto == 'shifted':
-    norm_to_Pareto = model_sim.norm_to_Pareto1
-    pareto_to_Norm = model_sim.pareto1_to_Norm
+    # norm_to_Pareto = model_sim.norm_to_Pareto1
+    # pareto_to_Norm = model_sim.pareto1_to_Norm
+    norm_to_Pareto = norm_to_Pareto1
+    pareto_to_Norm = pareto1_to_Norm
 else: # norm_pareto == 'standard'
     norm_to_Pareto = norm_to_stdPareto_vec
     pareto_to_Norm = stdPareto_to_Norm_vec
@@ -53,29 +137,34 @@ else: # norm_pareto == 'standard'
 # specify which dRW, pRW, and qRW to use
 
 if norm_pareto == 'standard':
-    dRW = RW_inte.dRW_stdPareto_vec
-    pRW = RW_inte.pRW_stdPareto_vec
-    qRW = RW_inte.qRW_stdPareto_vec
+    dRW = RW_inte.dRW_standard_Pareto_vec
+    pRW = RW_inte.pRW_standard_Pareto_vec
+    qRW = RW_inte.qRW_standard_Pareto_vec
 else: # norm_pareto == 'shifted'
     if inte_method == 'cpp_transformed':
         dRW = RW_inte.dRW_transformed_cpp
         pRW = RW_inte.pRW_transformed_cpp
         qRW = RW_inte.qRW_transformed_cpp
-    elif inte_method == 'cpp':
-        dRW = RW_inte.dRW_cpp
-        pRW = RW_inte.pRW_cpp
-        qRW = RW_inte.qRW_cpp
-    elif inte_method == 'mpmath':
-        dRW = RW_inte.dRW_mpmath_vec_float
-        pRW = RW_inte.pRW_mpmath_vec_float
-        qRW = RW_inte.qRW_mpmath_vec_float
-    elif inte_method == 'scipy':
-        dRW = RW_inte.dRW_scipy_vec
-        pRW = RW_inte.pRW_scipy_vec
-        qRW = RW_inte.qRW_scipy_vec
+    # elif inte_method == 'cpp':
+    #     dRW = RW_inte.dRW_cpp
+    #     pRW = RW_inte.pRW_cpp
+    #     qRW = RW_inte.qRW_cpp
+    # elif inte_method == 'mpmath':
+    #     dRW = RW_inte.dRW_mpmath_vec_float
+    #     pRW = RW_inte.pRW_mpmath_vec_float
+    #     qRW = RW_inte.qRW_mpmath_vec_float
+    # elif inte_method == 'scipy':
+    #     dRW = RW_inte.dRW_scipy_vec
+    #     pRW = RW_inte.pRW_scipy_vec
+    #     qRW = RW_inte.qRW_scipy_vec
+    else:
+        print('we should not be using other integrations')
+        sys.exit(1)
 
 # %%
-# marginal likelihood using integration and transformation specified above 
+# marginal likelihood at 1 time
+
+# marginal likelihood for shifted Pareto
 def marg_transform_data_mixture_likelihood_1t_shifted(Y, X, Loc, Scale, Shape, phi_vec, gamma_vec, R_vec, cholesky_U):
     if(isinstance(Y, (int, np.int64, float))): Y=np.array([Y], dtype='float64')
 
@@ -96,6 +185,7 @@ def marg_transform_data_mixture_likelihood_1t_shifted(Y, X, Loc, Scale, Shape, p
 
     return part1 + part21 + part22 + part23
 
+# marginal likelihood for standard Pareto
 def marg_transform_data_mixture_likelihood_1t_standard(Y, X, Loc, Scale, Shape, phi_vec, gamma_vec, R_vec, cholesky_U):
     if(isinstance(Y, (int, np.int64, float))): Y=np.array([Y], dtype='float64')
 
@@ -156,4 +246,224 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
     part24 = np.sum(-np.log(dRW(X, phi_vec, gamma_vec)))
 
     return np.array([part1,part21 ,part22, part23, part24])
+
 # %%
+# spatial covariance functions copied from ns_cov
+
+## -------------------------------------------------------------------------- ##
+##               Implement the Matern correlation function (stationary)
+## -------------------------------------------------------------------------- ##
+def cov_spatial(r, cov_model = "exponential", cov_pars = np.array([1,1]), kappa = 0.5):
+    # Input from a matrix of pairwise distances and a vector of parameters
+    if type(r).__module__!='numpy' or isinstance(r, np.float64):
+        r = np.array(r)
+    if np.any(r<0):
+        sys.exit('Distance argument must be nonnegative.')
+    r[r == 0] = 1e-10
+    
+    if cov_model != "matern" and cov_model != "gaussian" and cov_model != "exponential" :
+        sys.exit("Please specify a valid covariance model (matern, gaussian, or exponential).")
+    
+    if cov_model == "exponential":
+        C = np.exp(-r)
+    
+    if cov_model == "gaussian" :
+        C = np.exp(-(r^2))
+  
+    if cov_model == "matern" :
+        range = 1
+        nu = kappa
+        part1 = 2 ** (1 - nu) / sc.gamma(nu)
+        part2 = (r / range) ** nu
+        part3 = sc.kv(nu, r / range)
+        C = part1 * part2 * part3
+    return C
+## -------------------------------------------------------------------------- ##
+
+## -------------------------------------------------------------------------- ##
+##               Calculate a locally isotropic spatial covariance
+## -------------------------------------------------------------------------- ##
+def ns_cov(range_vec, sigsq_vec, coords, kappa = 0.5, cov_model = "matern"):
+    ## Arguments:
+    ##    range_vec = N-vector of range parameters (one for each location) 
+    ##    sigsq_vec = N-vector of marginal variance parameters (one for each location)
+    ##    coords = N x 2 matrix of coordinates
+    ##    cov.model = "matern" --> underlying covariance model: "gaussian", "exponential", or "matern"
+    ##    kappa = 0.5 --> Matern smoothness, scalar
+    if type(range_vec).__module__!='numpy' or isinstance(range_vec, np.float64):
+        range_vec = np.array(range_vec)
+        sigsq_vec = np.array(sigsq_vec)
+    
+    N = range_vec.shape[0] # Number of spatial locations
+    if coords.shape[0]!=N: 
+        sys.exit('Number of spatial locations should be equal to the number of range parameters.')
+  
+    # Scale matrix
+    arg11 = range_vec
+    arg22 = range_vec
+    arg12 = np.repeat(0,N)
+    ones = np.repeat(1,N)
+    det1  = arg11*arg22 - arg12**2
+  
+    ## --- Outer product: matrix(arg11, nrow = N) %x% matrix(1, ncol = N) --- 
+    mat11_1 = np.reshape(arg11, (N, 1)) * ones
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg11, ncol = N) ---
+    mat11_2 = np.reshape(ones, (N, 1)) * arg11
+    ## --- Outer product: matrix(arg22, nrow = N) %x% matrix(1, ncol = N) ---
+    mat22_1 = np.reshape(arg22, (N, 1)) * ones  
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg22, ncol = N) ---
+    mat22_2 = np.reshape(ones, (N, 1)) * arg22
+    ## --- Outer product: matrix(arg12, nrow = N) %x% matrix(1, ncol = N) ---
+    mat12_1 = np.reshape(arg12, (N, 1)) * ones 
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg12, ncol = N) ---
+    mat12_2 = np.reshape(ones, (N, 1)) * arg12
+  
+    mat11 = 0.5*(mat11_1 + mat11_2)
+    mat22 = 0.5*(mat22_1 + mat22_2)
+    mat12 = 0.5*(mat12_1 + mat12_2)
+  
+    det12 = mat11*mat22 - mat12**2
+  
+    Scale_mat = np.diag(det1**(1/4)).dot(np.sqrt(1/det12)).dot(np.diag(det1**(1/4)))
+  
+    # Distance matrix
+    inv11 = mat22/det12
+    inv22 = mat11/det12
+    inv12 = -mat12/det12
+  
+    dists1 = distance.squareform(distance.pdist(np.reshape(coords[:,0], (N, 1))))
+    dists2 = distance.squareform(distance.pdist(np.reshape(coords[:,1], (N, 1))))
+  
+    temp1_1 = np.reshape(coords[:,0], (N, 1)) * ones
+    temp1_2 = np.reshape(ones, (N, 1)) * coords[:,0]
+    temp2_1 = np.reshape(coords[:,1], (N, 1)) * ones
+    temp2_2 = np.reshape(ones, (N, 1)) * coords[:,1]
+  
+    sgn_mat1 = ( temp1_1 - temp1_2 >= 0 )
+    sgn_mat1[~sgn_mat1] = -1
+    sgn_mat2 = ( temp2_1 - temp2_2 >= 0 )
+    sgn_mat2[~sgn_mat2] = -1
+  
+    dists1_sq = dists1**2
+    dists2_sq = dists2**2
+    dists12 = sgn_mat1*dists1*sgn_mat2*dists2
+  
+    Dist_mat_sqd = inv11*dists1_sq + 2*inv12*dists12 + inv22*dists2_sq
+    Dist_mat = np.zeros(Dist_mat_sqd.shape)
+    Dist_mat[Dist_mat_sqd>0] = np.sqrt(Dist_mat_sqd[Dist_mat_sqd>0])
+  
+    # Combine
+    Unscl_corr = cov_spatial(Dist_mat, cov_model = cov_model, cov_pars = np.array([1,1]), kappa = kappa)
+    NS_corr = Scale_mat*Unscl_corr
+  
+    Spatial_cov = np.diag(sigsq_vec).dot(NS_corr).dot(np.diag(sigsq_vec)) 
+    return(Spatial_cov)
+    
+
+def ns_cov_interp(range_vec, sigsq_vec, coords, tck):
+    # Using the grid of values to interpolate because sc.special.kv is computationally expensive
+    # tck is the output function of sc.interpolate.pchip (Contains information about roughness kappa)
+    # ** Has to be Matern model **
+    if type(range_vec).__module__!='numpy' or isinstance(range_vec, np.float64):
+        range_vec = np.array(range_vec)
+        sigsq_vec = np.array(sigsq_vec)
+    
+    N = range_vec.shape[0] # Number of spatial locations
+    if coords.shape[0]!=N:
+        sys.exit('Number of spatial locations should be equal to the number of range parameters.')
+  
+    # Scale matrix
+    arg11 = range_vec
+    arg22 = range_vec
+    arg12 = np.repeat(0,N)
+    ones = np.repeat(1,N)
+    det1  = arg11*arg22 - arg12**2
+  
+    ## --- Outer product: matrix(arg11, nrow = N) %x% matrix(1, ncol = N) ---
+    mat11_1 = np.reshape(arg11, (N, 1)) * ones
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg11, ncol = N) ---
+    mat11_2 = np.reshape(ones, (N, 1)) * arg11
+    ## --- Outer product: matrix(arg22, nrow = N) %x% matrix(1, ncol = N) ---
+    mat22_1 = np.reshape(arg22, (N, 1)) * ones
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg22, ncol = N) ---
+    mat22_2 = np.reshape(ones, (N, 1)) * arg22
+    ## --- Outer product: matrix(arg12, nrow = N) %x% matrix(1, ncol = N) ---
+    mat12_1 = np.reshape(arg12, (N, 1)) * ones
+    ## --- Outer product: matrix(1, nrow = N) %x% matrix(arg12, ncol = N) ---
+    mat12_2 = np.reshape(ones, (N, 1)) * arg12
+  
+    mat11 = 0.5*(mat11_1 + mat11_2)
+    mat22 = 0.5*(mat22_1 + mat22_2)
+    mat12 = 0.5*(mat12_1 + mat12_2)
+  
+    det12 = mat11*mat22 - mat12**2
+  
+    Scale_mat = np.diag(det1**(1/4)).dot(np.sqrt(1/det12)).dot(np.diag(det1**(1/4)))
+  
+    # Distance matrix
+    inv11 = mat22/det12
+    inv22 = mat11/det12
+    inv12 = -mat12/det12
+  
+    dists1 = distance.squareform(distance.pdist(np.reshape(coords[:,0], (N, 1))))
+    dists2 = distance.squareform(distance.pdist(np.reshape(coords[:,1], (N, 1))))
+  
+    temp1_1 = np.reshape(coords[:,0], (N, 1)) * ones
+    temp1_2 = np.reshape(ones, (N, 1)) * coords[:,0]
+    temp2_1 = np.reshape(coords[:,1], (N, 1)) * ones
+    temp2_2 = np.reshape(ones, (N, 1)) * coords[:,1]
+  
+    sgn_mat1 = ( temp1_1 - temp1_2 >= 0 )
+    sgn_mat1[~sgn_mat1] = -1
+    sgn_mat2 = ( temp2_1 - temp2_2 >= 0 )
+    sgn_mat2[~sgn_mat2] = -1
+  
+    dists1_sq = dists1**2
+    dists2_sq = dists2**2
+    dists12 = sgn_mat1*dists1*sgn_mat2*dists2
+  
+    Dist_mat_sqd = inv11*dists1_sq + 2*inv12*dists12 + inv22*dists2_sq
+    Dist_mat = np.zeros(Dist_mat_sqd.shape)
+    Dist_mat[Dist_mat_sqd>0] = np.sqrt(Dist_mat_sqd[Dist_mat_sqd>0])
+  
+    # Combine
+    Unscl_corr = np.ones(Dist_mat_sqd.shape)
+    Unscl_corr[Dist_mat_sqd>0] = tck(Dist_mat[Dist_mat_sqd>0])
+    NS_corr = Scale_mat*Unscl_corr
+  
+    Spatial_cov = np.diag(sigsq_vec).dot(NS_corr).dot(np.diag(sigsq_vec))
+    return(Spatial_cov)
+## -------------------------------------------------------------------------- ##
+
+#########################################################################################
+# Write my own covariance function ######################################################
+#########################################################################################
+# note: gives same result as Likun's
+#       paremeterization is same, up to a constant in specifying the range
+
+# def matern_correlation(d, range, nu):
+#     # using wikipedia definition
+#     part1 = 2**(1-nu)/scipy.special.gamma(nu)
+#     part2 = (np.sqrt(2*nu) * d / range)**nu
+#     part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
+#     return(part1*part2*part3)
+# matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
+
+# # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
+# # matern_correlation_vec(pairwise_distance, 1, nu) # gives same result as skMatern(sites_xy)
+
+# # tri = np.zeros((4,4))
+# # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
+# # tri + tri.T + np.identity(4)
+
+# matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
+#                                    fill_value = 0.0)
+# for i in range(num_sites):
+#     for j in range(i+1, num_sites):
+#         distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
+#         variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
+#         avg_range = (range_vec[i] + range_vec[j])/2
+#         prod_range = np.sqrt(range_vec[i] * range_vec[j])
+#         C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, nu)
+#         matern_covariance_matrix[i,j] = C[0]
+# matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)

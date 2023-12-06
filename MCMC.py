@@ -20,8 +20,8 @@ if __name__ == "__main__":
     import scipy
     import time
     from mpi4py import MPI
-    from utilities import *
     from time import strftime, localtime
+    from utilities import *
 
     # %%
     # MPI setup
@@ -187,37 +187,6 @@ if __name__ == "__main__":
     # graph.colorbar(heatmap)
     # plt.show()
     # plt.close()
-
-    #####################################################################################################################
-    # Write my own covariance function ################################################################################################
-    #####################################################################################################################
-    
-    # def matern_correlation(d, range, nu):
-    #     # using wikipedia definition
-    #     part1 = 2**(1-nu)/scipy.special.gamma(nu)
-    #     part2 = (np.sqrt(2*nu) * d / range)**nu
-    #     part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
-    #     return(part1*part2*part3)
-    # matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
-    
-    # # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
-    # # matern_correlation_vec(pairwise_distance, 1, nu) # gives same result as skMatern(sites_xy)
-
-    # # tri = np.zeros((4,4))
-    # # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
-    # # tri + tri.T + np.identity(4)
-
-    # matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
-    #                                    fill_value = 0.0)
-    # for i in range(num_sites):
-    #     for j in range(i+1, num_sites):
-    #         distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
-    #         variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
-    #         avg_range = (range_vec[i] + range_vec[j])/2
-    #         prod_range = np.sqrt(range_vec[i] * range_vec[j])
-    #         C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, nu)
-    #         matern_covariance_matrix[i,j] = C[0]
-    # matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
 
     ## Covariance matrix K
     ## sigsq_vec
