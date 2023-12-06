@@ -41,7 +41,7 @@ def weights_fun(d,radius,h=1, cutoff=True):
     # h is the bandwidth parameter
     if(isinstance(d, (int, np.int64, float))): 
         d=np.array([d])
-        tmp = np.exp(-d**2/(2*h))
+    tmp = np.exp(-d**2/(2*h))
     if cutoff: 
         tmp[d>radius] = 0
     return tmp/np.sum(tmp)
@@ -54,8 +54,8 @@ def wendland_weights_fun(d, theta, k=0, dimension=2, derivative=0):
     # k: smoothness of the function at zero.
     if(isinstance(d, (int, np.int64, float))): 
         d=np.array([d])      
-        d = d/theta
-        l = np.floor(dimension/2) + k + 1
+    d = d/theta
+    l = np.floor(dimension/2) + k + 1
     if (k==0): 
         res = np.where(d < 1, (1-d)**l, 0)
     if (k==1):
@@ -66,14 +66,14 @@ def wendland_weights_fun(d, theta, k=0, dimension=2, derivative=0):
         res = np.where(d < 1, (1-d)**(l+k) * ((l**3+9*l**2+23*l+15)*d**3 + 
                                             (6*l**2+36*l+45) * d**2 + (15*l+45) * d + 15), 0)
     if (k>3):
-      sys.exit("k must be less than 4")
+        sys.exit("k must be less than 4")
     return res/np.sum(res)
 
 # generate levy random samples
 def rlevy(n, m = 0, s = 1):
-  if np.any(s < 0):
-    sys.exit("s must be positive")
-  return s/scipy.stats.norm.ppf(1-scipy.stats.uniform.rvs(0,1,n)/2)**2 + m
+    if np.any(s < 0):
+        sys.exit("s must be positive")
+    return s/scipy.stats.norm.ppf(1-scipy.stats.uniform.rvs(0,1,n)/2)**2 + m
 
 # generalized extreme value distribution
 # note negative shape parametrization in scipy.genextreme
