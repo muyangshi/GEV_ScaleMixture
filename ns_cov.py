@@ -15,9 +15,9 @@ from scipy.spatial import distance
 
 def cov_spatial(r, cov_model = "exponential", cov_pars = np.array([1,1]), kappa = 0.5):
     if type(r).__module__!='numpy' or isinstance(r, np.float64):
-      r = np.array(r)
+        r = np.array(r)
     if np.any(r<0):
-      sys.exit('Distance argument must be nonnegative.')
+        sys.exit('Distance argument must be nonnegative.')
     r[r == 0] = 1e-10
     
     if cov_model != "matern" and cov_model != "gaussian" and cov_model != "exponential" :
@@ -58,12 +58,12 @@ def cov_spatial(r, cov_model = "exponential", cov_pars = np.array([1,1]), kappa 
 
 def ns_cov(range_vec, sigsq_vec, coords, kappa = 0.5, cov_model = "matern"):
     if type(range_vec).__module__!='numpy' or isinstance(range_vec, np.float64):
-      range_vec = np.array(range_vec)
-      sigsq_vec = np.array(sigsq_vec)
+        range_vec = np.array(range_vec)
+        sigsq_vec = np.array(sigsq_vec)
     
     N = range_vec.shape[0] # Number of spatial locations
     if coords.shape[0]!=N: 
-      sys.exit('Number of spatial locations should be equal to the number of range parameters.')
+        sys.exit('Number of spatial locations should be equal to the number of range parameters.')
   
     # Scale matrix
     arg11 = range_vec
@@ -131,12 +131,12 @@ def ns_cov(range_vec, sigsq_vec, coords, kappa = 0.5, cov_model = "matern"):
 # ** Has to be Matern model **
 def ns_cov_interp(range_vec, sigsq_vec, coords, tck):
     if type(range_vec).__module__!='numpy' or isinstance(range_vec, np.float64):
-      range_vec = np.array(range_vec)
-      sigsq_vec = np.array(sigsq_vec)
+        range_vec = np.array(range_vec)
+        sigsq_vec = np.array(sigsq_vec)
     
     N = range_vec.shape[0] # Number of spatial locations
     if coords.shape[0]!=N:
-      sys.exit('Number of spatial locations should be equal to the number of range parameters.')
+        sys.exit('Number of spatial locations should be equal to the number of range parameters.')
   
     # Scale matrix
     arg11 = range_vec
