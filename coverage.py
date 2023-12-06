@@ -19,7 +19,7 @@ from utilities import *
 from time import strftime, localtime
 
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario3'
+simulation_case = 'scenario1'
 
 #####################################################################################################################
 # Generating Dataset ################################################################################################
@@ -41,13 +41,6 @@ ksi = 0.2 # GEV shape
 nu = 0.5 # exponential kernel for matern with nu = 1/2
 sigsq = 1.0 # for Z
 
-## Remember to change below
-# knots locations
-# radius
-# range at knots
-# phi_at_knots
-# phi_post_cov
-# range_post_cov
 n_iters = 1000
 
 
@@ -88,22 +81,6 @@ plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
 radius = 4 # 3.5 might make some points closer to the edge of circle
             # might lead to numericla issues
 radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
-
-# Plot the space
-# fig, ax = plt.subplots()
-# ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
-# ax.plot(knots_x, knots_y, 'r+')
-# space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
-#                                 fill = False, color = 'black')
-# for i in range(k):
-#     circle_i = plt.Circle((knots_xy[i,0],knots_xy[i,1]), radius_from_knots[0], 
-#                      color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-#     ax.add_patch(circle_i)
-# ax.add_patch(space_rectangle)
-# plt.xlim([-2,12])
-# plt.ylim([-2,12])
-# plt.show()
-# plt.close()
 
 # ------- 2. Generate the weight matrices ------------------------------------
 
@@ -152,17 +129,6 @@ for site_id in np.arange(625):
 range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # scenario 2
 range_vec = gaussian_weight_matrix @ range_at_knots
 
-# range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
-# fig2 = plt.figure()
-# ax2 = fig2.add_subplot(projection='3d')
-# ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
-# ax2.set_xlabel('X')
-# ax2.set_ylabel('Y')
-# ax2.set_zlabel('phi(s)')
-# ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
-# plt.show()
-# plt.close()
-
 ## sigsq_vec
 sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
 
@@ -192,24 +158,6 @@ match simulation_case:
 # phi_at_knots = np.array([0.3]*k)
 phi_vec = gaussian_weight_matrix @ phi_at_knots
 
-# phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
-# fig = plt.figure()
-# ax = fig.add_subplot(projection='3d')
-# ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(phi_vec_for_plot).reshape(25,25))
-# ax.set_xlabel('X')
-# ax.set_ylabel('Y')
-# ax.set_zlabel('phi(s)')
-# ax.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
-# fig2 = plt.figure()
-# ax2 = fig2.add_subplot(projection='3d')
-# ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], phi_vec_for_plot, linewidth=0.2, antialiased=True)
-# ax2.set_xlabel('X')
-# ax2.set_ylabel('Y')
-# ax2.set_zlabel('phi(s)')
-# ax2.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
-# plt.show()
-# plt.close()
-
 ## R
 ## Generate them at the knots
 R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
@@ -229,10 +177,16 @@ for t in np.arange(N):
 # # ------- 6. Generate X and Y--------------------------------
 X_star = R_phi * W
 
+alpha = 0.5
+gamma_at_knots = np.repeat(gamma, k)
+gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                    axis = 1)**(1/alpha) # axis = 1 to sum over K knots
+# gamma_vec is the gamma bar in the overleaf document
+
 # Calculation of Y can(?) be parallelized by time(?)
 Y = np.full(shape=(num_sites, N), fill_value = np.nan)
 for t in np.arange(N):
-    Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma), mu, tau, ksi)
+    Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, tau, ksi)
 
 # folder = './data/scenario2/simulation_1/'
 # phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
@@ -274,8 +228,11 @@ match simulation_case:
                     0.37).all()# scenario 3
 
 sim_id_from = 1
-sim_id_to = 50
+sim_id_to = 24
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
+
+# bad sim for scenario 1 with 9 knots CORRECT VERSION
+bad_sim_ids = np.array([])
 
 # bad sim for scenario 1 with 9 knots
 # bad_sim_ids = np.array([32, # absolutely bad
@@ -288,9 +245,9 @@ sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 #                          1, 4, 19, 34, 35, 46]) # ah??
 
 # bad sim for scenario 3 with 9 knots
-bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
-                        4, 5, 12, 23, 25, 26, 33, 34, 36, 39, 41, 42, 43, 44]) # ah??
-                        # 8, 9, 11, 13, 22, 24, 29, 35, 48]) # biased
+# bad_sim_ids = np.array([3, 6, 32, 46, # absolutely bad
+#                         4, 5, 12, 23, 25, 26, 33, 34, 36, 39, 41, 42, 43, 44]) # ah??
+#                         # 8, 9, 11, 13, 22, 24, 29, 35, 48]) # biased
 
 # bad_sim_ids = np.array([3,4,6,8,10,12,13,24,26]) # bad sim for 10 knots scenario 2
 
