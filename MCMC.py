@@ -37,8 +37,8 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 64 # number of time replicates
-    num_sites = 500 # number of sites/stations
+    N = 4 # number of time replicates
+    num_sites = 50 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -657,7 +657,7 @@ if __name__ == "__main__":
                 for i in [0,4,8]:
                     for t in np.arange(N)[np.arange(N) % 15 == 0]:
                         plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
-                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,0,t][-1]))
+                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,i,t][-1]))
                 plt.title('traceplot for some R_t')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('R_ts')
