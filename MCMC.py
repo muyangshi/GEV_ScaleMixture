@@ -37,8 +37,8 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 4 # number of time replicates
-    num_sites = 50 # number of sites/stations
+    N = 500 # number of time replicates
+    num_sites = 5 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
@@ -327,8 +327,17 @@ if __name__ == "__main__":
     #     plt.show()
 
     # # log(W + 1) should look exponential (at each site with N time replicates?)
+    # # for shifted Pareto
     # for i in range(num_sites):
     #     expo = np.log(W[i,:] + 1)
+    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    #     plt.axline((0,0), slope=1, color='black')
+    #     plt.show()
+
+    # # log(W) should look exponential (at each site with N time replicates?)
+    # # for standard Pareto
+    # for i in range(num_sites):
+    #     expo = np.log(W[i,:])
     #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
@@ -336,7 +345,7 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each time t?)
     # for i in range(N):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[:,i], phi_vec, gamma_vec)
+    #     unif = pRW(X_star[:,i], phi_vec, gamma_vec[i])
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
@@ -345,7 +354,7 @@ if __name__ == "__main__":
     # # pRW(X_star) should look uniform (at each site with N time replicates?)
     # for i in range(num_sites):
     #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec)
+    #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec[i])
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
     #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
     #     plt.axline((0,0), slope=1, color='black')
