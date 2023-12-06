@@ -220,9 +220,22 @@ double lower_gamma_C(double a, double x){ // x is the integration uppder bound
     return gsl_sf_gamma(a) - upper_gamma_C(a, x);
 }
 
+// likun's derivation
+// double dRW_standard_Pareto_C(double x, double phi, double gamma){
+//     double upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2 * pow(x, 1/phi)));
+//     return (1/pow(x,2)) * sqrt(1/M_PI) * pow(gamma/2, phi) * upper_gamma;
+// }
+
+// my derivation
 double dRW_standard_Pareto_C(double x, double phi, double gamma){
     double upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2 * pow(x, 1/phi)));
-    return (1/pow(x,2)) * sqrt(1/M_PI) * pow(gamma/2, phi) * upper_gamma;
+
+    double part1 = (1/pow(x,2)) * sqrt(M_1_PI) * pow(gamma/2, phi) * upper_gamma;
+    double part2 = sqrt(M_1_PI) * pow(gamma / (2 * pow(x, 1/phi)), -0.5) * 
+                    exp(-gamma / (2 * pow(x, 1/phi))) * (-gamma/(2*phi*pow(x, 1 + 1/phi)));
+    double part3 = 1 - (1/x) * pow(gamma/2, phi) * pow(gamma / (2 * pow(x, 1/phi)), -phi);
+    // std::cout << part2 << " " << part3 << std::endl;
+    return part1 - part2*part3;
 }
 
 double pRW_standard_Pareto_C(double x, double phi, double gamma){

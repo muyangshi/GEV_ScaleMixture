@@ -169,7 +169,7 @@ qRW_scipy_vec = np.vectorize(qRW_scipy, otypes=[float])
 #                                         bracket=[0.1,1e12],
 #                                         fprime = lambda x: dRW_stdPareto(x, phi, gamma),
 #                                         x0 = 10,
-#                                         method='ridder').root
+#                                         method='newton').root
 #     except Exception as e:
 #         print(e)
 #         print('p=',p,',','phi=',phi,',','gamma',gamma)
@@ -231,3 +231,8 @@ RW_lib.qRW_standard_Pareto_C_brent.argtypes = (ctypes.c_double, ctypes.c_double,
 dRW_stdPareto_vec = np.vectorize(RW_lib.dRW_standard_Pareto_C, otypes=[float])
 pRW_stdPareto_vec = np.vectorize(RW_lib.pRW_standard_Pareto_C, otypes=[float])
 qRW_stdPareto_vec = np.vectorize(RW_lib.qRW_standard_Pareto_C_brent, otypes=[float])
+# %%
+# def integrate_dRW(b, phi, gamma):
+#     return quad(dRW_stdPareto_vec, 0, b, args=(phi,gamma), limit=200)
+# integrate_dRW(10, 0.5, 1)
+# pRW_stdPareto_vec(10, 0.5, 1)
