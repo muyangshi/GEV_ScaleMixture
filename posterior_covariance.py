@@ -1,17 +1,19 @@
 # %%
 import numpy as np
 k = 10
+k = 9
 
 # %%
 # Results
 
 # folder = './data/20231026_all_adaptive_scenario2_seed2345_time64_site500_alpine/'
-folder = './data/20231116_aa_sc2_sd2345_t64_st500_10knots_misspiggy/'
+# folder = './data/20231116_aa_sc2_sd2345_t64_st500_10knots_misspiggy/'
+folder = './data/20231206_sc2_sd79_t16_s100_stdPareto/'
 phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log = np.load(folder + 'R_trace_log.npy')
 range_knots_trace = np.load(folder + 'range_knots_trace.npy')
 GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
-xs = np.arange(10000)
+xs = np.arange(30000)
 
 # phi_knots_trace = phi_knots_trace[500:, :]
 # range_knots_trace = range_knots_trace[22000:, :]
