@@ -1,5 +1,5 @@
 # combine utilitlies helpful to MCMC sampler
-# grab useful functions from Likun's model_sim.py, ns_cov.py
+# grabbed and copied useful functions from Likun's model_sim.py, ns_cov.py
 # Require:
 #   - RW_inte.py, RW_inte_cpp.cpp & RW_inte.cpp.so
 # %%
@@ -21,8 +21,8 @@ import RW_inte
 # inte_method = 'scipy'   # Scipy QUAD is bad don't use 
 # inte_method = 'mpmath'  # super slow don't use
 inte_method = 'cpp_transformed'
-# norm_pareto = 'shifted'   # shifted Pareto
-norm_pareto = 'standard'    # standard Pareto
+norm_pareto = 'shifted'   # shifted Pareto
+# norm_pareto = 'standard'    # standard Pareto
 #############################
 
 # weights_fun = model_sim.weights_fun
@@ -113,7 +113,7 @@ stdPareto_to_Norm_vec = np.vectorize(stdPareto_to_Norm)
 def norm_to_Pareto1(z):
     if(isinstance(z, (int, np.int64, float))): 
         z=np.array([z])
-        tmp = scipy.stats.norm.cdf(z)
+    tmp = scipy.stats.norm.cdf(z)
     if np.any(tmp==1): 
         tmp[tmp==1]=1-1e-9
     return 1/(1-tmp)-1
@@ -121,7 +121,7 @@ def norm_to_Pareto1(z):
 def pareto1_to_Norm(W):
     if(isinstance(W, (int, np.int64, float))): 
         W=np.array([W])
-        tmp = 1-1/(W+1)
+    tmp = 1-1/(W+1)
     return scipy.stats.norm.ppf(tmp)
 
 if norm_pareto == 'shifted':
