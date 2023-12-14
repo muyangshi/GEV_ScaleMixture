@@ -1,5 +1,9 @@
+"""
 # This is a MCMC sampler that constantly gets updated
 # Scratch work and modifications are done in this file
+
+# Dec 6 2023, adding covariate for theta GEVs to the model
+"""
 # Require:
 #   - utilities.py
 if __name__ == "__main__":
@@ -37,15 +41,15 @@ if __name__ == "__main__":
 
     ## space setting
     np.random.seed(data_seed)
-    N = 500 # number of time replicates
-    num_sites = 5 # number of sites/stations
+    Nt = 32 # number of time replicates
+    Ns = 25 # number of sites/stations
     k = 9 # number of knots
 
     ## unchanged constants or parameters
     gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
     delta = 0.0 # this is the delta in levy, stays 0
     mu = 0.0 # GEV location
-    tau = 1.0 # GEV scale
+    sigma = 1.0 # GEV scale
     ksi = 0.2 # GEV shape
     nu = 0.5 # exponential kernel for matern with nu = 1/2
     sigsq = 1.0 # for Z
@@ -57,12 +61,12 @@ if __name__ == "__main__":
     # phi_at_knots
     # phi_post_cov
     # range_post_cov
-    n_iters = 15000
+    n_iters = 1000
 
     # %%
     # ------- 1. Generate Sites and Knots --------------------------------
 
-    sites_xy = np.random.random((num_sites, 2)) * 10
+    sites_xy = np.random.random((Ns, 2)) * 10
     sites_x = sites_xy[:,0]
     sites_y = sites_xy[:,1]
 
@@ -112,8 +116,8 @@ if __name__ == "__main__":
 
     # Weight matrix generated using Gaussian Smoothing Kernel
     bandwidth = 4 # ?what is bandwidth?
-    gaussian_weight_matrix = np.full(shape = (num_sites, k), fill_value = np.nan)
-    for site_id in np.arange(num_sites):
+    gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
                                         XB = knots_xy)
@@ -122,8 +126,8 @@ if __name__ == "__main__":
         gaussian_weight_matrix[site_id, :] = weight_from_knots
 
     # Weight matrix generated using wendland basis
-    wendland_weight_matrix = np.full(shape = (num_sites,k), fill_value = np.nan)
-    for site_id in np.arange(num_sites):
+    wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
                                         XB = knots_xy)
@@ -149,8 +153,8 @@ if __name__ == "__main__":
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
     
-    constant_weight_matrix = np.full(shape = (num_sites, k), fill_value = np.nan)
-    for site_id in np.arange(num_sites):
+    constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
                                         XB = knots_xy)
@@ -190,11 +194,11 @@ if __name__ == "__main__":
 
     ## Covariance matrix K
     ## sigsq_vec
-    sigsq_vec = np.repeat(sigsq, num_sites) # hold at 1
+    sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
-    # K = np.identity(num_sites)
-    Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(num_sites,)),cov=K,size=N).T
+    # K = np.identity(Ns)
+    Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
     W = norm_to_Pareto(Z) 
 
     # %%
@@ -243,8 +247,8 @@ if __name__ == "__main__":
 
     ## R
     ## Generate them at the knots
-    R_at_knots = np.full(shape = (k, N), fill_value = np.nan)
-    for t in np.arange(N):
+    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
         # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
         # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
@@ -255,29 +259,119 @@ if __name__ == "__main__":
     # R_at_sites = constant_weight_matrix @ R_at_knots
 
     ## R^phi
-    R_phi = np.full(shape = (num_sites, N), fill_value = np.nan)
-    for t in np.arange(N):
+    R_phi = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
         R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
 
+    # %%
     # ------- 5. Generate mu(s) = C(s)Beta ----------------------
 
-    # # C(s) is the covariate
-    # Beta = 0.3
-    # Loc_at_knots = np.tile(np.sqrt(0.5*knots_x + 0.2*knots_y),
-    #                        (N, 1)).T * Beta
-    # # Which basis should I use? Gaussian or Wendland?
-    # Loc_matrix = gaussian_weight_matrix @ Loc_at_knots # shape (N, num_sites)
-
-    # Loc_site_for_plot = gaussian_weight_matrix_for_plot @ Loc_at_knots
-    # Loc_site_for_plot = Loc_site_for_plot[:,0] # look at time t=0
+    #######
+    # Loc #
+    #######
+    # C_mu(j,s,t) is the mu covariate at 
+    # beta_j, site s and time t
+    # simple case of mu(s) = x(s) + y(s)
+    ## coefficients
+    Beta_mu_0 = 0.0 # intercept for mu
+    Beta_mu_1 = 1.0 # slope of beta 1 for mu, beta_1*X
+    Beta_mu_2 = 1.0 # slope of beta 2 for mu, beta_2*X
+    Beta_mu = np.array([Beta_mu_0, Beta_mu_1, Beta_mu_2])
+    Beta_mu_m = len(Beta_mu) # number of betas for mu
+    ## covariates, the "design matrix"
+    C_mu = np.full(shape=(Beta_mu_m, Ns, Nt), fill_value = np.nan) # design matrix
+    C_mu[0, :, :] = 1.0 # column of 1 for the intercept
+    C_mu[1, :, :] = np.tile(sites_x, reps = (Nt, 1)).T # mu(s,t) = 0
+    C_mu[2, :, :] = np.tile(sites_y, reps = (Nt, 1)).T
+    ## actual surface for mu(s)
+    # mu_matrix = np.full(shape=(Ns, Nt), fill_value = np.nan)
+    # for t in range(Nt):
+    #     mu_matrix[:,t] = C_mu.T[t,:,:] @ Beta_mu
+    mu_matrix = (C_mu.T @ Beta_mu).T
+    ## heatplot of mu surface
+    C_mu_plot = np.full(shape = (Beta_mu_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+    C_mu_plot[0, :, :] = 1.0
+    C_mu_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    C_mu_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+    mu_surface_plot = (C_mu_plot.T @ Beta_mu).T
+    graph, ax = plt.subplots()
+    heatmap = ax.imshow(mu_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    ax.invert_yaxis()
+    graph.colorbar(heatmap)
+    plt.show()
+    plt.close()
+    ## 3d plot of mu surface
     # fig = plt.figure()
     # ax = fig.add_subplot(projection='3d')
-    # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(Loc_site_for_plot).reshape(25,25))
+    # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(mu_surface_plot[:,0]).reshape(25,25))
     # ax.set_xlabel('X')
     # ax.set_ylabel('Y')
     # ax.set_zlabel('mu(s)')
-    # ax.scatter(knots_x, knots_y, Loc_at_knots[:,0], c='red', marker='o', s=100)
 
+    #########
+    # Scale #
+    #########
+    # C_sigma(j,s,t) is the scale covariates at beta_j, site s and time t
+    # constant case of sigma(s) = sigma
+    ## coefficients
+    Beta_sigma_0 = sigma
+    Beta_sigma = np.array([Beta_sigma_0])
+    # Beta_sigma_1 = 0
+    # Beta_sigma = np.array([Beta_sigma_0, Beta_sigma_1])
+    Beta_sigma_m = len(Beta_sigma)
+    ## covariates, the design matrix
+    C_sigma = np.full(shape = (Beta_sigma_m, Ns, Nt), fill_value = np.nan)
+    C_sigma[0,:,:] = 1.0
+    # C_sigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    # C_sigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+    ## actual surface for sigma(s)
+    sigma_matrix = (C_sigma.T @ Beta_sigma).T
+    ## heatplot of sigma(s) surface
+    C_sigma_plot = np.full(shape = (Beta_sigma_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+    C_sigma_plot[0, :, :] = sigma
+    # C_sigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    sigma_surface_plot = (C_sigma_plot.T @ Beta_sigma).T
+    graph, ax = plt.subplots()
+    heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    ax.invert_yaxis()
+    graph.colorbar(heatmap)
+    plt.show()
+    plt.close()
+
+    #########
+    # Shape #
+    #########
+    # C_ksi(j,s,t) is the shape covariates at beta_j, site s and time t
+    # constant case of ksi(s) = ksi
+    ## coefficients
+    Beta_ksi_0 = ksi
+    Beta_ksi = np.array([Beta_ksi_0])
+    # Beta_ksi_1 = 0
+    # Beta_ksi = np.array([Beta_ksi_0, Beta_ksi_1])
+    Beta_ksi_m = len(Beta_ksi)
+    ## covariates, the design matrix
+    C_ksi = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan)
+    C_ksi[0,:,:] = 1.0
+    # C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    ## actual surface for ksi(s)
+    ksi_matrix = (C_ksi.T @ Beta_ksi).T
+    ## heatplot of ksi(s) surface
+    C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+    C_ksi_plot[0, :, :] = sigma
+    # C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
+    graph, ax = plt.subplots()
+    heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    ax.invert_yaxis()
+    graph.colorbar(heatmap)
+    plt.show()
+    plt.close()
+
+    # %%
+    # ------- 5.5 Generate hyperparameter, sigma_Beta_GEV ----------------------
+    sigma_Beta_mu = 1.0
+    sigma_Beta_sigma = 1.0
+    sigma_Beta_ksi = 1.0
 
     # %%
     # ------- 6. Generate X and Y--------------------------------
@@ -290,9 +384,10 @@ if __name__ == "__main__":
     # gamma_vec is the gamma bar in the overleaf document
 
     # Calculation of Y can(?) be parallelized by time(?)
-    Y = np.full(shape=(num_sites, N), fill_value = np.nan)
-    for t in np.arange(N):
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, tau, ksi)
+    Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
+        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
     # %%
     # ------- 7. Other Preparational Stuff(?) --------------------------------
@@ -301,11 +396,7 @@ if __name__ == "__main__":
     # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
     # plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
 
-    # # R_at_knots should look levy (those are S)
-    # for i in range(k):
-    #     scipy.stats.probplot(R_at_knots[i,:], dist='levy', fit=False, plot=plt)
-    #     plt.axline((0,0), slope = 1, color='black')
-    #     plt.show()
+    # checking stable variables S
 
     # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
     # for i in range(k):
@@ -319,31 +410,47 @@ if __name__ == "__main__":
     #     plt.axline((0,0),slope=1,color='black')
     #     plt.show()
 
+    # checking Pareto distribution
+
+    # # shifted pareto.cdf(W[i,:] + 1, b = 1, loc = 0, scale = 1) shoud look uniform
+    # for i in range(Ns):
+    #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:]+1, b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+    #     plt.axline((0,0), slope = 1, color = 'black')
+    #     plt.show()
+
+    # # standard pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1) shoud look uniform
+    # for i in range(Ns):
+    #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+    #     plt.axline((0,0), slope = 1, color = 'black')
+    #     plt.show()
+
     # # log(W + 1) should look exponential (at each time t with num_site spatial points?)
-    # for i in range(N):
+    # for i in range(Nt):
     #     expo = np.log(W[:,i] + 1)
     #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
-    # # log(W + 1) should look exponential (at each site with N time replicates?)
+    # # log(W + 1) should look exponential (at each site with Nt time replicates?)
     # # for shifted Pareto
-    # for i in range(num_sites):
+    # for i in range(Ns):
     #     expo = np.log(W[i,:] + 1)
     #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
-    # # log(W) should look exponential (at each site with N time replicates?)
+    # # log(W) should look exponential (at each site with Nt time replicates?)
     # # for standard Pareto
-    # for i in range(num_sites):
+    # for i in range(Ns):
     #     expo = np.log(W[i,:])
     #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
+    # checking model cdf
+
     # # pRW(X_star) should look uniform (at each time t?)
-    # for i in range(N):
+    # for i in range(Nt):
     #     # fig, ax = plt.subplots()
     #     unif = pRW(X_star[:,i], phi_vec, gamma_vec[i])
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
@@ -351,8 +458,8 @@ if __name__ == "__main__":
     #     plt.axline((0,0), slope=1, color='black')
     #     plt.show()
 
-    # # pRW(X_star) should look uniform (at each site with N time replicates?)
-    # for i in range(num_sites):
+    # # pRW(X_star) should look uniform (at each site with Nt time replicates?)
+    # for i in range(Ns):
     #     # fig, ax = plt.subplots()
     #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec[i])
     #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
@@ -452,9 +559,9 @@ if __name__ == "__main__":
 
     assert k == range_post_cov.shape[0]
 
-    GEV_post_cov = np.array([[2.88511464e-04, 1.13560517e-04, 0],
-                            [1.13560517e-04, 6.40933053e-05,  0],
-                            [0         , 0         , 1e-4]])
+    # GEV_post_cov = np.array([[2.88511464e-04, 1.13560517e-04, 0],
+    #                         [1.13560517e-04, 6.40933053e-05,  0],
+    #                         [0         , 0         , 1e-4]])
 
     # GEV_post_cov = 1e-4 * np.identity(3)
 
@@ -462,29 +569,59 @@ if __name__ == "__main__":
     # Scalors for adaptive updates
     # (phi, range, GEV) these parameters are only proposed on worker 0
     if rank == 0: 
-        sigma_m_sq = {}
-        sigma_m_sq['phi_block1'] = (2.4**2)/3
-        sigma_m_sq['phi_block2'] = (2.4**2)/3
-        sigma_m_sq['phi_block3'] = (2.4**2)/3
-        sigma_m_sq['range_block1'] = (2.4**2)/3
-        sigma_m_sq['range_block2'] = (2.4**2)/3
-        sigma_m_sq['range_block3'] = (2.4**2)/3
-        sigma_m_sq['GEV'] = (2.4**2)/3
+        sigma_m_sq = {
+            'phi_block1'    : (2.4**2)/3,
+            'phi_block2'    : (2.4**2)/3,
+            'phi_block3'    : (2.4**2)/3,
+            'range_block1'  : (2.4**2)/3,
+            'range_block2'  : (2.4**2)/3,
+            'range_block3'  : (2.4**2)/3,
+            'Beta_mu'       : 0.5 * 1e-4,
+            'Beta_sigma'    : 0.2 * 1e-4,
+            'Beta_ksi'      : 0.15 * 1e-4
+        }
+        # sigma_m_sq['phi_block1'] = (2.4**2)/3
+        # sigma_m_sq['phi_block2'] = (2.4**2)/3
+        # sigma_m_sq['phi_block3'] = (2.4**2)/3
+        # sigma_m_sq['range_block1'] = (2.4**2)/3
+        # sigma_m_sq['range_block2'] = (2.4**2)/3
+        # sigma_m_sq['range_block3'] = (2.4**2)/3
+        # sigma_m_sq['GEV'] = (2.4**2)/3
+        # sigma_m_sq['Beta_mu'] = 0.5
+        # sigma_m_sq['Beta_sigma'] = 0.2
+        # sigma_m_sq['Beta_ksi'] = 0.15
 
         # initialize them with posterior covariance matrix
-        Sigma_0 = {}
-        Sigma_0['phi_block1'] = phi_post_cov[0:3,0:3]
-        Sigma_0['phi_block2'] = phi_post_cov[3:6,3:6]
-        Sigma_0['phi_block3'] = phi_post_cov[6:9,6:9]
-        Sigma_0['range_block1'] = range_post_cov[0:3,0:3]
-        Sigma_0['range_block2'] = range_post_cov[3:6,3:6]
-        Sigma_0['range_block3'] = range_post_cov[6:9,6:9]
-        Sigma_0['GEV'] = GEV_post_cov
+        Sigma_0 = {
+            'phi_block1'    : phi_post_cov[0:3,0:3],
+            'phi_block2'    : phi_post_cov[3:6,3:6],
+            'phi_block3'    : phi_post_cov[6:9,6:9],
+            'range_block1'  : range_post_cov[0:3,0:3],
+            'range_block2'  : range_post_cov[3:6,3:6],
+            'range_block3'  : range_post_cov[6:9,6:9]
+        }
+        # Sigma_0['phi_block1'] = phi_post_cov[0:3,0:3]
+        # Sigma_0['phi_block2'] = phi_post_cov[3:6,3:6]
+        # Sigma_0['phi_block3'] = phi_post_cov[6:9,6:9]
+        # Sigma_0['range_block1'] = range_post_cov[0:3,0:3]
+        # Sigma_0['range_block2'] = range_post_cov[3:6,3:6]
+        # Sigma_0['range_block3'] = range_post_cov[6:9,6:9]
+        # Sigma_0['GEV'] = GEV_post_cov
 
-        num_accepted = {}
-        num_accepted['phi'] = 0
-        num_accepted['range'] = 0
-        num_accepted['GEV'] = 0
+        num_accepted = {
+            'phi'         : 0,
+            'range'       : 0,
+            # 'GEV'         : 0,
+            'Beta_mu'     : 0,
+            'Beta_sigma'  : 0,
+            'Beta_ksi'    : 0
+        }
+        # num_accepted['phi'] = 0
+        # num_accepted['range'] = 0
+        # # num_accepted['GEV'] = 0
+        # num_accepted['Beta_mu'] = 0
+        # num_accepted['Beta_sigma'] = 0
+        # num_accepted['Beta_ksi'] = 0
 
     # Rt: each worker t proposed Rt at k knots at time t
     if rank == 0:
@@ -499,9 +636,21 @@ if __name__ == "__main__":
     ########## Storage Place ##################################################
     # %%
     # Storage Place
+    ## ---- overal likelihood? -----
+    if rank == 0:
+        loglik_trace = np.full(shape = (n_iters,1), fill_value = np.nan)
+    else:
+        loglik_trace = None
+
+    ## ---- detail likelihood ----
+    if rank == 0:
+        loglik_detail_trace = np.full(shape = (n_iters, 5), fill_value = np.nan)
+    else:
+        loglik_detail_trace = None
+
     ## ---- R, log scaled, at the knots ----
     if rank == 0:
-        R_trace_log = np.full(shape = (n_iters, k, N), fill_value = np.nan) # [n_iters, num_knots, n_t]
+        R_trace_log = np.full(shape = (n_iters, k, Nt), fill_value = np.nan) # [n_iters, num_knots, n_t]
         R_trace_log[0,:,:] = np.log(R_at_knots) # initialize
         R_init_log = R_trace_log[0,:,:]
     else:
@@ -526,30 +675,64 @@ if __name__ == "__main__":
         range_knots_init = None
     range_knots_init = comm.bcast(range_knots_init, root = 0)
 
-    ## ---- GEV mu tau ksi (location, scale, shape) together ----
-    if rank == 0:
-        GEV_knots_trace = np.full(shape=(n_iters, 3, k), fill_value = np.nan) # [n_iters, n_GEV, num_knots]
-        GEV_knots_trace[0,:,:] = np.tile(np.array([mu, tau, ksi]), (k,1)).T
-        GEV_knots_init = GEV_knots_trace[0,:,:]
-    else:
-        GEV_knots_init = None
-    GEV_knots_init = comm.bcast(GEV_knots_init, root = 0)
+    ## ---- GEV mu sigma ksi (location, scale, shape) together ----
+    # if rank == 0:
+    #     GEV_knots_trace = np.full(shape=(n_iters, 3, k), fill_value = np.nan) # [n_iters, n_GEV, num_knots]
+    #     GEV_knots_trace[0,:,:] = np.tile(np.array([mu, sigma, ksi]), (k,1)).T
+    #     GEV_knots_init = GEV_knots_trace[0,:,:]
+    # else:
+    #     GEV_knots_init = None
+    # GEV_knots_init = comm.bcast(GEV_knots_init, root = 0)
 
-    ## ---- overal likelihood? -----
+    ## ---- GEV covariate coefficients ----
     if rank == 0:
-        loglik_trace = np.full(shape = (n_iters,1), fill_value = np.nan)
-    else:
-        loglik_trace = None
+        Beta_mu_trace = np.full(shape=(n_iters, Beta_mu_m), fill_value = np.nan)
+        Beta_mu_trace[0,:] = Beta_mu
+        Beta_mu_init = Beta_mu_trace[0,:]
 
-    ## ---- detail likelihood ----
-    if rank == 0:
-        loglik_detail_trace = np.full(shape = (n_iters, 5), fill_value = np.nan)
+        Beta_sigma_trace = np.full(shape=(n_iters, Beta_sigma_m), fill_value = np.nan)
+        Beta_sigma_trace[0,:] = Beta_sigma
+        Beta_sigma_init = Beta_sigma_trace[0,:]
+
+        Beta_ksi_trace = np.full(shape=(n_iters, Beta_ksi_m), fill_value = np.nan)
+        Beta_ksi_trace[0,:] = Beta_ksi
+        Beta_ksi_init = Beta_ksi_trace[0,:]
     else:
-        loglik_detail_trace = None
+        Beta_mu_init = None
+        Beta_sigma_init = None
+        Beta_ksi_init = None
+    Beta_mu_init = comm.bcast(Beta_mu_init, root = 0)
+    Beta_sigma_init = comm.bcast(Beta_sigma_init, root = 0)
+    Beta_ksi_init = comm.bcast(Beta_ksi_init, root = 0)
+
+    ## ---- GEV covariate coefficient prior variance ----
+    if rank == 0:
+        sigma_Beta_mu_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan)
+        sigma_Beta_mu_trace[0,:] = sigma_Beta_mu
+        sigma_Beta_mu_init       = sigma_Beta_mu_trace[0,:]
+
+        sigma_Beta_sigma_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan)
+        sigma_Beta_sigma_trace[0,:] = sigma_Beta_sigma
+        sigma_Beta_sigma_init       = sigma_Beta_sigma_trace[0,:]
+
+        sigma_Beta_ksi_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan)
+        sigma_Beta_ksi_trace[0,:] = sigma_Beta_ksi
+        sigma_Beta_ksi_init       = sigma_Beta_ksi_trace[0,:]
+    else:
+        sigma_Beta_mu_init     = None
+        sigma_Beta_sigma_init  = None
+        sigma_Beta_ksi_init    = None
+    sigma_Beta_mu_init    = comm.bcast(sigma_Beta_mu_init, root = 0)
+    sigma_Beta_sigma_init = comm.bcast(sigma_Beta_sigma_init, root = 0)
+    sigma_Beta_ksi_init   = comm.bcast(sigma_Beta_ksi_init, root = 0)
 
     ########## Initialize ##################################################
     # %%
     # Initialize
+
+    ## ---- X_star ----
+    X_star_1t_current = X_star[:,rank]
+
     ## ---- R ----
     # log-scale number(s), at "rank time", at the knots
     R_current_log = np.array(R_init_log[:,rank])
@@ -566,15 +749,18 @@ if __name__ == "__main__":
                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
     cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
 
-    ## ---- GEV mu tau ksi (location, scale, shape) together ----
-    GEV_knots_current = GEV_knots_init
-    # will(?) be changed into matrix multiplication w/ more knots or Covariate:
-    Loc_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[0,0])
-    Scale_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[1,0])
-    Shape_matrix_current = np.full(shape = (num_sites,N), fill_value = GEV_knots_current[2,0])
+    ## ---- GEV covariate coefficients ----
+    Beta_mu_current     = Beta_mu_init
+    Beta_sigma_current  = Beta_sigma_init
+    Beta_ksi_current    = Beta_ksi_init
+    Loc_matrix_current   = (C_mu.T @ Beta_mu_current).T
+    Scale_matrix_current = (C_sigma.T @ Beta_sigma_current).T
+    Shape_matrix_current = (C_ksi.T @ Beta_ksi_current).T
 
-    ## ---- X_star ----
-    X_star_1t_current = X_star[:,rank]
+    ## ---- GEV covariate coefficients prior variance ----
+    sigma_Beta_mu_current    = sigma_Beta_mu_init
+    sigma_Beta_sigma_current = sigma_Beta_sigma_init
+    sigma_Beta_ksi_current   = sigma_Beta_ksi_init
 
     ########## Loops ##################################################
     # %%
@@ -596,7 +782,10 @@ if __name__ == "__main__":
                 np.save('R_trace_log', R_trace_log)
                 np.save('phi_knots_trace', phi_knots_trace)
                 np.save('range_knots_trace', range_knots_trace)
-                np.save('GEV_knots_trace', GEV_knots_trace)
+                # np.save('GEV_knots_trace', GEV_knots_trace)
+                np.save('Beta_mu_trace', Beta_mu_trace)
+                np.save('Beta_sigma_trace', Beta_sigma_trace)
+                np.save('Beta_ksi_trace', Beta_ksi_trace)
                 np.save('loglik_trace', loglik_trace)
                 np.save('loglik_detail_trace', loglik_detail_trace)
 
@@ -607,7 +796,10 @@ if __name__ == "__main__":
                 R_trace_log_thin = R_trace_log[0:iter:10,:,:]
                 phi_knots_trace_thin = phi_knots_trace[0:iter:10,:]
                 range_knots_trace_thin = range_knots_trace[0:iter:10,:]
-                GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
+                # GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
+                Beta_mu_trace_thin = Beta_mu_trace[0:iter:10,:]
+                Beta_sigma_trace_thin = Beta_sigma_trace[0:iter:10,:]
+                Beta_ksi_trace_thin = Beta_ksi_trace[0:iter:10,:]
                 loglik_trace_thin = loglik_trace[0:iter:10,:]
                 loglik_detail_trace_thin = loglik_detail_trace[0:iter:10,:]
 
@@ -633,7 +825,7 @@ if __name__ == "__main__":
                 # plt.plot(xs_thin2, R_trace_log_thin[:,1,1], label='knot 1 time 1')
                 # plt.plot(xs_thin2, R_trace_log_thin[:,1,2], label='knot 1 time 2')
                 for i in [0,4,8]:
-                    for t in np.arange(N)[np.arange(N) % 15 == 0]:
+                    for t in np.arange(Nt)[np.arange(Nt) % 15 == 0]:
                         plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
                         plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,i,t][-1]))
                 plt.title('traceplot for some R_t')
@@ -657,35 +849,68 @@ if __name__ == "__main__":
                 plt.close()
 
                 # ---- GEV ----
-                ## location mu
+                ## location coefficients
                 plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label = 'knot 0') # location
-                plt.title('traceplot for location')
+                for j in range(Beta_mu_m):
+                    plt.plot(xs_thin2, Beta_mu_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_mu s')
                 plt.xlabel('iter thinned by 10')
-                plt.ylabel('mu')
+                plt.ylabel('Beta_mu')
                 plt.legend()
-                plt.savefig('mu.pdf')
+                plt.savefig('Beta_mu.pdf')
                 plt.close()
+                ## scale coefficients
+                plt.subplots()
+                for j in range(Beta_sigma_m):
+                    plt.plot(xs_thin2, Beta_sigma_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_sigma_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_sigma s')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('Beta_sigma')
+                plt.legend()
+                plt.savefig('Beta_sigma.pdf')
+                plt.close()
+                ## shape coefficients
+                plt.subplots()
+                for j in range(Beta_ksi_m):
+                    plt.plot(xs_thin2, Beta_ksi_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_ksi_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_ksi s')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('Beta_ksi')
+                plt.legend()
+                plt.savefig('Beta_ksi.pdf')
+                plt.close()
+                # ## location mu
+                # plt.subplots()
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,0,0], label = 'knot 0') # location
+                # plt.title('traceplot for location')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('mu')
+                # plt.legend()
+                # plt.savefig('mu.pdf')
+                # plt.close()
 
-                ## scale tau
-                plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label = 'knot 0') # scale
-                plt.title('traceplot for scale')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('tau')
-                plt.legend()
-                plt.savefig('tau.pdf')
-                plt.close()
+                # ## scale sigma
+                # plt.subplots()
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,1,0], label = 'knot 0') # scale
+                # plt.title('traceplot for scale')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('sigma')
+                # plt.legend()
+                # plt.savefig('sigma.pdf')
+                # plt.close()
 
-                ## shape ksi
-                plt.subplots()
-                plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label = 'knot 0') # shape
-                plt.title('traceplot for shape')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('ksi')
-                plt.legend()
-                plt.savefig('ksi.pdf')
-                plt.close()
+                # ## shape ksi
+                # plt.subplots()
+                # plt.plot(xs_thin2, GEV_knots_trace_thin[:,2,0], label = 'knot 0') # shape
+                # plt.title('traceplot for shape')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('ksi')
+                # plt.legend()
+                # plt.savefig('ksi.pdf')
+                # plt.close()
 
                 # log-likelihood
                 plt.subplots()
@@ -771,17 +996,34 @@ if __name__ == "__main__":
                 sigma_m_sq['range_block3'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0['range_block3'] = Sigma_0['range_block3'] + gamma1*(Sigma_0_hat - Sigma_0['range_block3'])
                 
-                # GEV
-                r_hat = num_accepted['GEV']/25
-                num_accepted['GEV'] = 0
-                sample_cov = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
-                                                GEV_knots_trace[iter-25:iter,1,0].ravel()])) # tau scale
-                Sigma_0_hat = np.zeros((3,3)) # doing the hack because we are not updating ksi
-                Sigma_0_hat[2,2] = 1
-                Sigma_0_hat[0:2,0:2] += sample_cov
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
+                # # GEV
+                # r_hat = num_accepted['GEV']/25
+                # num_accepted['GEV'] = 0
+                # sample_cov = np.cov(np.array([GEV_knots_trace[iter-25:iter,0,0].ravel(), # mu location
+                #                                 GEV_knots_trace[iter-25:iter,1,0].ravel()])) # sigma scale
+                # Sigma_0_hat = np.zeros((3,3)) # doing the hack because we are not updating ksi
+                # Sigma_0_hat[2,2] = 1
+                # Sigma_0_hat[0:2,0:2] += sample_cov
+                # log_sigma_m_sq_hat = np.log(sigma_m_sq['GEV']) + gamma2*(r_hat - r_opt)
+                # sigma_m_sq['GEV'] = np.exp(log_sigma_m_sq_hat)
+                # Sigma_0['GEV'] = Sigma_0['GEV'] + gamma1*(Sigma_0_hat - Sigma_0['GEV'])
+
+                # GEV coefficients
+                ## Beta_mu
+                r_hat = num_accepted['Beta_mu']/25
+                num_accepted['Beta_mu'] = 0
+                log_sigma_m_sq_hat    = np.log(sigma_m_sq['Beta_mu']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['Beta_mu'] = np.exp(log_sigma_m_sq_hat)
+                ## Beta_sigma
+                r_hat = num_accepted['Beta_sigma']/25
+                num_accepted['Beta_sigma'] = 0
+                log_sigma_m_sq_hat       = np.log(sigma_m_sq['Beta_sigma']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['Beta_sigma'] = np.exp(log_sigma_m_sq_hat)
+                ## Beta_ksi
+                r_hat = num_accepted['Beta_ksi']/25
+                num_accepted['Beta_ksi'] = 0
+                log_sigma_m_sq_hat     = np.log(sigma_m_sq['Beta_ksi']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['Beta_ksi'] = np.exp(log_sigma_m_sq_hat)
         
         comm.Barrier() # block for adaptive update
 
@@ -789,7 +1031,7 @@ if __name__ == "__main__":
     # Actual Param Update ###############################################################################################
     #####################################################################################################################
 
-    #### ----- Update Rt ----- Parallelized Across N time
+        #### ----- Update Rt ----- Parallelized Across Nt time
         # if rank == 0:
         #     print('Updating R')
         # Propose a R at time "rank", on log-scale
@@ -838,7 +1080,7 @@ if __name__ == "__main__":
 
         comm.Barrier() # block for R_t updates
 
-    #### ----- Update phi ----- parallelized likelihood calculation across N time
+        #### ----- Update phi ----- parallelized likelihood calculation across Nt time
         # if rank == 0:
         #     print('Updating phi')
         # Propose new phi at the knots --> new phi vector
@@ -918,7 +1160,7 @@ if __name__ == "__main__":
 
         comm.Barrier() # block for phi updates
 
-    #### ----- Update range_vec ----- parallelized likelihood calculation across N time
+        #### ----- Update range_vec ----- parallelized likelihood calculation across Nt time
         # if rank == 0:
         #     print('Updating range')
         # Propose new range at the knots --> new range vector
@@ -1000,35 +1242,32 @@ if __name__ == "__main__":
 
         comm.Barrier() # block for range updates
 
-    #### ----- Update GEV mu tau ksi (location, scale, shape) together ----
-    #### ----- Do not update ksi -----
-        # if rank == 0:
-        #     print('Updating GEV')
-        # Propose new GEV params at the knots --> new GEV params vector
+        #### ----- Update covariate coefficients -----
         if rank == 0:
-            # random_walk = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
-            random_walk = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
-            GEV_knots_proposal = GEV_knots_current + random_walk
-            GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot, GEV params spatial stationary
-            GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
-            # GEV_knots_proposal[0:2,:] = GEV_knots_current[0:2,:] # hold location and scale constant
+            # make proposal variance scalar adaptive
+            Beta_mu_proposal    = Beta_mu_current    + np.sqrt(sigma_m_sq['Beta_mu'])*random_generator.normal(np.zeros(1), 1, size = Beta_mu_m)
+            Beta_sigma_proposal = Beta_sigma_current + np.sqrt(sigma_m_sq['Beta_sigma'])*random_generator.normal(np.zeros(1), 1, size = Beta_sigma_m)
+            Beta_ksi_proposal   = Beta_ksi_current   + np.sqrt(sigma_m_sq['Beta_ksi'])*random_generator.normal(np.zeros(1), 1, size = Beta_ksi_m)
         else:
-            GEV_knots_proposal = None
-        GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
+            Beta_mu_proposal    = None
+            Beta_sigma_proposal = None
+            Beta_ksi_proposal   = None
+        Beta_mu_proposal    = comm.bcast(Beta_mu_proposal, root = 0)
+        Beta_sigma_proposal = comm.bcast(Beta_sigma_proposal, root = 0)
+        Beta_ksi_proposal   = comm.bcast(Beta_ksi_proposal, root = 0)
 
-        # will be changed into matrix multiplication w/ more knots
-        Loc_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[0,0])
-        Scale_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[1,0])
-        Shape_matrix_proposal = np.full(shape = (num_sites,N), fill_value = GEV_knots_proposal[2,0])
+        Loc_matrix_proposal   = (C_mu.T @ Beta_mu_proposal).T
+        Scale_matrix_proposal = (C_sigma.T @ Beta_sigma_proposal).T
+        Shape_matrix_proposal = (C_ksi.T @ Beta_ksi_proposal).T
 
-        # Conditional Likelihodd at Current
+        # Conditional log likelihood at Current
         lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                        phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
-        # Conditional Likelihood at Proposed
-        Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:])
-        Shape_out_of_range = any(shape <= -0.5 for shape in GEV_knots_proposal[2,:]) or any(shape > 0.5 for shape in GEV_knots_proposal[2,:])
+        # Conditional log likelihood at proposal
+        Scale_out_of_range = np.any(scale <= 0 for scale in Scale_matrix_proposal)
+        Shape_out_of_range = np.any([shape <= -0.5 for shape in Shape_matrix_proposal]) or np.any([shape > 0.5 for shape in Shape_matrix_proposal])
         if Scale_out_of_range or Shape_out_of_range:
             X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
@@ -1039,71 +1278,188 @@ if __name__ == "__main__":
                                                             Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
-        # When fixing the GEV parameters
-        # X_star_1t_proposal = np.NINF
-        # lik_1t_proposal = np.NINF 
-
         # Gather likelihood calculated across time
         lik_gathered = comm.gather(lik_1t, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-        # Accept or Reject
         if rank == 0:
+            prior_Beta_mu_current    = scipy.stats.norm.logpdf(Beta_mu_current, loc=0, scale=sigma_Beta_mu_current)
+            prior_Beta_sigma_current = scipy.stats.norm.logpdf(Beta_sigma_current, loc=0, scale=sigma_Beta_sigma_current)
+            prior_Beta_ksi_current   = scipy.stats.norm.logpdf(Beta_ksi_current, loc=0, scale=sigma_Beta_ksi_current)
 
-            # for now there is only one set of GEV parameters
-            # (constant across all time and space)
-            # log-prior density for scale as P(tau) = 1/tau
-            prior_scale = -np.log(Scale_matrix_current[0][0])
-            prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
-
-            prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
-            prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+            prior_Beta_mu_proposal    = scipy.stats.norm.logpdf(Beta_mu_proposal, loc=0, scale=sigma_Beta_mu_current)
+            prior_Beta_sigma_proposal = scipy.stats.norm.logpdf(Beta_sigma_proposal, loc=0, scale=sigma_Beta_sigma_current)
+            prior_Beta_ksi_proposal   = scipy.stats.norm.logpdf(Beta_ksi_proposal, loc=0, scale=sigma_Beta_ksi_current)
             
-
-            GEV_accepted = False
-            lik = sum(lik_gathered) + prior_scale + prior_mu
-            lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal + prior_mu_proposal
+            lik_current = sum(lik_gathered) + \
+                sum(prior_Beta_mu_current) + sum(prior_Beta_sigma_current) + sum(prior_Beta_ksi_current)
+            lik_proposal = sum(lik_proposal_gathered) + \
+                sum(prior_Beta_mu_proposal) + sum(prior_Beta_sigma_proposal) + sum(prior_Beta_ksi_proposal)
 
             u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik)
+            ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
                 ratio = 0
             if u > ratio: # Reject
-                Loc_matrix_update = Loc_matrix_current
-                Scale_matrix_update = Scale_matrix_current
-                Shape_matrix_update = Shape_matrix_current
-                GEV_knots_update = GEV_knots_current
-            else: # Accept, u <= ratio
-                Loc_matrix_update = Loc_matrix_proposal
-                Scale_matrix_update = Scale_matrix_proposal
-                Shape_matrix_update = Shape_matrix_proposal
-                GEV_knots_update = GEV_knots_proposal
-                GEV_accepted = True
-                num_accepted['GEV'] += 1
-            
+                Beta_mu_accepted    = False
+                Beta_sigma_accepted = False
+                Beta_ksi_accepted   = False
+                Beta_mu_update      = Beta_mu_current
+                Beta_sigma_update   = Beta_sigma_current
+                Beta_ksi_update     = Beta_ksi_current
+            else: # Accept
+                Beta_mu_accepted    = True
+                Beta_sigma_accepted = True
+                Beta_ksi_accepted   = True
+                Beta_mu_update      = Beta_mu_proposal
+                Beta_sigma_update   = Beta_sigma_proposal
+                Beta_ksi_update     = Beta_ksi_proposal
+                num_accepted['Beta_mu']    += 1
+                num_accepted['Beta_sigma'] += 1
+                num_accepted['Beta_ksi']   += 1
+
             # Store the result
-            GEV_knots_trace[iter,:,:] = GEV_knots_update
+            Beta_mu_trace[iter, :]    = Beta_mu_update
+            Beta_sigma_trace[iter, :] = Beta_sigma_update
+            Beta_ksi_trace[iter, :]   = Beta_ksi_update
 
-            # Update the "current" value
-            Loc_matrix_current = Loc_matrix_update
-            Scale_matrix_current = Scale_matrix_update
-            Shape_matrix_current = Shape_matrix_update
-            GEV_knots_current = GEV_knots_update
-        else:
-            GEV_accepted = False
+            # Update the current value
+            Beta_mu_current     = Beta_mu_update
+            Beta_sigma_current  = Beta_sigma_update
+            Beta_ksi_current    = Beta_ksi_update
+        else: # not rank = 1
+            # other workers need to know acceptance, 
+            # b/c although adaptive MH is calculated under worker0, need to know if X_star changed
+            Beta_mu_accepted    = None
+            Beta_sigma_accepted = None
+            Beta_ksi_accepted   = None
+        
+        # Broadcast the update values
+        Beta_mu_current     = comm.bcast(Beta_mu_current, root = 0)
+        Beta_sigma_current  = comm.bcast(Beta_sigma_current, root = 0)
+        Beta_ksi_current    = comm.bcast(Beta_ksi_current, root = 0)
+        Beta_mu_accepted    = comm.bcast(Beta_mu_accepted, root = 0)
+        Beta_sigma_accepted = comm.bcast(Beta_sigma_accepted, root = 0)
+        Beta_ksi_accepted   = comm.bcast(Beta_ksi_accepted, root = 0)
 
-        # Brodcast the updated values
-        Loc_matrix_current = comm.bcast(Loc_matrix_current, root = 0)
-        Scale_matrix_current = comm.bcast(Scale_matrix_current, root = 0)
-        Shape_matrix_current = comm.bcast(Shape_matrix_current, root = 0)
-        GEV_knots_current = comm.bcast(GEV_knots_current, root = 0)
-        GEV_accepted = comm.bcast(GEV_accepted, root = 0)
+        Loc_matrix_current   = (C_mu.T @ Beta_mu_current).T
+        Scale_matrix_current = (C_sigma.T @ Beta_sigma_current).T
+        Shape_matrix_current = (C_ksi.T @ Beta_ksi_current).T
 
         # Update X_star
-        if GEV_accepted:
+        if Beta_mu_accepted:
             X_star_1t_current = X_star_1t_proposal
         
-        comm.Barrier() # block for GEV updates
+        comm.Barrier() # block for beta updates
+
+    #### ---- Update sigma_beta, the hyper priors -----
+
+        pass
+
+    # #### ----- Update GEV mu sigma ksi (location, scale, shape) together ----
+    # #### ----- Do not update ksi -----
+    #     # if rank == 0:
+    #     #     print('Updating GEV')
+    #     # Propose new GEV params at the knots --> new GEV params vector
+    #     if rank == 0:
+    #         # random_walk = random_generator.multivariate_normal(np.zeros(3), GEV_post_cov, size = k).T
+    #         random_walk = np.sqrt(sigma_m_sq['GEV'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['GEV'], size = k).T
+    #         GEV_knots_proposal = GEV_knots_current + random_walk
+    #         GEV_knots_proposal[:,1:] = np.vstack(GEV_knots_proposal[:,0]) # treat it as if it's only one knot, GEV params spatial stationary
+    #         GEV_knots_proposal[2,:] = GEV_knots_current[2,:] # hold ksi constant
+    #         # GEV_knots_proposal[0:2,:] = GEV_knots_current[0:2,:] # hold location and scale constant
+    #     else:
+    #         GEV_knots_proposal = None
+    #     GEV_knots_proposal = comm.bcast(GEV_knots_proposal, root = 0)
+
+    #     # will be changed into matrix multiplication w/ more knots
+    #     Loc_matrix_proposal = np.full(shape = (Ns,Nt), fill_value = GEV_knots_proposal[0,0])
+    #     Scale_matrix_proposal = np.full(shape = (Ns,Nt), fill_value = GEV_knots_proposal[1,0])
+    #     Shape_matrix_proposal = np.full(shape = (Ns,Nt), fill_value = GEV_knots_proposal[2,0])
+
+    #     # Conditional Likelihodd at Current
+    #     lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+    #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+    #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+
+    #     # Conditional Likelihood at Proposed
+    #     Scale_out_of_range = any(scale <= 0 for scale in GEV_knots_proposal[1,:])
+    #     Shape_out_of_range = any(shape <= -0.5 for shape in GEV_knots_proposal[2,:]) or any(shape > 0.5 for shape in GEV_knots_proposal[2,:])
+    #     if Scale_out_of_range or Shape_out_of_range:
+    #         X_star_1t_proposal = np.NINF
+    #         lik_1t_proposal = np.NINF
+    #     else:
+    #         X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank]),
+    #                                     phi_vec_current, gamma_vec)
+    #         lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+    #                                                         Loc_matrix_proposal[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_proposal[:,rank],
+    #                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        
+    #     # When fixing the GEV parameters
+    #     # X_star_1t_proposal = np.NINF
+    #     # lik_1t_proposal = np.NINF 
+
+    #     # Gather likelihood calculated across time
+    #     lik_gathered = comm.gather(lik_1t, root = 0)
+    #     lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+    #     # Accept or Reject
+    #     if rank == 0:
+
+    #         # for now there is only one set of GEV parameters
+    #         # (constant across all time and space)
+    #         # log-prior density for scale as P(sigma) = 1/sigma
+    #         prior_scale = -np.log(Scale_matrix_current[0][0])
+    #         prior_scale_proposal = -np.log(Scale_matrix_proposal[0][0])
+
+    #         prior_mu = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+    #         prior_mu_proposal = scipy.stats.norm.logpdf(Loc_matrix_current[0][0])
+            
+
+    #         GEV_accepted = False
+    #         lik = sum(lik_gathered) + prior_scale + prior_mu
+    #         lik_proposal = sum(lik_proposal_gathered) + prior_scale_proposal + prior_mu_proposal
+
+    #         u = random_generator.uniform()
+    #         ratio = np.exp(lik_proposal - lik)
+    #         if not np.isfinite(ratio):
+    #             ratio = 0
+    #         if u > ratio: # Reject
+    #             Loc_matrix_update = Loc_matrix_current
+    #             Scale_matrix_update = Scale_matrix_current
+    #             Shape_matrix_update = Shape_matrix_current
+    #             GEV_knots_update = GEV_knots_current
+    #         else: # Accept, u <= ratio
+    #             Loc_matrix_update = Loc_matrix_proposal
+    #             Scale_matrix_update = Scale_matrix_proposal
+    #             Shape_matrix_update = Shape_matrix_proposal
+    #             GEV_knots_update = GEV_knots_proposal
+    #             GEV_accepted = True
+    #             num_accepted['GEV'] += 1
+            
+    #         # Store the result
+    #         GEV_knots_trace[iter,:,:] = GEV_knots_update
+
+    #         # Update the "current" value
+    #         Loc_matrix_current = Loc_matrix_update
+    #         Scale_matrix_current = Scale_matrix_update
+    #         Shape_matrix_current = Shape_matrix_update
+    #         GEV_knots_current = GEV_knots_update
+    #     else:
+    #         GEV_accepted = False
+
+    #     # Brodcast the updated values
+    #     Loc_matrix_current = comm.bcast(Loc_matrix_current, root = 0)
+    #     Scale_matrix_current = comm.bcast(Scale_matrix_current, root = 0)
+    #     Shape_matrix_current = comm.bcast(Shape_matrix_current, root = 0)
+    #     GEV_knots_current = comm.bcast(GEV_knots_current, root = 0)
+    #     GEV_accepted = comm.bcast(GEV_accepted, root = 0)
+
+    #     # Update X_star
+    #     if GEV_accepted:
+    #         X_star_1t_current = X_star_1t_proposal
+        
+    #     comm.Barrier() # block for GEV updates
 
         # Keeping track of likelihood after this iteration
         lik_final_1t_detail = marg_transform_data_mixture_likelihood_1t_detail(Y[:,rank], X_star_1t_current, 
@@ -1126,7 +1482,10 @@ if __name__ == "__main__":
         np.save('R_trace_log', R_trace_log)
         np.save('phi_knots_trace', phi_knots_trace)
         np.save('range_knots_trace', range_knots_trace)
-        np.save('GEV_knots_trace', GEV_knots_trace)
+        # np.save('GEV_knots_trace', GEV_knots_trace)
+        np.save('Beta_mu_trace', Beta_mu_trace)
+        np.save('Beta_sigma_trace', Beta_sigma_trace)
+        np.save('Beta_ksi_trace', Beta_ksi_trace)
         np.save('loglik_trace', loglik_trace)
         np.save('loglik_detail_trace', loglik_detail_trace)
 
