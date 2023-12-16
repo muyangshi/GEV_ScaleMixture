@@ -569,6 +569,21 @@ if __name__ == "__main__":
 
     # GEV_post_cov = 1e-4 * np.identity(3)
 
+    Beta_mu_post_cov = np.array([
+        [ 2.29577829e-02, -1.67907759e-03, -1.89650871e-03],
+        [-1.67907759e-03,  2.33068787e-04,  8.47871395e-05],
+        [-1.89650871e-03,  8.47871395e-05,  2.94020313e-04]])
+    # Beta_mu_post_cov = 1e-4 * np.identity(Beta_mu_m)
+    assert Beta_mu_m == Beta_mu_post_cov.shape[0]
+
+    Beta_logsigma_post_cov = np.array([[0.0020143]])
+    # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
+    assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
+
+    Beta_ksi_post_cov = np.array([[0.00103451]])
+    # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
+    assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
+
     ########## Adaptive Update Initialization ############################################
     # Scalors for adaptive updates
     # (phi, range, GEV) these parameters are only proposed on worker 0
@@ -580,10 +595,17 @@ if __name__ == "__main__":
             'range_block1'  : (2.4**2)/3,
             'range_block2'  : (2.4**2)/3,
             'range_block3'  : (2.4**2)/3,
-            'Beta_mu'       : (1e-4) * (2.4**2)/Beta_mu_m,
-            'Beta_logsigma'    : (1e-4) * (2.4**2)/Beta_logsigma_m,
-            'Beta_ksi'      : (1e-4) * (2.4**2)/Beta_ksi_m
+            'Beta_mu'       : (2.4**2)/Beta_mu_m,
+            'Beta_logsigma' : (2.4**2)/Beta_logsigma_m,
+            'Beta_ksi'      : (2.4**2)/Beta_ksi_m
         }
+        # individual proposal scale for each coefficients
+        # for j in range(Beta_mu_m):
+        #     sigma_m_sq['Beta_mu_'+str(j)] = (1e-4) * (2.4**2)
+        # for j in range(Beta_logsigma_m):
+        #     sigma_m_sq['Beta_logsigma_'+str(j)] = (1e-4) * (2.4**2)
+        # for j in range(Beta_ksi_m):
+        #     sigma_m_sq['Beta_ksi_'+str(j)] = (1e-4) * (2.4**2)
 
         # initialize them with posterior covariance matrix
         Sigma_0 = {
@@ -592,7 +614,10 @@ if __name__ == "__main__":
             'phi_block3'    : phi_post_cov[6:9,6:9],
             'range_block1'  : range_post_cov[0:3,0:3],
             'range_block2'  : range_post_cov[3:6,3:6],
-            'range_block3'  : range_post_cov[6:9,6:9]
+            'range_block3'  : range_post_cov[6:9,6:9],
+            'Beta_mu'       : Beta_mu_post_cov,
+            'Beta_logsigma' : Beta_logsigma_post_cov,
+            'Beta_ksi'      : Beta_ksi_post_cov
         }
 
         num_accepted = {
@@ -603,6 +628,12 @@ if __name__ == "__main__":
             'Beta_logsigma'  : 0,
             'Beta_ksi'    : 0
         }
+        # for j in range(Beta_mu_m):
+        #     num_accepted['Beta_mu_'+str(j)] = 0
+        # for j in range(Beta_logsigma_m):
+        #     num_accepted['Beta_logsigma_'+str(j)] = 0
+        # for j in range(Beta_ksi_m):
+        #     num_accepted['Beta_ksi_'+str(j)] = 0
 
     # Rt: each worker t proposed Rt at k knots at time t
     if rank == 0:
@@ -952,16 +983,22 @@ if __name__ == "__main__":
                 num_accepted['Beta_mu'] = 0
                 log_sigma_m_sq_hat    = np.log(sigma_m_sq['Beta_mu']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['Beta_mu'] = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat           = np.cov(Beta_mu_trace[iter-adapt_size:iter].T)
+                Sigma_0['Beta_mu']    = Sigma_0['Beta_mu'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_mu'])
                 ## Beta_logsigma
                 r_hat = num_accepted['Beta_logsigma']/adapt_size
                 num_accepted['Beta_logsigma'] = 0
-                log_sigma_m_sq_hat       = np.log(sigma_m_sq['Beta_logsigma']) + gamma2*(r_hat - r_opt)
+                log_sigma_m_sq_hat          = np.log(sigma_m_sq['Beta_logsigma']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['Beta_logsigma'] = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                 = np.array(np.matrix(np.cov(Beta_logsigma_trace[iter-adapt_size:iter].T)))
+                Sigma_0['Beta_logsigma']    = Sigma_0['Beta_logsigma'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_logsigma'])
                 ## Beta_ksi
                 r_hat = num_accepted['Beta_ksi']/adapt_size
                 num_accepted['Beta_ksi'] = 0
                 log_sigma_m_sq_hat     = np.log(sigma_m_sq['Beta_ksi']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['Beta_ksi'] = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat            = np.array(np.matrix(np.cov(Beta_ksi_trace[iter-adapt_size:iter].T)))
+                Sigma_0['Beta_ksi']    = Sigma_0['Beta_ksi'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_ksi'])
         
         comm.Barrier() # block for adaptive update
 
@@ -1197,7 +1234,15 @@ if __name__ == "__main__":
 
         # Propose new Beta_mu --> new mu surface
         if rank == 0:
-            Beta_mu_proposal = Beta_mu_current + np.sqrt(sigma_m_sq['Beta_mu'])*random_generator.normal(0, 1, size = Beta_mu_m)
+            # Beta_mu's share a same proposal scale, no proposal matrix
+            # Beta_mu_proposal = Beta_mu_current + np.sqrt(sigma_m_sq['Beta_mu'])*random_generator.normal(0, 1, size = Beta_mu_m)
+            
+            # Beta_mu's share a smae proposal scale, ALSO HAS proposal matrix
+            Beta_mu_proposal = Beta_mu_current + np.sqrt(sigma_m_sq['Beta_mu']) * \
+                                                random_generator.multivariate_normal(np.zeros(Beta_mu_m), Sigma_0['Beta_mu'])
+            
+            # Beta_mu's have individual proposal scale, no proposal matrix
+            # Beta_mu_proposal = Beta_mu_current + np.array([np.sqrt(sigma_m_sq['Beta_mu_'+str(j)])*random_generator.normal(0,1) for j in range(Beta_mu_m)])
         else:    
             Beta_mu_proposal = None
         Beta_mu_proposal    = comm.bcast(Beta_mu_proposal, root = 0)
@@ -1268,7 +1313,12 @@ if __name__ == "__main__":
 
         # Propose new Beta_logsigma --> new sigma surface
         if rank == 0:
-            Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma'])*random_generator.normal(np.zeros(1), 1, size = Beta_logsigma_m)
+            # Beta_logsigma's share a same proposal scale, no proposal matrix
+            # Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma'])*random_generator.normal(np.zeros(1), 1, size = Beta_logsigma_m)
+            
+            # Beta_logsigma's share a smae proposal scale, ALSO HAS proposal matrix
+            Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma']) * \
+                                                random_generator.multivariate_normal(np.zeros(Beta_logsigma_m), Sigma_0['Beta_logsigma'])
         else:
             Beta_logsigma_proposal = None
         Beta_logsigma_proposal   = comm.bcast(Beta_logsigma_proposal, root = 0)
@@ -1342,7 +1392,12 @@ if __name__ == "__main__":
 
         # Propose new Beta_ksi --> new ksi surface
         if rank == 0:
-            Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi'])*random_generator.normal(np.zeros(1), 1, size = Beta_ksi_m)
+            # Beta_kis's share a same proposal scale, no proposal matrix
+            # Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi'])*random_generator.normal(np.zeros(1), 1, size = Beta_ksi_m)
+            
+            # Beta_ksi's share a same proposal scale, ALSO HAS proposal matrix
+            Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi']) * \
+                                                random_generator.multivariate_normal(np.zeros(Beta_ksi_m), Sigma_0['Beta_ksi'])
         else:
             Beta_ksi_proposal = None
         Beta_ksi_proposal     = comm.bcast(Beta_ksi_proposal, root = 0)

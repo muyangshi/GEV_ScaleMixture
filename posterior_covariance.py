@@ -13,7 +13,16 @@ phi_knots_trace = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log = np.load(folder + 'R_trace_log.npy')
 range_knots_trace = np.load(folder + 'range_knots_trace.npy')
 GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
-xs = np.arange(30000)
+
+Beta_mu_trace = np.load('Beta_mu_trace.npy')
+Beta_mu_trace = Beta_mu_trace[0:30300]
+
+Beta_logsigma_trace = np.load('Beta_logsigma_trace.npy')
+Beta_logsigma_trace = Beta_logsigma_trace[0:30300]
+
+Beta_ksi_trace = np.load('Beta_ksi_trace.npy')
+Beta_ksi_trace = Beta_ksi_trace[0:30300]
+
 
 # phi_knots_trace = phi_knots_trace[500:, :]
 # range_knots_trace = range_knots_trace[22000:, :]
@@ -37,4 +46,11 @@ np.corrcoef(np.insert(phi, 0, [mu,tau], 0))
 # np.cov(np.vstack((mu, tau,phi)))
 # np.corrcoef(np.vstack((mu, tau,phi)))
 
+Beta_mu_m = Beta_mu_trace.shape[1]
+Beta_mu_post_cov = np.cov(Beta_mu_trace.T)
+# Beta_mu_post_cov = np.cov(np.array([Beta_mu_trace[:,j].ravel() for j in range(Beta_mu_m)]))
+
+Beta_logsigma_post_cov = np.cov(Beta_logsigma_trace.T)
+
+Beta_ksi_post_cov = np.cov(Beta_ksi_trace.T)
 # %%
