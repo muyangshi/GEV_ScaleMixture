@@ -972,83 +972,90 @@ if __name__ == "__main__":
         ###########################################################
         #### ----- Update Rt ----- Parallelized Across Nt time ####
         ###########################################################
-        # if rank == 0:
-        #     print('Updating R')
+        
         # Propose a R at time "rank", on log-scale
-
         # Propose a R using adaptive update
         R_proposal_log = np.sqrt(sigma_m_sq_Rt)*random_generator.normal(loc = 0.0, scale = 1.0, size = k) + R_current_log
         # R_proposal_log = np.sqrt(sigma_m_sq_Rt)*np.repeat(random_generator.normal(loc = 0.0, scale = 1.0, size = 1), k) + R_current_log # spatially cst R(t)
 
-        # Conditional Likelihood at Current
+        # Conditional log likelihood at Current
         R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
-
-        # log-likelihood:
-        lik = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        if iter == 1: # otherwise lik_1t_current will be inherited
+            lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # log-prior density
-        prior = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
-        # prior = prior/k # if R(t) is spatially constant
+        prior_1t_current = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
+        # prior_1t_current = prior_1t_current/k # if R(t) is spatially constant
 
-        # Conditional Likelihood at Proposal
+        # Conditional log likelihood at Proposal
         R_vec_proposal = wendland_weight_matrix @ np.exp(R_proposal_log)
         # if np.any(~np.isfinite(R_vec_proposal**phi_vec_current)): print("Negative or zero R, iter=", iter, ", rank=", rank, R_vec_proposal[0], phi_vec_current[0])
-        lik_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
                                                         phi_vec_current, gamma_vec, R_vec_proposal, cholesky_matrix_current)
-        prior_proposal = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log), scale = gamma) + R_proposal_log)
-        # prior_proposal = prior_proposal/k # if R(t) is spatially constant
+        prior_1t_proposal = np.sum(scipy.stats.levy.logpdf(np.exp(R_proposal_log), scale = gamma) + R_proposal_log)
+        # prior_1t_proposal = prior_1t_proposal/k # if R(t) is spatially constant
+
+        # Gather likelihood calculated across time
+        # no need of R(t) because each worker takes care of one
 
         # Accept or Reject
         u = random_generator.uniform()
-        ratio = np.exp(lik_proposal + prior_proposal - lik - prior)
+        ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
+        if not np.isfinite(ratio):
+            ratio = 0 # Force a rejection
         if u > ratio: # Reject
+            Rt_accepted = False
             R_update_log = R_current_log
         else: # Accept, u <= ratio
+            Rt_accepted = True
             R_update_log = R_proposal_log
             num_accepted_Rt += 1
         
+        # Store the result
+        R_update_log_gathered = comm.gather(R_update_log, root=0)
+        if rank == 0:
+            R_trace_log[iter,:,:] = np.vstack(R_update_log_gathered).T
+
+        # Update the current values
         R_current_log = R_update_log
         R_vec_current = wendland_weight_matrix @ np.exp(R_current_log)
         
-        # Gather across N_t, store into trace matrix
-        R_current_log_gathered = comm.gather(R_current_log, root=0)
+        # Update the likelihood (to ease computation below)
+        if Rt_accepted:
+            lik_1t_current = lik_1t_proposal
         
-        if rank == 0:
-            R_trace_log[iter,:,:] = np.vstack(R_current_log_gathered).T
-
         comm.Barrier() # block for R_t updates
 
         ###################################################################################
         #### ----- Update phi ----- parallelized likelihood calculation across Nt time ####
         ###################################################################################
-        # if rank == 0:
-        #     print('Updating phi')
+
         # Propose new phi at the knots --> new phi vector
         if rank == 0:
             random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
             random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
-            random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-            # random_walk_perturb = np.repeat(random_walk_perturb[0], k) # keep phi spatially constant
-            phi_knots_proposal = phi_knots_current + random_walk_perturb
+            random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+            # random_walk_kx1 = np.repeat(random_walk_kx1[0], k) # keep phi spatially constant
+            phi_knots_proposal = phi_knots_current + random_walk_kx1
         else:
             phi_knots_proposal = None
         phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
-
         phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
 
         # Conditional Likelihood at Current
-        lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                        phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # No need to re-calculate because likelihood inherit from above
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
         # Conditional Likelihood at Proposed
         phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
 
         if phi_out_of_range: #U(0,1] prior
-            X_star_1t_proposal = np.NINF
+            # X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
         else: # 0 < phi <= 1
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
@@ -1057,29 +1064,29 @@ if __name__ == "__main__":
                                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                             phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
         
-        # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
+        # Gather likelihood calculated across time (no prior yet)
+        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-        # Accept or Reject
+        # Handle prior and (Accept or Reject) on worker 0
         if rank == 0:
-            phi_accepted = False
-
             # use Beta(5,5) prior on each one of the k range parameters
-            lik = sum(lik_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
+            lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
             lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
 
+            # Accept or Reject
             u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik)
+            ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
                 ratio = 0
             if u > ratio: # Reject
-                phi_vec_update = phi_vec_current
+                phi_accepted     = False
+                phi_vec_update   = phi_vec_current
                 phi_knots_update = phi_knots_current
             else: # Accept, u <= ratio
-                phi_vec_update = phi_vec_proposal
+                phi_accepted     = True
+                phi_vec_update   = phi_vec_proposal
                 phi_knots_update = phi_knots_proposal
-                phi_accepted = True
                 num_accepted['phi'] += 1
             
             # Store the result
@@ -1089,43 +1096,43 @@ if __name__ == "__main__":
             phi_vec_current = phi_vec_update
             phi_knots_current = phi_knots_update
         else:
-            phi_accepted = False
+            phi_accepted = None
 
         # Brodcast the updated values
-        phi_vec_current = comm.bcast(phi_vec_current, root = 0)
+        phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
         phi_knots_current = comm.bcast(phi_knots_current, root = 0)
-        phi_accepted = comm.bcast(phi_accepted, root = 0)
+        phi_accepted      = comm.bcast(phi_accepted, root = 0)
 
-        # Update X_star
+        # Update X_star and likelihood
         if phi_accepted:
             X_star_1t_current = X_star_1t_proposal
+            lik_1t_current = lik_1t_proposal
 
         comm.Barrier() # block for phi updates
 
         #########################################################################################
         #### ----- Update range_vec ----- parallelized likelihood calculation across Nt time ####
         #########################################################################################
-        # if rank == 0:
-        #     print('Updating range')
+        
         # Propose new range at the knots --> new range vector
         if rank == 0:
             random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
             random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
             random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
-            random_walk_perturb = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-            range_knots_proposal = range_knots_current + random_walk_perturb
+            random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+            range_knots_proposal = range_knots_current + random_walk_kx1
         else:
             range_knots_proposal = None
         range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
-
         range_vec_proposal = gaussian_weight_matrix @ range_knots_proposal
 
-        # Conditional Likelihood at Current
-        lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                        phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # Conditional log Likelihood at Current
+        # No need to re-calculate because likelihood inherit from above
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
-        # Conditional Likelihood at Proposed
+        # Conditional log Likelihood at Proposed
         if any(range <= 0 for range in range_knots_proposal):
             lik_1t_proposal = np.NINF
         else:
@@ -1137,29 +1144,29 @@ if __name__ == "__main__":
                                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
 
-        # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
+        # Gather likelihood calculated across time (no prior yet)
+        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-        # Accept or Reject
+        # Handle prior and (Accept or Reject) on worker 0
         if rank == 0:
-            range_accepted = False
-
             # use Half-Normal Prior on each one of the k range parameters
-            lik = sum(lik_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
+            lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
             lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
 
+            # Accept or Reject
             u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik)
+            ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
                 ratio = 0 # Force a rejection
             if u > ratio: # Reject
-                range_vec_update = range_vec_current
+                range_accepted     = False
+                range_vec_update   = range_vec_current
                 range_knots_update = range_knots_current
             else: # Accept, u <= ratio
-                range_vec_update = range_vec_proposal
+                range_accepted     = True
+                range_vec_update   = range_vec_proposal
                 range_knots_update = range_knots_proposal
-                range_accepted = True
                 num_accepted['range'] += 1
             
             # Store the result
@@ -1169,37 +1176,38 @@ if __name__ == "__main__":
             range_vec_current = range_vec_update
             range_knots_current = range_knots_update
         else:
-            range_accepted = False
+            range_accepted = None
 
         # Brodcast the updated values
-        range_vec_current = comm.bcast(range_vec_current, root = 0)
+        range_vec_current   = comm.bcast(range_vec_current, root = 0)
         range_knots_current = comm.bcast(range_knots_current, root = 0)
-        range_accepted = comm.bcast(range_accepted, root = 0)
+        range_accepted      = comm.bcast(range_accepted, root = 0)
 
-        # Update the K
+        # Update the K, cholesky_matrix, and likelihood
         if range_accepted:
-            # K_current = ns_cov(range_vec = range_vec_current,
-            #                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
-            # cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
             K_current = K_proposal
             cholesky_matrix_current = cholesky_matrix_proposal
+            lik_1t_current = lik_1t_proposal
 
         comm.Barrier() # block for range updates
 
         #############################################################
         #### ----- Update covariate coefficients, Beta_mu ----- #####
         #############################################################
+
+        # Propose new Beta_mu --> new mu surface
         if rank == 0:
-            Beta_mu_proposal = Beta_mu_current + np.sqrt(sigma_m_sq['Beta_mu'])*random_generator.normal(np.zeros(1), 1, size = Beta_mu_m)
+            Beta_mu_proposal = Beta_mu_current + np.sqrt(sigma_m_sq['Beta_mu'])*random_generator.normal(0, 1, size = Beta_mu_m)
         else:    
             Beta_mu_proposal = None
         Beta_mu_proposal    = comm.bcast(Beta_mu_proposal, root = 0)
         Loc_matrix_proposal = (C_mu.T @ Beta_mu_proposal).T
 
         # Conditional log likelihood at current
-        lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # No need to re-calculate because likelihood inherit from above
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
         # Conditional log likelihood at proposal
         X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
@@ -1209,16 +1217,19 @@ if __name__ == "__main__":
                                                         phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
         # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
+        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
+        # Handle prior and (Accept or Reject) on worker 0
         if rank == 0:
+            # use Norm(0, sigma_Beta_mu) prior on each Beta_mu, like "shrinkage"
             prior_Beta_mu_current  = scipy.stats.norm.logpdf(Beta_mu_current, loc=0, scale=sigma_Beta_mu_current)
             prior_Beta_mu_proposal = scipy.stats.norm.logpdf(Beta_mu_proposal, loc=0, scale=sigma_Beta_mu_current)
 
-            lik_current  = sum(lik_gathered) + sum(prior_Beta_mu_current)
+            lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu_current)
             lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu_proposal)
 
+            # Accept or Reject
             u = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
@@ -1243,15 +1254,19 @@ if __name__ == "__main__":
         Beta_mu_accepted = comm.bcast(Beta_mu_accepted, root = 0)
         Beta_mu_current  = comm.bcast(Beta_mu_current, root = 0)
 
+        # Update X_star, mu surface, and likelihood
         if Beta_mu_accepted:
-            X_star_1t_current = X_star_1t_proposal
+            X_star_1t_current  = X_star_1t_proposal
             Loc_matrix_current = (C_mu.T @ Beta_mu_current).T
+            lik_1t_current     = lik_1t_proposal
         
         comm.Barrier() # block for beta_mu updates
 
-        ###############################################################
+        ##################################################################
         #### ----- Update covariate coefficients, Beta_logsigma ----- ####
-        ###############################################################
+        ##################################################################
+
+        # Propose new Beta_logsigma --> new sigma surface
         if rank == 0:
             Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma'])*random_generator.normal(np.zeros(1), 1, size = Beta_logsigma_m)
         else:
@@ -1260,12 +1275,14 @@ if __name__ == "__main__":
         Scale_matrix_proposal = np.exp((C_sigma.T @ Beta_logsigma_proposal).T)
         
         # Conditional log likelihood at Current
-        lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # No need to re-calculate, inherit from above
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # Conditional log likelihood at proposal
-        if np.any(scale <= 0 for scale in Scale_matrix_proposal):
-            X_star_1t_proposal = np.NINF
+        # if np.any([scale <= 0 for scale in Scale_matrix_proposal]):
+        if np.any(Scale_matrix_proposal <= 0):
+            # X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
         else:
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank]),
@@ -1274,16 +1291,19 @@ if __name__ == "__main__":
                                                             Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
+        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
+        # Handle prior and (Accept or Reject) on worker 0
         if rank == 0:
+            # use Norm(0, sigma_Beta_sigma) prior on each Beta_sigma, like "shrinkage"
             prior_Beta_logsigma_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, loc=0, scale=sigma_Beta_logsigma_current)
             prior_Beta_logsigma_proposal = scipy.stats.norm.logpdf(Beta_logsigma_proposal, loc=0, scale=sigma_Beta_logsigma_current)
 
-            lik_current  = sum(lik_gathered) + sum(prior_Beta_logsigma_current)
+            lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_logsigma_current)
             lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_logsigma_proposal)
 
+            # Accept or Reject
             u = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
@@ -1308,16 +1328,19 @@ if __name__ == "__main__":
         Beta_logsigma_accepted = comm.bcast(Beta_logsigma_accepted, root = 0)
         Beta_logsigma_current  = comm.bcast(Beta_logsigma_current, root = 0)
 
-        # Update X_star
+        # Update X_star, sigma surface, and likelihood
         if Beta_logsigma_accepted:
             X_star_1t_current = X_star_1t_proposal
             Scale_matrix_current = np.exp((C_sigma.T @ Beta_logsigma_current).T)
+            lik_1t_current = lik_1t_proposal
         
         comm.Barrier() # block for beta_logsigma updates
 
         #############################################################
         #### ----- Update covariate coefficients, Beta_ksi ----- ####
         #############################################################
+
+        # Propose new Beta_ksi --> new ksi surface
         if rank == 0:
             Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi'])*random_generator.normal(np.zeros(1), 1, size = Beta_ksi_m)
         else:
@@ -1326,14 +1349,16 @@ if __name__ == "__main__":
         Shape_matrix_proposal = (C_ksi.T @ Beta_ksi_proposal).T
 
         # Conditional log likelihood at Current
-        lik_1t = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # No need to re-calculate, inherit from above
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
         # Conditional log likelihood at proposal
-        Shape_out_of_range = np.any([shape <= -0.5 for shape in Shape_matrix_proposal]) or np.any([shape > 0.5 for shape in Shape_matrix_proposal])
+        # Shape_out_of_range = np.any([shape <= -0.5 for shape in Shape_matrix_proposal]) or np.any([shape > 0.5 for shape in Shape_matrix_proposal])
+        Shape_out_of_range = np.any(Shape_matrix_proposal <= -0.5) or np.any(Shape_matrix_proposal > 0.5)
         if Shape_out_of_range:
-            X_star_1t_proposal = np.NINF
+            # X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
         else:
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank]),
@@ -1343,16 +1368,19 @@ if __name__ == "__main__":
                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
         # Gather likelihood calculated across time
-        lik_gathered = comm.gather(lik_1t, root = 0)
+        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
+        # Handle prior and (Accept or Reject) on worker 0
         if rank == 0:
+            # use Norm(0, sigma_Beta_ksi) prior on each Beta_ksi, like "shrinkage"
             prior_Beta_ksi_current  = scipy.stats.norm.logpdf(Beta_ksi_current, loc=0, scale=sigma_Beta_ksi_current)
             prior_Beta_ksi_proposal = scipy.stats.norm.logpdf(Beta_ksi_proposal, loc=0, scale=sigma_Beta_ksi_current)
             
-            lik_current = sum(lik_gathered) + sum(prior_Beta_ksi_current)
+            lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_ksi_current)
             lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_ksi_proposal)
 
+            # Accept or Reject
             u = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
@@ -1382,6 +1410,7 @@ if __name__ == "__main__":
         if Beta_ksi_accepted:
             X_star_1t_current = X_star_1t_proposal
             Shape_matrix_current = (C_ksi.T @ Beta_ksi_current).T
+            lik_1t_current = lik_1t_proposal
 
         comm.Barrier() # block for beta updates
 
@@ -1389,8 +1418,10 @@ if __name__ == "__main__":
 
         pass
 
-
-        # Keeping track of likelihood after this iteration
+        ######################################################################
+        #### ----- Keeping track of likelihood after this iteration ----- ####
+        ######################################################################
+    
         lik_final_1t_detail = marg_transform_data_mixture_likelihood_1t_detail(Y[:,rank], X_star_1t_current, 
                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
