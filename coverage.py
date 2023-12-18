@@ -19,7 +19,7 @@ from utilities import *
 from time import strftime, localtime
 
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario1'
+simulation_case = 'scenario2'
 
 #####################################################################################################################
 # Generating Dataset ################################################################################################
@@ -228,7 +228,7 @@ match simulation_case:
                     0.37).all()# scenario 3
 
 sim_id_from = 1
-sim_id_to = 24
+sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 
 # bad sim for scenario 1 with 9 knots CORRECT VERSION
