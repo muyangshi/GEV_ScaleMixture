@@ -94,6 +94,22 @@ def qgev(p, Loc, Scale, Shape):
         p = np.array(p)  
     return scipy.stats.genextreme.ppf(p, c=-Shape, loc=Loc, scale=Scale)  # Opposite shape
 
+# Half-t distribution with nu degrees of freedom
+def dhalft(y, nu, mu=0, sigma=1):
+    if y >= mu:
+        return 2*scipy.stats.t.pdf(y, nu, mu, sigma)
+    else: # y < mu
+        return 0
+
+def phalft(y, nu, mu=0, sigma=1):
+    if y >= mu:
+        return 2*scipy.stats.t.cdf(y, nu, mu, sigma) - 1
+    else: # y < mu
+        return 0
+
+def rhalft(y, nu, mu=0, sigma=1):
+    return mu + np.abs(scipy.stats.t.rvs(nu, 0, sigma))
+
 
 # %%
 # specify g(Z) transformation

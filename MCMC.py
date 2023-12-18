@@ -56,7 +56,7 @@ if __name__ == "__main__":
     np.random.seed(data_seed)
     Nt = 32 # number of time replicates
     Ns = 25 # number of sites/stations
-    n_iters = 15000
+    n_iters = 5000
 
     # ----------------------------------------------------------------------------------------------------------------
     # Sites - random uniformly (x,y) generate site locations
@@ -241,16 +241,19 @@ if __name__ == "__main__":
     # Proposal Variance Scalar, Covariance Matrix, and Counter
     if rank == 0: # Handle phi, range, GEV on Worker 0
         sigma_m_sq = { # proposal variance scalar
-            'phi_block1'    : (2.4**2)/3,
-            'phi_block2'    : (2.4**2)/3,
-            'phi_block3'    : (2.4**2)/3,
-            'range_block1'  : (2.4**2)/3,
-            'range_block2'  : (2.4**2)/3,
-            'range_block3'  : (2.4**2)/3,
-            # 'GEV'           : (2.4**2)/3
-            'Beta_mu0'      : (2.4**2)/Beta_mu0_m,
-            'Beta_logsigma' : (2.4**2)/Beta_logsigma_m,
-            'Beta_ksi'      : (2.4**2)/Beta_ksi_m
+            'phi_block1'          : (2.4**2)/3,
+            'phi_block2'          : (2.4**2)/3,
+            'phi_block3'          : (2.4**2)/3,
+            'range_block1'        : (2.4**2)/3,
+            'range_block2'        : (2.4**2)/3,
+            'range_block3'        : (2.4**2)/3,
+            # 'GEV'                 : (2.4**2)/3
+            'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
+            'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
+            'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
+            'sigma_Beta_mu0'      : (2.4**2),
+            'sigma_Beta_logsigma' : (2.4**2),
+            'sigma_Beta_ksi'      : (2.4**2)
         }
 
         Sigma_0 = { # proposal covariance matrix
@@ -267,12 +270,15 @@ if __name__ == "__main__":
         }
 
         num_accepted = { # acceptance counter
-            'phi'           : 0,
-            'range'         : 0,
-            # 'GEV'           : 0,
-            'Beta_mu0'      : 0,
-            'Beta_logsigma' : 0,
-            'Beta_ksi'      : 0
+            'phi'                 : 0,
+            'range'               : 0,
+            # 'GEV'                 : 0,
+            'Beta_mu0'            : 0,
+            'Beta_logsigma'       : 0,
+            'Beta_ksi'            : 0,
+            'sigma_Beta_mu0'      : 0,
+            'sigma_Beta_logsigma' : 0,
+            'sigma_Beta_ksi'      : 0
         }
 
     # Rt: each Worker_t propose k-R(t)s at time t
@@ -645,6 +651,8 @@ if __name__ == "__main__":
     ###########                Metropolis-Hasting Updates                ################################################
     #####################################################################################################################
 
+    comm.Barrier() # Blocking before the update starts
+
     # %% 8. Storage for Traceplots
     # 8. Storage for Traceplots -----------------------------------------------
 
@@ -702,6 +710,8 @@ if __name__ == "__main__":
     X_star_1t_current = X_star[:,rank]
 
     ## ---- log(R) --------------------------------------------------------------------------------------------
+    # note: directly comm.scatter an numpy nd array along an axis is tricky,
+    #       hence we first "redundantly" broadcast an entire R_matrix then split
     R_matrix_init_log = comm.bcast(R_matrix_init_log, root = 0) # matrix (k, Nt)
     R_current_log     = np.array(R_matrix_init_log[:,rank]) # vector (k,)
     R_vec_current     = wendland_weight_matrix @ np.exp(R_current_log)
@@ -1207,9 +1217,96 @@ if __name__ == "__main__":
         comm.Barrier() # block for beta updates
 
         # %% Update sigma_beta_xx
-        #### ---- Update sigma_beta, the hyper priors -----
+        #################################################################
+        ## ---- Update sigma_beta_xx, priors variance for Beta_xx ---- ##
+        #################################################################
 
-        pass
+        # Propose new sigma_beta_xx
+        if rank == 0:
+            sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * \
+                                                                            random_generator.standard_normal()
+            sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * \
+                                                                            random_generator.standard_normal()
+            sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * \
+                                                                            random_generator.standard_normal()
+        # Handle accept or reject on worker0
+            # use Half-t(4) hyperprior on the sigma_Beta_xx priors
+            lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
+            lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
+
+            lik_sigma_Beta_logsigma_current  = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
+            lik_sigma_Beta_logsigma_proposal = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
+
+            lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
+            lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
+
+            # Beta_mu_xx at current/proposal prior
+            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
+            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
+
+            lik_Beta_logsigma_prior_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
+            lik_Beta_logsigma_prior_proposal = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
+            
+            lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
+            lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
+
+            # Beta_xx not changed, so no need to calculate the data likelihood
+            lik_current = lik_sigma_Beta_mu0_current + \
+                          lik_sigma_Beta_logsigma_current + \
+                          lik_sigma_Beta_ksi_current + \
+                          sum(lik_Beta_mu0_prior_current) + \
+                          sum(lik_Beta_logsigma_prior_current) + \
+                          sum(lik_Beta_ksi_prior_current)
+            lik_proposal = lik_sigma_Beta_mu0_proposal + \
+                           lik_sigma_Beta_logsigma_proposal + \
+                           lik_sigma_Beta_ksi_proposal + \
+                           sum(lik_Beta_mu0_prior_proposal) + \
+                           sum(lik_Beta_logsigma_prior_proposal) + \
+                           sum(lik_Beta_ksi_prior_proposal)
+
+            # Accept or Reject
+            u = random_generator.uniform()
+            ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio):
+                ratio = 0
+            if u > ratio: # Reject
+                sigma_Beta_mu0_accepted      = False
+                sigma_Beta_mu0_update        = sigma_Beta_mu0_current
+
+                sigma_Beta_logsigma_accepted = False
+                sigma_Beta_logsigma_update   = sigma_Beta_logsigma_current
+
+                sigma_Beta_ksi_accepted      = False
+                sigma_Beta_ksi_update        = sigma_Beta_ksi_current
+            else: # Accept
+                sigma_Beta_mu0_accepted             = True
+                sigma_Beta_mu0_update               = sigma_Beta_mu0_proposal
+                num_accepted['sigma_Beta_mu0']      += 1
+
+                sigma_Beta_logsigma_accepted        = True
+                sigma_Beta_logsigma_update          = sigma_Beta_logsigma_proposal
+                num_accepted['sigma_Beta_logsigma'] += 1
+
+                sigma_Beta_ksi_accepted             = True
+                sigma_Beta_ksi_update               = sigma_Beta_ksi_proposal
+                num_accepted['sigma_Beta_ksi']      += 1
+
+            # Store the result
+            sigma_Beta_mu0_trace[iter,:]      = sigma_Beta_mu0_update
+            sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
+            sigma_Beta_ksi_trace[iter,:]      = sigma_Beta_ksi_update
+
+            # Update the current value
+            sigma_Beta_mu0_current      = sigma_Beta_mu0_update
+            sigma_Beta_logsigma_current = sigma_Beta_logsigma_update
+            sigma_Beta_ksi_current      = sigma_Beta_ksi_update
+        
+        # Boradcast the updated values (actually no need because only involves worker0)
+        sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
+        sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
+        sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
+
+        comm.Barrier() # for updating prior variance for Beta_xx
 
         # %% After iteration likelihood
         ######################################################################
@@ -1228,148 +1325,11 @@ if __name__ == "__main__":
 
         comm.Barrier() # block for one iteration of update
 
-        # %% Midway Printing, Drawings, and Savings
-        ##############################################
-        ###    Printing, Drawings, Savings       #####
-        ##############################################
-        if rank == 0: # Handle Drawing at worker 0
-            if iter % 50 == 0:
-                print('iter', iter, 'finished')
-                # print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
-                end_time = time.time()
-                print('elapsed: ', round(end_time - start_time, 1), ' seconds')
-            if iter % 100 == 0 or iter == n_iters-1: # Save and pring data every 1000 iterations
-
-                np.save('loglik_trace', loglik_trace)
-                np.save('loglik_detail_trace', loglik_detail_trace)
-                np.save('R_trace_log', R_trace_log)
-                np.save('phi_knots_trace', phi_knots_trace)
-                np.save('range_knots_trace', range_knots_trace)
-                # np.save('GEV_knots_trace', GEV_knots_trace)
-                np.save('Beta_mu0_trace', Beta_mu0_trace)
-                np.save('Beta_logsigma_trace', Beta_logsigma_trace)
-                np.save('Beta_ksi_trace', Beta_ksi_trace)
-                # np.save('sigma_Beta_mu0_trace', sigma_Beta_mu0_trace)
-                # np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
-                # np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
-
-                # Print traceplot thinned by 10
-                xs = np.arange(iter)
-                xs_thin = xs[0::10] # index 1, 11, 21, ...
-                xs_thin2 = np.arange(len(xs_thin)) # index 1, 2, 3, ...
-
-                loglik_trace_thin = loglik_trace[0:iter:10,:]
-                loglik_detail_trace_thin = loglik_detail_trace[0:iter:10,:]
-                R_trace_log_thin = R_trace_log[0:iter:10,:,:]
-                phi_knots_trace_thin = phi_knots_trace[0:iter:10,:]
-                range_knots_trace_thin = range_knots_trace[0:iter:10,:]
-                # GEV_knots_trace_thin = GEV_knots_trace[0:iter:10,:,:]
-                Beta_mu0_trace_thin = Beta_mu0_trace[0:iter:10,:]
-                Beta_logsigma_trace_thin = Beta_logsigma_trace[0:iter:10,:]
-                Beta_ksi_trace_thin = Beta_ksi_trace[0:iter:10,:]
-                
-                # ---- R_t ----
-                plt.subplots()
-                for i in [0,4,8]: # knots 0, 4, 8
-                    for t in np.arange(Nt)[np.arange(Nt) % 15 == 0]:
-                        plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
-                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,i,t][-1]))
-                plt.title('traceplot for some log(R_t)')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('log(R_t)s')
-                plt.legend()
-                plt.savefig('R_t.pdf')
-                plt.close()
-
-                # ---- phi ----
-                plt.subplots()
-                for i in range(k):
-                    plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label='knot ' + str(i))
-                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], phi_knots_trace_thin[:,i][-1]))
-                plt.title('traceplot for phi')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('phi')
-                plt.legend()
-                plt.savefig('phi.pdf')
-                plt.close()
-
-                # ---- range ----
-                plt.subplots()
-                for i in range(k):
-                    plt.plot(xs_thin2, range_knots_trace_thin[:,i], label='knot ' + str(i))
-                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], range_knots_trace_thin[:,i][-1]))
-                plt.title('traceplot for range')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('range')
-                plt.legend()
-                plt.savefig('range.pdf')
-                plt.close()
-
-                # ---- GEV ----
-
-                ## location coefficients
-                plt.subplots()
-                for j in range(Beta_mu0_m):
-                    plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_' + str(j))
-                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu0_trace_thin[:,j][-1]))
-                plt.title('traceplot for Beta_mu0 s')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('Beta_mu0')
-                plt.legend()
-                plt.savefig('Beta_mu0.pdf')
-                plt.close()
-
-                ## scale coefficients
-                plt.subplots()
-                for j in range(Beta_logsigma_m):
-                    plt.plot(xs_thin2, Beta_logsigma_trace_thin[:,j], label = 'Beta_' + str(j))
-                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_logsigma_trace_thin[:,j][-1]))
-                plt.title('traceplot for Beta_logsigma s')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('Beta_logsigma')
-                plt.legend()
-                plt.savefig('Beta_logsigma.pdf')
-                plt.close()
-
-                ## shape coefficients
-                plt.subplots()
-                for j in range(Beta_ksi_m):
-                    plt.plot(xs_thin2, Beta_ksi_trace_thin[:,j], label = 'Beta_' + str(j))
-                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_ksi_trace_thin[:,j][-1]))
-                plt.title('traceplot for Beta_ksi s')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('Beta_ksi')
-                plt.legend()
-                plt.savefig('Beta_ksi.pdf')
-                plt.close()
-
-                # log-likelihood
-                plt.subplots()
-                plt.plot(xs_thin2, loglik_trace_thin)
-                plt.title('traceplot for log-likelihood')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('loglikelihood')
-                plt.savefig('loglik.pdf')
-                plt.close()
-
-                # log-likelihood in details
-                plt.subplots()
-                for i in range(5):
-                    plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
-                    plt.annotate('piece ' + str(i), xy=(xs_thin2[-1], loglik_detail_trace_thin[:,i][-1]))
-                plt.title('traceplot for detail log likelihood')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('log likelihood')
-                plt.legend()
-                plt.savefig('loglik_detail.pdf')
-                plt.close()
-        
-        comm.Barrier() # block for drawing
-
         # %% Adaptive Update tunings
-        ########################################
-        # Adaptive Update autotunings ##########
-        ########################################
+        #####################################################
+        ###### ----- Adaptive Update autotunings ----- ######
+        #####################################################
+
         if iter % adapt_size == 0:
                 
             gamma1 = 1 / ((iter/adapt_size + offset) ** c_1)
@@ -1461,8 +1421,194 @@ if __name__ == "__main__":
                 sigma_m_sq['Beta_ksi'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0_hat            = np.array(np.matrix(np.cov(Beta_ksi_trace[iter-adapt_size:iter].T)))
                 Sigma_0['Beta_ksi']    = Sigma_0['Beta_ksi'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_ksi'])
-        
+
+                # Prior variance for GEV Coefficients
+                ## sigma_Beta_mu0
+                r_hat                          = num_accepted['sigma_Beta_mu0']/adapt_size
+                num_accepted['sigma_Beta_mu0'] = 0
+                log_sigma_m_sq_hat             = np.log(sigma_m_sq['sigma_Beta_mu0']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['sigma_Beta_mu0']   = np.exp(log_sigma_m_sq_hat)
+                ## sigma_Beta_logsigma
+                r_hat                               = num_accepted['sigma_Beta_logsigma']/adapt_size
+                num_accepted['sigma_Beta_logsigma'] = 0
+                log_sigma_m_sq_hat                  = np.log(sigma_m_sq['sigma_Beta_logsigma']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['sigma_Beta_logsigma']   = np.exp(log_sigma_m_sq_hat)
+                ## sigma_Beta_ksi
+                r_hat                          = num_accepted['sigma_Beta_ksi']/adapt_size
+                num_accepted['sigma_Beta_ksi'] = 0
+                log_sigma_m_sq_hat             = np.log(sigma_m_sq['sigma_Beta_ksi']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['sigma_Beta_ksi']   = np.exp(log_sigma_m_sq_hat)
+
         comm.Barrier() # block for adaptive update
+
+        # %% Midway Printing, Drawings, and Savings
+        ##############################################
+        ###    Printing, Drawings, Savings       #####
+        ##############################################
+
+        if rank == 0: # Handle Drawing at worker 0
+            if iter % 50 == 0:
+                print(iter)
+                # print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
+                end_time = time.time()
+                print('elapsed: ', round(end_time - start_time, 1), ' seconds')
+            if iter % 100 == 0 or iter == n_iters-1: # Save and pring data every 1000 iterations
+
+                np.save('loglik_trace', loglik_trace)
+                np.save('loglik_detail_trace', loglik_detail_trace)
+                np.save('R_trace_log', R_trace_log)
+                np.save('phi_knots_trace', phi_knots_trace)
+                np.save('range_knots_trace', range_knots_trace)
+                # np.save('GEV_knots_trace', GEV_knots_trace)
+                np.save('Beta_mu0_trace', Beta_mu0_trace)
+                np.save('Beta_logsigma_trace', Beta_logsigma_trace)
+                np.save('Beta_ksi_trace', Beta_ksi_trace)
+                np.save('sigma_Beta_mu0_trace', sigma_Beta_mu0_trace)
+                np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
+                np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
+
+                # Print traceplot thinned by 10
+                xs       = np.arange(iter)
+                xs_thin  = xs[0::10] # index 1, 11, 21, ...
+                xs_thin2 = np.arange(len(xs_thin)) # index 1, 2, 3, ...
+
+                loglik_trace_thin              = loglik_trace[0:iter:10,:]
+                loglik_detail_trace_thin       = loglik_detail_trace[0:iter:10,:]
+                R_trace_log_thin               = R_trace_log[0:iter:10,:,:]
+                phi_knots_trace_thin           = phi_knots_trace[0:iter:10,:]
+                range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
+                # GEV_knots_trace_thin           = GEV_knots_trace[0:iter:10,:,:]
+                Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
+                Beta_logsigma_trace_thin       = Beta_logsigma_trace[0:iter:10,:]
+                Beta_ksi_trace_thin            = Beta_ksi_trace[0:iter:10,:]
+                sigma_Beta_mu0_trace_thin      = sigma_Beta_mu0_trace[0:iter:10,:]
+                sigma_Beta_logsigma_trace_thin = sigma_Beta_logsigma_trace[0:iter:10,:]
+                sigma_Beta_ksi_trace_thin      = sigma_Beta_ksi_trace[0:iter:10,:]
+                
+                # ---- log-likelihood ----
+                plt.subplots()
+                plt.plot(xs_thin2, loglik_trace_thin)
+                plt.title('traceplot for log-likelihood')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('loglikelihood')
+                plt.savefig('loglik.pdf')
+                plt.close()
+
+                # ---- log-likelihood in details ----
+                plt.subplots()
+                for i in range(5):
+                    plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
+                    plt.annotate('piece ' + str(i), xy=(xs_thin2[-1], loglik_detail_trace_thin[:,i][-1]))
+                plt.title('traceplot for detail log likelihood')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('log likelihood')
+                plt.legend()
+                plt.savefig('loglik_detail.pdf')
+                plt.close()
+
+                # ---- R_t ----
+                plt.subplots()
+                for i in [0,4,8]: # knots 0, 4, 8
+                    for t in np.arange(Nt)[np.arange(Nt) % 15 == 0]:
+                        plt.plot(xs_thin2, R_trace_log_thin[:,i,t], label = 'knot '+str(i) + ' time ' + str(t))
+                        plt.annotate('knot ' + str(i) + ' time ' + str(t), xy=(xs_thin2[-1], R_trace_log_thin[:,i,t][-1]))
+                plt.title('traceplot for some log(R_t)')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('log(R_t)s')
+                plt.legend()
+                plt.savefig('R_t.pdf')
+                plt.close()
+
+                # ---- phi ----
+                plt.subplots()
+                for i in range(k):
+                    plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label='knot ' + str(i))
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], phi_knots_trace_thin[:,i][-1]))
+                plt.title('traceplot for phi')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('phi')
+                plt.legend()
+                plt.savefig('phi.pdf')
+                plt.close()
+
+                # ---- range ----
+                plt.subplots()
+                for i in range(k):
+                    plt.plot(xs_thin2, range_knots_trace_thin[:,i], label='knot ' + str(i))
+                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], range_knots_trace_thin[:,i][-1]))
+                plt.title('traceplot for range')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('range')
+                plt.legend()
+                plt.savefig('range.pdf')
+                plt.close()
+
+                # ---- GEV ----
+
+                ## location coefficients
+                plt.subplots()
+                for j in range(Beta_mu0_m):
+                    plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu0_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_mu0 s')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('Beta_mu0')
+                plt.legend()
+                plt.savefig('Beta_mu0.pdf')
+                plt.close()
+
+                ## scale coefficients
+                plt.subplots()
+                for j in range(Beta_logsigma_m):
+                    plt.plot(xs_thin2, Beta_logsigma_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_logsigma_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_logsigma s')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('Beta_logsigma')
+                plt.legend()
+                plt.savefig('Beta_logsigma.pdf')
+                plt.close()
+
+                ## shape coefficients
+                plt.subplots()
+                for j in range(Beta_ksi_m):
+                    plt.plot(xs_thin2, Beta_ksi_trace_thin[:,j], label = 'Beta_' + str(j))
+                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_ksi_trace_thin[:,j][-1]))
+                plt.title('traceplot for Beta_ksi s')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('Beta_ksi')
+                plt.legend()
+                plt.savefig('Beta_ksi.pdf')
+                plt.close()
+        
+                ## location Beta_xx prior variance
+                plt.subplots()
+                plt.plot(xs_thin2, sigma_Beta_mu0_trace_thin)
+                plt.title('sigma in Beta_mu0 ~ N(0, sigma^2)')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('sigma')
+                plt.savefig('sigma_Beta_mu0.pdf')
+                plt.close()
+
+                ## scale Beta_xx prior variance
+                plt.subplots()
+                plt.plot(xs_thin2, sigma_Beta_logsigma_trace_thin)
+                plt.title('sigma in Beta_logsigma ~ N(0, sigma^2)')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('sigma')
+                plt.savefig('sigma_Beta_logsigma.pdf')
+                plt.close()
+
+                ## shape coefficients prior variance
+                plt.subplots()
+                plt.plot(xs_thin2, sigma_Beta_ksi_trace_thin)
+                plt.title('sigma in Beta_ksi ~ N(0, sigma^2)')
+                plt.xlabel('iter thinned by 10')
+                plt.ylabel('sigma')
+                plt.savefig('sigma_Beta_ksi.pdf')
+                plt.close()
+
+        comm.Barrier() # block for drawing
 
 
     # %% 11. End of MCMC Saving Traceplot
@@ -1471,6 +1617,8 @@ if __name__ == "__main__":
         end_time = time.time()
         print('total time: ', round(end_time - start_time, 1), ' seconds')
         print('true R: ', R_at_knots)
+        np.save('loglik_trace', loglik_trace)
+        np.save('loglik_detail_trace', loglik_detail_trace)
         np.save('R_trace_log', R_trace_log)
         np.save('phi_knots_trace', phi_knots_trace)
         np.save('range_knots_trace', range_knots_trace)
@@ -1478,5 +1626,6 @@ if __name__ == "__main__":
         np.save('Beta_mu0_trace', Beta_mu0_trace)
         np.save('Beta_logsigma_trace', Beta_logsigma_trace)
         np.save('Beta_ksi_trace', Beta_ksi_trace)
-        np.save('loglik_trace', loglik_trace)
-        np.save('loglik_detail_trace', loglik_detail_trace)
+        np.save('sigma_Beta_mu0_trace', sigma_Beta_mu0_trace)
+        np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
+        np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
