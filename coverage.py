@@ -19,7 +19,7 @@ from utilities import *
 from time import strftime, localtime
 
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario2'
+simulation_case = 'scenario1'
 
 #####################################################################################################################
 # Generating Dataset ################################################################################################
@@ -569,5 +569,109 @@ for knot_id in range(k):
     plt.show()
     fig.savefig('range_knot_' + str(knot_id) + '_avg' + '.pdf')
     plt.close()
+
+############################
+# overall avg coverage loc #
+############################
+# %%
+alphas = np.flip(np.linspace(0.05, 0.4, 15))
+q_low = alphas/2
+q_high = 1 - q_low
+
+# summary by credible levels
+PE_matrix_loc = np.full(shape = (1, nsim), fill_value = np.nan)
+lower_bound_matrix_loc_alpha = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+upper_bound_matrix_loc_alpha = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for i in range(nsim):
+        folder = folders[i]
+        GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
+        loc_knots_trace = GEV_knots_trace[:,0,0]
+        scale_knots_trace = GEV_knots_trace[:,1,0]
+        # drop burnins
+        loc_knots_trace = loc_knots_trace[burnins:]
+        scale_knots_trace = scale_knots_trace[burnins:]
+        # location mu
+        PE_matrix_loc[:,i] = np.mean(loc_knots_trace)
+        lower_bound_matrix_loc_alpha[:, i, level_i] = np.quantile(loc_knots_trace, q = q_low[level_i], axis = 0)
+        upper_bound_matrix_loc_alpha[:, i, level_i] = np.quantile(loc_knots_trace, q = q_high[level_i], axis = 0)
+
+# coverage flag
+loc_covers = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    loc_covers[0, :, level_i] = np.logical_and(lower_bound_matrix_loc_alpha[0,:,level_i] < mu,
+                                               upper_bound_matrix_loc_alpha[0,:,level_i] > mu)
+
+# average coverage
+avg_loc_covers = np.mean(loc_covers, axis = 1)
+se_loc_covers = scipy.stats.sem(loc_covers, axis = 1)
+
+# plotting
+fig, ax = plt.subplots()
+plt.xlim([0,1])
+plt.ylim([0,1])
+ax.plot([0,1],[0,1], transform = ax.transAxes, color = 'black')
+plt.errorbar(x = 1 - alphas,
+             y = avg_loc_covers[0,:],
+             yerr = 1.96*se_loc_covers[0,:],
+             fmt = 'o')
+plt.title('loc')
+plt.ylabel('empirical coverage w/ 1.96*SE')
+plt.xlabel('1-alpha')
+plt.show()
+fig.savefig('loc_avg.pdf')
+plt.close()
+
+############################
+# overall avg coverage scale #
+############################
+# %%
+alphas = np.flip(np.linspace(0.05, 0.4, 15))
+q_low = alphas/2
+q_high = 1 - q_low
+
+# summary by credible levels
+PE_matrix_scale = np.full(shape = (1, nsim), fill_value = np.nan)
+lower_bound_matrix_scale_alpha = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+upper_bound_matrix_scale_alpha = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    for i in range(nsim):
+        folder = folders[i]
+        GEV_knots_trace = np.load(folder + 'GEV_knots_trace.npy')
+        loc_knots_trace = GEV_knots_trace[:,0,0]
+        scale_knots_trace = GEV_knots_trace[:,1,0]
+        # drop burnins
+        loc_knots_trace = loc_knots_trace[burnins:]
+        scale_knots_trace = scale_knots_trace[burnins:]
+        # scale sigma
+        PE_matrix_scale[:,i] = np.mean(scale_knots_trace)
+        lower_bound_matrix_scale_alpha[:, i, level_i] = np.quantile(scale_knots_trace, q = q_low[level_i], axis = 0)
+        upper_bound_matrix_scale_alpha[:, i, level_i] = np.quantile(scale_knots_trace, q = q_high[level_i], axis = 0)
+
+# coverage flag
+scale_covers = np.full(shape = (1, nsim, len(alphas)), fill_value = np.nan)
+for level_i in range(len(alphas)):
+    scale_covers[0, :, level_i] = np.logical_and(lower_bound_matrix_scale_alpha[0,:,level_i] < tau,
+                                               upper_bound_matrix_scale_alpha[0,:,level_i] > tau)
+
+# average coverage
+avg_scale_covers = np.mean(scale_covers, axis = 1)
+se_scale_covers = scipy.stats.sem(scale_covers, axis = 1)
+
+# plotting
+fig, ax = plt.subplots()
+plt.xlim([0,1])
+plt.ylim([0,1])
+ax.plot([0,1],[0,1], transform = ax.transAxes, color = 'black')
+plt.errorbar(x = 1 - alphas,
+             y = avg_scale_covers[0,:],
+             yerr = 1.96*se_scale_covers[0,:],
+             fmt = 'o')
+plt.title('scale')
+plt.ylabel('empirical coverage w/ 1.96*SE')
+plt.xlabel('1-alpha')
+plt.show()
+fig.savefig('scale_avg.pdf')
+plt.close()
 
 # %%
