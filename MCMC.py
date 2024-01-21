@@ -1,8 +1,13 @@
 """
-# This is a MCMC sampler that constantly gets updated
-# Scratch work and modifications are done in this file
+This is a MCMC sampler that constantly gets updated
+Scratch work and modifications are done in this file
 
-# Dec 6 2023, adding covariate for theta GEVs to the model
+Dec 6 2023, adding covariate for theta GEVs to the model
+
+Notes on (installation of) Rpy2
+Work around of conda+rpy2: conda install rpy2 also installs an r-base
+use the conda installed R, don't use the default R on misspiggy to avoid issue (i.e. change the default R path to the end the $PATH)
+Alternatively, split the MCMC into three pieces: Python generate data --> R generate X design --> Python run MCMC
 """
 # Require:
 #   - utilities.py
@@ -31,6 +36,12 @@ if __name__ == "__main__":
     from time import strftime, localtime
     from utilities import *
 
+    import gstools as gs
+    import rpy2.robjects as robjects
+    from rpy2.robjects import r 
+    from rpy2.robjects.numpy2ri import numpy2rpy
+    from rpy2.robjects.packages import importr
+
     # MPI setup
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -54,8 +65,8 @@ if __name__ == "__main__":
     # Numbers - Ns, Nt, n_iters
     
     np.random.seed(data_seed)
-    Nt = 32 # number of time replicates
-    Ns = 25 # number of sites/stations
+    Nt = 16 # number of time replicates
+    Ns = 225 # number of sites/stations
     n_iters = 5000
 
     # ----------------------------------------------------------------------------------------------------------------
@@ -106,45 +117,84 @@ if __name__ == "__main__":
 
     # ----------------------------------------------------------------------------------------------------------------
     # Extreme Value Parameters - GEV(mu, sigma, ksi)
-    ## constants
+    # Constant parameters
     mu = 0.0 # GEV location
     sigma = 1.0 # GEV scale
     ksi = 0.2 # GEV shape
 
+    # ----------------------------------------------------------------------------------------------------------------
+    # Extreme Value Parameters - GEV(mu, sigma, ksi)
+    # Linear surfaces -- Specify X and Beta here
+
     ## Location mu0 ##
-    Beta_mu0_dict = { # simple case of mu0(s) = Beta_mu0_0 + Beta_mu0_1*x(s) + Beta_mu0_2*y(s)
-        'Beta_mu0_0' : 0.0, # intercept for mu0
-        'Beta_mu0_1' : 0.1, # slope of beta 1 for mu0
-        'Beta_mu0_2' : 0.1  # slope of beta 2 for mu0
-    }
-    Beta_mu0_m = len(Beta_mu0_dict)
-    C_mu0          = np.full(shape=(Beta_mu0_m, Ns, Nt), fill_value = np.nan) # mu0 design matrix
-    C_mu0[0, :, :] = 1.0 # column of 1 for the intercept
-    C_mu0[1, :, :] = np.tile(sites_x, reps = (Nt, 1)).T # column of x for beta 1
-    C_mu0[2, :, :] = np.tile(sites_y, reps = (Nt, 1)).T # column of y for beta 2
+    # # simple case of mu0(s) = Beta_mu0_0 + Beta_mu0_1*x(s) + Beta_mu0_2*y(s)
+    # Beta_mu0_dict = {
+    #     'Beta_mu0_0' : 0.0, # intercept for mu0
+    #     'Beta_mu0_1' : 0.1, # slope of beta 1 for mu0
+    #     'Beta_mu0_2' : 0.1  # slope of beta 2 for mu0
+    # }
+    # Beta_mu0_m = len(Beta_mu0_dict)
+    # C_mu0          = np.full(shape=(Beta_mu0_m, Ns, Nt), fill_value = np.nan) # mu0 design matrix
+    # C_mu0[0, :, :] = 1.0 # column of 1 for the intercept
+    # C_mu0[1, :, :] = np.tile(sites_x, reps = (Nt, 1)).T # column of x for beta 1
+    # C_mu0[2, :, :] = np.tile(sites_y, reps = (Nt, 1)).T # column of y for beta 2
+
 
     ## Scale sigma - logscale ##
-    Beta_logsigma_dict = { # simple case of logsigma(s) = logsigma
-        'Beta_logsigma_0' : np.log(sigma)
+    # simple case of logsigma(s) = Beta_logsigma_0 + Beta_logsigma_1 * x(s) + Beta_logsigma_2 * y(s)
+    Beta_logsigma_dict = {
+        'Beta_logsigma_0' : np.log(sigma), # intercept for logsimga
+        'Beta_logsigma_1' : 0.01, # slope of beta 1 for logsigma
+        'Beta_logsigma_2' : 0.03, # slope of beta 2 for logsigma
     }
     Beta_logsigma_m = len(Beta_logsigma_dict)
     C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan) # log(sigma) design matrix
     C_logsigma[0,:,:] = 1.0
-    # C_logsigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
-    # C_logsigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+    C_logsigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    C_logsigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
 
     ## Shape ksi ##
-    Beta_ksi_dict = { # simple case of ksi(s) = ksi
-        'Beta_ksi_0' : ksi
+    # simple case of ksi(s) = Beta_ksi_0 + Beta_ksi_1 * x(s) + Beta_ksi_2 * y(s)
+    Beta_ksi_dict = {
+        'Beta_ksi_0' : ksi, # intercept for ksi
+        'Beta_ksi_1' : 0.02, # slope of beta 1 for ksi
+        'Beta_ksi_2' : -0.02, # slope of beta 2 for ksi
     }
     Beta_ksi_m = len(Beta_ksi_dict)
     C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
     C_ksi[0,:,:] = 1.0
-    # C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    C_ksi[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Extreme Value Parameters - GEV(mu, sigma, ksi)
+    # Use gstools to generate spatial random field as marginal parameter surface
+
+    # Location mu #
+    ## specify its gaussian surface
+    mu_gaussian_model = gs.Gaussian(dim = 2, var = 1, len_scale = 5)
+    mu_surf_generator = gs.SRF(mu_gaussian_model, seed=data_seed)
+    ## number of spline basis
+    Beta_mu0_m             = 100 # number of spline basis
+    if not Ns > Beta_mu0_m : raise Exception("Need more sites than spline covariates")
+
+    # Scale logsigma #
+    # specify its gaussian surface
+    sigma_gaussian_model = None
+    sigma_surf_generator = None
+    pass
+
+    # Shape ksi #
+    # specify its gaussian surface
+    ksi_gaussian_model = None
+    ksi_surf_generator = None
+    pass
 
     # ----------------------------------------------------------------------------------------------------------------
     # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
 
+    ## just initial values, right? Theses are not "truth"
     sigma_Beta_mu0 = 1.0
     sigma_Beta_logsigma = 1.0
     sigma_Beta_ksi = 1.0
@@ -222,18 +272,24 @@ if __name__ == "__main__":
     #                         [0         , 0         , 1e-4]])
     # GEV_post_cov = 1e-4 * np.identity(3)
 
-    Beta_mu0_post_cov = np.array([
-        [ 2.29577829e-02, -1.67907759e-03, -1.89650871e-03],
-        [-1.67907759e-03,  2.33068787e-04,  8.47871395e-05],
-        [-1.89650871e-03,  8.47871395e-05,  2.94020313e-04]])
-    # Beta_mu0_post_cov = 1e-4 * np.identity(Beta_mu0_m)
+    # Beta_mu0_post_cov = np.array([
+    #     [ 7.48055192e-03, -6.21600956e-04, -6.51251126e-04],
+    #     [-6.21600956e-04,  2.19025810e-04, -4.88013752e-05],
+    #     [-6.51251126e-04, -4.88013752e-05,  2.97374368e-04]])
+    Beta_mu0_post_cov = 1e-4 * np.identity(Beta_mu0_m)
     assert Beta_mu0_m == Beta_mu0_post_cov.shape[0]
 
-    Beta_logsigma_post_cov = np.array([[0.0020143]])
+    Beta_logsigma_post_cov = np.array([
+        [ 1.09295029e-03, -5.57350333e-05, -1.26948891e-04],
+        [-5.57350333e-05,  5.67940538e-05, -3.05545811e-05],
+        [-1.26948891e-04, -3.05545811e-05,  7.49504590e-05]])
     # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
     assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
 
-    Beta_ksi_post_cov = np.array([[0.00103451]])
+    Beta_ksi_post_cov = np.array([
+        [ 1.68899920e-03, -1.35994062e-04, -1.24227290e-04],
+        [-1.35994062e-04,  2.85659453e-05, -2.05585256e-06],
+        [-1.24227290e-04, -2.05585256e-06,  2.60318359e-05]])
     # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
@@ -251,9 +307,12 @@ if __name__ == "__main__":
             'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
-            'sigma_Beta_mu0'      : (2.4**2),
-            'sigma_Beta_logsigma' : (2.4**2),
-            'sigma_Beta_ksi'      : (2.4**2)
+            # 'sigma_Beta_mu0'      : (2.4**2),
+            'sigma_Beta_mu0'      : 0.03749589, # from trial run
+            # 'sigma_Beta_logsigma' : (2.4**2),
+            'sigma_Beta_logsigma' : 0.24878523, # from trial run
+            # 'sigma_Beta_ksi'      : (2.4**2)
+            'sigma_Beta_ksi'      : 0.44929566  # from trial run
         }
 
         Sigma_0 = { # proposal covariance matrix
@@ -466,38 +525,37 @@ if __name__ == "__main__":
         # plt.savefig('3d phi surface.pdf')
         # plt.close()
 
-    # %% 5. Generate GEV Coefficients with Covariates
-    # 5. Generate GEV with covariate -------------------------------------------------------------------------------------
+    # %% 5. Generate and Plot GEV Surfaces
+    # 5. Generate and Plot GEV Surfaces -------------------------------------------------------------------------------------
 
     # Location #
-    ## coefficients
-    Beta_mu0 = np.array(list(Beta_mu0_dict.values())) # extract the coefficient values
-    assert Beta_mu0_m == len(Beta_mu0) # number of betas for mu0
-    ## actual surface for mu0(s)
-    mu_matrix = (C_mu0.T @ Beta_mu0).T
+    # ## coefficients
+    # Beta_mu0 = np.array(list(Beta_mu0_dict.values())) # extract the coefficient values
+    # assert Beta_mu0_m == len(Beta_mu0) # number of betas for mu0
+    # ## actual surface for mu0(s)
+    # mu0_matrix = (C_mu0.T @ Beta_mu0).T
+    # if rank == 0: # plotting the location surface
+    #     ## heatplot of mu0 surface
+    #     C_mu0_plot = np.full(shape = (Beta_mu0_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+    #     C_mu0_plot[0, :, :] = 1.0
+    #     C_mu0_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    #     C_mu0_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+    #     mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(mu_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     # plt.show()
+    #     plt.savefig('heatmap mu0 surface.pdf')
+    #     plt.close()
 
-    if rank == 0: # plotting the location surface
-        ## heatplot of mu0 surface
-        C_mu0_plot = np.full(shape = (Beta_mu0_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
-        C_mu0_plot[0, :, :] = 1.0
-        C_mu0_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-        C_mu0_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-        mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(mu_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        # plt.show()
-        plt.savefig('heatmap mu0 surface.pdf')
-        plt.close()
-
-        ## 3d plot of mu0 surface
-        # fig = plt.figure()
-        # ax = fig.add_subplot(projection='3d')
-        # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(mu_surface_plot[:,0]).reshape(25,25))
-        # ax.set_xlabel('X')
-        # ax.set_ylabel('Y')
-        # ax.set_zlabel('mu0(s)')
+    #     ## 3d plot of mu0 surface
+    #     # fig = plt.figure()
+    #     # ax = fig.add_subplot(projection='3d')
+    #     # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(mu_surface_plot[:,0]).reshape(25,25))
+    #     # ax.set_xlabel('X')
+    #     # ax.set_ylabel('Y')
+    #     # ax.set_zlabel('mu0(s)')
 
     # Scale #
     ## coefficients
@@ -505,11 +563,11 @@ if __name__ == "__main__":
     assert Beta_logsigma_m == len(Beta_logsigma)
     ## actual surface for sigma(s)
     sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-
     if rank == 0: # heatplot of sigma(s) surface
         C_logsigma_plot = np.full(shape = (Beta_logsigma_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
         C_logsigma_plot[0, :, :] = 1.0
-        # C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_logsigma_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
         sigma_surface_plot = np.exp((C_logsigma_plot.T @ Beta_logsigma).T)
         graph, ax = plt.subplots()
         heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
@@ -526,11 +584,11 @@ if __name__ == "__main__":
     assert Beta_ksi_m == len(Beta_ksi)
     ## actual surface for ksi(s)
     ksi_matrix = (C_ksi.T @ Beta_ksi).T
-
     if rank == 0: # heatplot of ksi(s) surface
         C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
         C_ksi_plot[0, :, :] = 1.0
-        # C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_ksi_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
         ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
         graph, ax = plt.subplots()
         heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
@@ -539,6 +597,103 @@ if __name__ == "__main__":
         # plt.show()
         plt.savefig('heatmap ksi surface.pdf')
         plt.close()
+
+    # Use mgcv tp spline as covariate for the marginal parameter surfaces
+    if rank == 0: # do R stuff (parameter surface, covariate, and coefficient) under worker 0
+
+        # "knots" and prediction sites for splines
+        gs_x        = np.linspace(0, 10, 41)
+        gs_y        = np.linspace(0, 10, 41)
+        gs_xy       = np.full(shape = (len(gs_x) * len(gs_y),2), fill_value = np.nan)
+        current_row = 0
+        for i in range(len(gs_x)):
+            for j in range(len(gs_y)):
+                gs_xy[current_row,0] = gs_x[i]
+                gs_xy[current_row,1] = gs_y[j]
+                current_row          += 1
+
+        gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+        gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+        gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+        sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+
+        r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+        r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+        r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+        r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+
+        r("save(gs_x_ro, file='gs_x_ro.gzip', compress=TRUE)")
+        r("save(gs_y_ro, file='gs_y_ro.gzip', compress=TRUE)")
+        r("save(gs_xy_ro, file='gs_xy_ro.gzip', compress=TRUE)")
+        r("save(sites_xy_ro, file='sites_xy_ro.gzip', compress=TRUE)")
+
+        # "knot splines" and "site splines"
+        mgcv = importr('mgcv')
+        C_knot_spline_ro = r('''
+                            gs_xy_df <- as.data.frame(gs_xy_ro)
+                            colnames(gs_xy_df) <- c('x','y')
+                            basis <- smoothCon(s(x, y, k = {Beta_mu0_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                            basis$X
+                        '''.format(Beta_mu0_m = Beta_mu0_m))
+        C_site_spline_ro = r('''
+                            sites_xy_df           <- as.data.frame(sites_xy_ro)
+                            colnames(sites_xy_df) <- c('x','y')
+                            C_site_spline         <- PredictMat(basis, data = sites_xy_df)
+                        ''')
+        # '''         gs_xy_df <- as.data.frame(gs_xy_ro)
+        #     colnames(gs_xy_df) <- c('x','y')
+        #     basis <- smoothCon(s(x, y, k = {Beta_mu}, fx = TRUE), data = gs_xy_df)[[1]]
+        #   '''.format(Beta_mu = 100)
+
+        # LOCATION mu #
+        ## mu values at sites
+        mu0_1t            = mu_surf_generator((sites_x, sites_y))
+        mu0_matrix        = np.tile(mu0_1t, reps = (Nt, 1)).T
+
+        ## Covariates
+        C_mu0_1t          = np.array(r('C_site_spline'))                 # shape (Ns, Nc) Nc: number of covariate/splines
+        C_mu0             = np.tile(C_mu0_1t.T[:,:,None], reps=(1,1,Nt)) # Tranposed each C_mu0_1t, now Shaped (Nc, Ns, Nt)
+                                                                         # for ease of matmul in np (last 2 indexes)
+                                                                         # laster do (C.T @ Beta).T
+                                                                         
+        ## Regression Spline to get initial beta values
+        mu0_1t_ro = numpy2rpy(mu0_1t)
+        r.assign("mu0_1t_ro", mu0_1t_ro)
+        r("save(mu0_1t_ro, file='mu0_1t_ro.gzip', compress=TRUE)")
+        Beta_mu0 = np.array(r('''
+                              Beta_mu0 <- coef(lm(c(mu0_1t_ro) ~ C_site_spline-1))
+                              Beta_mu0'''))
+
+        ## plotting the actual surface
+        mu_surf_grid      = mu_surf_generator((gs_x, gs_y), mesh_type='structured')
+        mu_surf_grid_ro   = numpy2rpy(mu_surf_grid)
+        r.assign("mu_surf_grid_ro", mu_surf_grid_ro)
+        r("save(mu_surf_grid_ro, file='mu_surf_grid_ro.gzip', compress=TRUE)")
+        # # note that for gaussian surface, the first index runs along the x axis, and the second index runs along the y axis
+        # mu_surf_grid.shape
+        # mu_surf_grid
+        # mu_surf_generator.plot()
+        # # This is in "contradiction" to the order of filling in heatmap of imshow, which require the first index runs along the vertical y axis, and the second index runs along the horizontal x axis,
+        # # so we should transpose the mu_surf_grid in order to propoerly use heatmap
+        # # Also, the imshow (heatmap) function literally took the matrix as it is and "heat map" its values, so the first row gets printed on tow, and the last row gets printed bottom --- this might not be what we want, as we'd like y axis to go from down to top
+        # # hence we also need to invert the yaxis to achieve this (also don't forget to adjust the bottom top axis label in the extent parameter)
+        graph, ax = plt.subplots()
+        heatmap = ax.imshow(mu_surf_grid.T, cmap='hot', interpolation='nearest', extent=[0,10,10,0])  # extent (left, right, bottom, top)
+        ax.invert_yaxis()
+        graph.colorbar(heatmap)
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.title('mu(s) surface heatplot')
+        plt.show()
+        plt.savefig('heatmap mu surface.pdf')
+        plt.close()
+    else: # broadcast from worker 0 to other workers
+        mu0_matrix = None
+        C_mu0      = None
+    mu0_matrix     = comm.bcast(mu0_matrix, root = 0)
+    C_mu0          = comm.bcast(C_mu0, root = 0)
+
+
 
     # %% 6. Generate X_star and Y
     # 6. Generate X and Y -------------------------------------------------------------------------------------
@@ -554,7 +709,7 @@ if __name__ == "__main__":
     Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
     for t in np.arange(Nt):
         # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu0_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
     # %% 7. Checking Data Generation
     # 7. Checking Data Generation -------------------------------------------------------------------------------------
