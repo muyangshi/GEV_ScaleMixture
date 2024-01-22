@@ -175,21 +175,35 @@ if __name__ == "__main__":
     ## specify its gaussian surface
     mu_gaussian_model = gs.Gaussian(dim = 2, var = 1, len_scale = 5)
     mu_surf_generator = gs.SRF(mu_gaussian_model, seed=data_seed)
-    ## number of spline basis
+    ## number of spline basis and block size
     Beta_mu0_m             = 100 # number of spline basis
-    if not Ns > Beta_mu0_m : raise Exception("Need more sites than spline covariates")
+    Beta_mu0_block_idx_size = 7   # size of Beta_mu0 block update
 
     # Scale logsigma #
-    # specify its gaussian surface
+    ## specify its gaussian surface
     sigma_gaussian_model = None
     sigma_surf_generator = None
     pass
 
     # Shape ksi #
-    # specify its gaussian surface
+    ## specify its gaussian surface
     ksi_gaussian_model = None
     ksi_surf_generator = None
     pass
+
+    # construct blocks for block updating beta's (too many betas)
+    ## Location mu
+    if not Ns > Beta_mu0_m : raise Exception("Need more sites than spline covariates")
+    Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in this block
+    Beta_mu0_nblock        = int(Beta_mu0_m/Beta_mu0_block_idx_size)
+    for i in range(Beta_mu0_nblock):
+        start_index = Beta_mu0_block_idx_size*i
+        end_index   = start_index + Beta_mu0_block_idx_size
+        if i+1 < Beta_mu0_nblock:
+            Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+        else: # last block
+            Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
+
 
     # ----------------------------------------------------------------------------------------------------------------
     # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
@@ -200,7 +214,7 @@ if __name__ == "__main__":
     sigma_Beta_ksi = 1.0
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Adaptive Update tuning constants
+    # Adaptive Update: tuning constants
 
     c_0 = 1
     c_1 = 0.8
@@ -212,8 +226,9 @@ if __name__ == "__main__":
     adapt_size = 10
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Posterior Covariance Matrix from trial run
+    # Adaptive Update: TRIAL RUN Posterior Covariance Matrix
 
+    # trial run posterior variance matrix for phi
     phi_post_cov = np.array([
        [ 1.71595567e-03, -1.62351108e-03,  5.40782727e-04,
         -7.39783709e-04,  5.18647363e-04, -3.04089297e-04,
@@ -245,6 +260,7 @@ if __name__ == "__main__":
     # phi_post_cov = 1e-3 * np.identity(k)
     assert k == phi_post_cov.shape[0]
 
+    # trial run posterior variance matrix for range rho
     range_post_cov = np.array([
        [ 0.00888606, -0.00964968,  0.00331823, -0.01147588,  0.01378476,
         -0.00456044,  0.00455141, -0.00561015,  0.0020646 ],
@@ -267,18 +283,21 @@ if __name__ == "__main__":
     # range_post_cov = 1e-2 * np.identity(k)
     assert k == range_post_cov.shape[0]
 
+    # # trial run posterior variance matrix for constant GEV
     # GEV_post_cov = np.array([[2.88511464e-04, 1.13560517e-04, 0],
     #                         [1.13560517e-04, 6.40933053e-05,  0],
     #                         [0         , 0         , 1e-4]])
-    # GEV_post_cov = 1e-4 * np.identity(3)
+    # # GEV_post_cov = 1e-4 * np.identity(3)
 
+    # # posterior/proposal variance matrix for linear surface mu
     # Beta_mu0_post_cov = np.array([
     #     [ 7.48055192e-03, -6.21600956e-04, -6.51251126e-04],
     #     [-6.21600956e-04,  2.19025810e-04, -4.88013752e-05],
     #     [-6.51251126e-04, -4.88013752e-05,  2.97374368e-04]])
-    Beta_mu0_post_cov = 1e-4 * np.identity(Beta_mu0_m)
-    assert Beta_mu0_m == Beta_mu0_post_cov.shape[0]
+    # # Beta_mu0_post_cov = 1e-4 * np.identity(Beta_mu0_m)
+    # assert Beta_mu0_m == Beta_mu0_post_cov.shape[0]
 
+    # posterior/proposal variance matrix for linear surface logsigma
     Beta_logsigma_post_cov = np.array([
         [ 1.09295029e-03, -5.57350333e-05, -1.26948891e-04],
         [-5.57350333e-05,  5.67940538e-05, -3.05545811e-05],
@@ -286,6 +305,7 @@ if __name__ == "__main__":
     # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
     assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
 
+    # posterior/proposal variance matrix for linear surface ksi
     Beta_ksi_post_cov = np.array([
         [ 1.68899920e-03, -1.35994062e-04, -1.24227290e-04],
         [-1.35994062e-04,  2.85659453e-05, -2.05585256e-06],
@@ -293,10 +313,25 @@ if __name__ == "__main__":
     # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
+    # trial run posterior variance matrix for mu splines
+    Beta_mu0_all_post_cov = 1e-4 * np.identity(Beta_mu0_m)
+    assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
+    Beta_mu0_block_post_cov_dict = {}
+    for key in Beta_mu0_block_idx_dict.keys():
+        start_idx                         = Beta_mu0_block_idx_dict[key][0]
+        end_idx                           = Beta_mu0_block_idx_dict[key][-1]+1
+        Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
+
+
+    # trial run posterior variance matrix for (log)sigma splines
+
+    # trial run posterior variance matrix for ksi splines
+
     # ----------------------------------------------------------------------------------------------------------------
-    # Proposal Variance Scalar, Covariance Matrix, and Counter
+    # Adaptive Update: Proposal Variance Scalar, Covariance Matrix, and Counter
     if rank == 0: # Handle phi, range, GEV on Worker 0
-        sigma_m_sq = { # proposal variance scalar
+        # proposal variance scalar
+        sigma_m_sq = {
             'phi_block1'          : (2.4**2)/3,
             'phi_block2'          : (2.4**2)/3,
             'phi_block3'          : (2.4**2)/3,
@@ -304,7 +339,7 @@ if __name__ == "__main__":
             'range_block2'        : (2.4**2)/3,
             'range_block3'        : (2.4**2)/3,
             # 'GEV'                 : (2.4**2)/3
-            'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
+            # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
             # 'sigma_Beta_mu0'      : (2.4**2),
@@ -314,8 +349,11 @@ if __name__ == "__main__":
             # 'sigma_Beta_ksi'      : (2.4**2)
             'sigma_Beta_ksi'      : 0.44929566  # from trial run
         }
+        for key in Beta_mu0_block_idx_dict.keys():
+            sigma_m_sq[key] = (2.4**2)/len(Beta_mu0_block_idx_dict[key])
 
-        Sigma_0 = { # proposal covariance matrix
+        # proposal covariance matrix
+        Sigma_0 = {
             'phi_block1'    : phi_post_cov[0:3,0:3],
             'phi_block2'    : phi_post_cov[3:6,3:6],
             'phi_block3'    : phi_post_cov[6:9,6:9],
@@ -323,22 +361,25 @@ if __name__ == "__main__":
             'range_block2'  : range_post_cov[3:6,3:6],
             'range_block3'  : range_post_cov[6:9,6:9],
             # 'GEV'           : GEV_post_cov,
-            'Beta_mu0'      : Beta_mu0_post_cov,
+            # 'Beta_mu0'      : Beta_mu0_post_cov,
             'Beta_logsigma' : Beta_logsigma_post_cov,
             'Beta_ksi'      : Beta_ksi_post_cov
         }
+        Sigma_0.update(Beta_mu0_block_post_cov_dict)
 
         num_accepted = { # acceptance counter
             'phi'                 : 0,
             'range'               : 0,
             # 'GEV'                 : 0,
-            'Beta_mu0'            : 0,
+            # 'Beta_mu0'            : 0,
             'Beta_logsigma'       : 0,
             'Beta_ksi'            : 0,
             'sigma_Beta_mu0'      : 0,
             'sigma_Beta_logsigma' : 0,
             'sigma_Beta_ksi'      : 0
         }
+        for key in Beta_mu0_block_idx_dict.keys():
+            num_accepted[key] = 0
 
     # Rt: each Worker_t propose k-R(t)s at time t
     if rank == 0:
@@ -1132,80 +1173,149 @@ if __name__ == "__main__":
         #### ----- Update covariate coefficients, Beta_mu0 ----- ####
         #############################################################
 
-        # Propose new Beta_mu0 --> new mu0 surface
-        if rank == 0:
-            # Beta_mu0's share a same proposal scale, no proposal matrix
-            # Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0'])*random_generator.normal(0, 1, size = Beta_mu0_m)
+        # # Propose new Beta_mu0 --> new mu0 surface
+        # if rank == 0:
+        #     # Beta_mu0's share a same proposal scale, no proposal matrix
+        #     # Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0'])*random_generator.normal(0, 1, size = Beta_mu0_m)
             
-            # Beta_mu0's share a smae proposal scale, ALSO HAS proposal matrix
-            Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0']) * \
-                                                random_generator.multivariate_normal(np.zeros(Beta_mu0_m), Sigma_0['Beta_mu0'])
+        #     # Beta_mu0's share a smae proposal scale, ALSO HAS proposal matrix
+        #     Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0']) * \
+        #                                         random_generator.multivariate_normal(np.zeros(Beta_mu0_m), Sigma_0['Beta_mu0'])
             
-            # Beta_mu0's have individual proposal scale, no proposal matrix
-            # Beta_mu0_proposal = Beta_mu0_current + np.array([np.sqrt(sigma_m_sq['Beta_mu0_'+str(j)])*random_generator.normal(0,1) for j in range(Beta_mu0_m)])
-        else:    
-            Beta_mu0_proposal = None
-        Beta_mu0_proposal    = comm.bcast(Beta_mu0_proposal, root = 0)
-        Loc_matrix_proposal = (C_mu0.T @ Beta_mu0_proposal).T
+        #     # Beta_mu0's have individual proposal scale, no proposal matrix
+        #     # Beta_mu0_proposal = Beta_mu0_current + np.array([np.sqrt(sigma_m_sq['Beta_mu0_'+str(j)])*random_generator.normal(0,1) for j in range(Beta_mu0_m)])
+        # else:    
+        #     Beta_mu0_proposal = None
+        # Beta_mu0_proposal    = comm.bcast(Beta_mu0_proposal, root = 0)
+        # Loc_matrix_proposal = (C_mu0.T @ Beta_mu0_proposal).T
 
-        # Conditional log likelihood at current
-        # No need to re-calculate because likelihood inherit from above
-        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # # Conditional log likelihood at current
+        # # No need to re-calculate because likelihood inherit from above
+        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        # #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
-        # Conditional log likelihood at proposal
-        X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                    phi_vec_current, gamma_vec)
-        lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                        Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                        phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # # Conditional log likelihood at proposal
+        # X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+        #                             phi_vec_current, gamma_vec)
+        # lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+        #                                                 Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
-        # Gather likelihood calculated across time
-        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+        # # Gather likelihood calculated across time
+        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-        # Handle prior and (Accept or Reject) on worker 0
-        if rank == 0:
-            # use Norm(0, sigma_Beta_mu0) prior on each Beta_mu0, like "shrinkage"
-            prior_Beta_mu0_current  = scipy.stats.norm.logpdf(Beta_mu0_current, loc=0, scale=sigma_Beta_mu0_current)
-            prior_Beta_mu0_proposal = scipy.stats.norm.logpdf(Beta_mu0_proposal, loc=0, scale=sigma_Beta_mu0_current)
+        # # Handle prior and (Accept or Reject) on worker 0
+        # if rank == 0:
+        #     # use Norm(0, sigma_Beta_mu0) prior on each Beta_mu0, like "shrinkage"
+        #     prior_Beta_mu0_current  = scipy.stats.norm.logpdf(Beta_mu0_current, loc=0, scale=sigma_Beta_mu0_current)
+        #     prior_Beta_mu0_proposal = scipy.stats.norm.logpdf(Beta_mu0_proposal, loc=0, scale=sigma_Beta_mu0_current)
 
-            lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu0_current)
-            lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu0_proposal)
+        #     lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu0_current)
+        #     lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu0_proposal)
 
-            # Accept or Reject
-            u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
-                ratio = 0
-            if u > ratio: # Reject
-                Beta_mu0_accepted = False
-                Beta_mu0_update   = Beta_mu0_current
-            else: # Accept
-                Beta_mu0_accepted = True
-                Beta_mu0_update   = Beta_mu0_proposal
-                num_accepted['Beta_mu0'] += 1
+        #     # Accept or Reject
+        #     u = random_generator.uniform()
+        #     ratio = np.exp(lik_proposal - lik_current)
+        #     if not np.isfinite(ratio):
+        #         ratio = 0
+        #     if u > ratio: # Reject
+        #         Beta_mu0_accepted = False
+        #         Beta_mu0_update   = Beta_mu0_current
+        #     else: # Accept
+        #         Beta_mu0_accepted = True
+        #         Beta_mu0_update   = Beta_mu0_proposal
+        #         num_accepted['Beta_mu0'] += 1
             
-            # Store the result
-            Beta_mu0_trace[iter,:] = Beta_mu0_update
+        #     # Store the result
+        #     Beta_mu0_trace[iter,:] = Beta_mu0_update
 
-            # Update the current value
-            Beta_mu0_current = Beta_mu0_update
-        else: # other workers
-            Beta_mu0_accepted = None
+        #     # Update the current value
+        #     Beta_mu0_current = Beta_mu0_update
+        # else: # other workers
+        #     Beta_mu0_accepted = None
 
-        # Broadcast the updated values
-        Beta_mu0_accepted = comm.bcast(Beta_mu0_accepted, root = 0)
-        Beta_mu0_current  = comm.bcast(Beta_mu0_current, root = 0)
+        # # Broadcast the updated values
+        # Beta_mu0_accepted = comm.bcast(Beta_mu0_accepted, root = 0)
+        # Beta_mu0_current  = comm.bcast(Beta_mu0_current, root = 0)
 
-        # Update X_star, mu0 surface, and likelihood
-        if Beta_mu0_accepted:
-            X_star_1t_current  = X_star_1t_proposal
-            Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
-            lik_1t_current     = lik_1t_proposal
+        # # Update X_star, mu0 surface, and likelihood
+        # if Beta_mu0_accepted:
+        #     X_star_1t_current  = X_star_1t_proposal
+        #     Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
+        #     lik_1t_current     = lik_1t_proposal
         
-        comm.Barrier() # block for beta_mu0 updates
+        # comm.Barrier() # block for beta_mu0 updates
+
+        # Update by blocks
+        for key in Beta_mu0_block_idx_dict.keys():
+            change_indices   = np.array(Beta_mu0_block_idx_dict[key])
+            unchange_indices = np.array([x for x in range(Beta_mu0_m) if x not in change_indices])
+
+            # Propose new Beta_mu0 at the change_indices
+            if rank == 0:
+                # Beta_mu0 in this block share a same proposal scale, has proposal variance matrix
+                Beta_mu0_proposal                 = Beta_mu0_current.copy()
+                Beta_mu0_proposal[change_indices] += np.sqrt(sigma_m_sq[key]) * \
+                                                    random_generator.multivariate_normal(np.zeros(len(change_indices)), Sigma_0[key])
+            else:
+                Beta_mu0_proposal = None
+            Beta_mu0_proposal     = comm.bcast(Beta_mu0_proposal, root = 0)
+            Loc_matrix_proposal   = (C_mu0.T @ Beta_mu0_proposal).T
+
+            # Conditional log likelihood at proposal
+            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma_vec)
+            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+                                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+            # Gather likelihood calculated across time
+            lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+            lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+            # Handle prior and (Accept or Reject) on worker 0
+            if rank == 0:
+                # use Norm(0, sigma_Beta_mu0) prior on each Beta_mu0, like "shrinkage"
+                prior_Beta_mu0_current  = scipy.stats.norm.logpdf(Beta_mu0_current, loc=0, scale=sigma_Beta_mu0_current)
+                prior_Beta_mu0_proposal = scipy.stats.norm.logpdf(Beta_mu0_proposal, loc=0, scale=sigma_Beta_mu0_current)
+
+                lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu0_current)
+                lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu0_proposal)
+
+                # Accept or Reject
+                u = random_generator.uniform()
+                ratio = np.exp(lik_proposal - lik_current)
+                if not np.isfinite(ratio):
+                    ratio = 0
+                if u > ratio: # Reject
+                    Beta_mu0_accepted = False
+                    Beta_mu0_update   = Beta_mu0_current
+                else: # Accept
+                    Beta_mu0_accepted = True
+                    Beta_mu0_update   = Beta_mu0_proposal
+                    # num_accepted['Beta_mu0'] += 1
+                    num_accepted[key] += 1
+                
+                # Store the result
+                Beta_mu0_trace[iter,:] = Beta_mu0_update
+
+                # Update the current value
+                Beta_mu0_current = Beta_mu0_update
+            else: # other workers
+                Beta_mu0_accepted = None
+
+            # Broadcast the updated values
+            Beta_mu0_accepted = comm.bcast(Beta_mu0_accepted, root = 0)
+            Beta_mu0_current  = comm.bcast(Beta_mu0_current, root = 0)
+
+            # Update X_star, mu0 surface, and likelihood
+            if Beta_mu0_accepted:
+                X_star_1t_current  = X_star_1t_proposal
+                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
+                lik_1t_current     = lik_1t_proposal
+            
+            comm.Barrier() # block for beta_mu0 updates
 
         # %% Update Beta_logsigma
         ##################################################################
@@ -1556,12 +1666,12 @@ if __name__ == "__main__":
 
                 # GEV coefficients
                 ## Beta_mu0
-                r_hat = num_accepted['Beta_mu0']/adapt_size
-                num_accepted['Beta_mu0'] = 0
-                log_sigma_m_sq_hat    = np.log(sigma_m_sq['Beta_mu0']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['Beta_mu0'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0_hat           = np.cov(Beta_mu0_trace[iter-adapt_size:iter].T)
-                Sigma_0['Beta_mu0']    = Sigma_0['Beta_mu0'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_mu0'])
+                # r_hat = num_accepted['Beta_mu0']/adapt_size
+                # num_accepted['Beta_mu0'] = 0
+                # log_sigma_m_sq_hat    = np.log(sigma_m_sq['Beta_mu0']) + gamma2*(r_hat - r_opt)
+                # sigma_m_sq['Beta_mu0'] = np.exp(log_sigma_m_sq_hat)
+                # Sigma_0_hat           = np.cov(Beta_mu0_trace[iter-adapt_size:iter].T)
+                # Sigma_0['Beta_mu0']    = Sigma_0['Beta_mu0'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_mu0'])
                 ## Beta_logsigma
                 r_hat = num_accepted['Beta_logsigma']/adapt_size
                 num_accepted['Beta_logsigma'] = 0
@@ -1576,6 +1686,17 @@ if __name__ == "__main__":
                 sigma_m_sq['Beta_ksi'] = np.exp(log_sigma_m_sq_hat)
                 Sigma_0_hat            = np.array(np.matrix(np.cov(Beta_ksi_trace[iter-adapt_size:iter].T)))
                 Sigma_0['Beta_ksi']    = Sigma_0['Beta_ksi'] + gamma1*(Sigma_0_hat - Sigma_0['Beta_ksi'])
+
+                ## Beta_mu0 Block Update
+                for key in Beta_mu0_block_idx_dict.keys():
+                    start_idx = Beta_mu0_block_idx_dict[key][0]
+                    end_idx   = Beta_mu0_block_idx_dict[key][-1]+1
+                    r_hat              = num_accepted[key]/adapt_size
+                    num_accepted[key]  = 0
+                    log_sigma_m_sq_hat = np.log(sigma_m_sq[key]) + gamma2*(r_hat - r_opt)
+                    sigma_m_sq[key]    = np.exp(log_sigma_m_sq_hat)
+                    Sigma_0_hat        = np.array(np.cov(Beta_mu0_trace[iter-adapt_size:iter, start_idx:end_idx].T))
+                    Sigma_0[key]       = Sigma_0[key] + gamma1*(Sigma_0_hat - Sigma_0[key])
 
                 # Prior variance for GEV Coefficients
                 ## sigma_Beta_mu0
@@ -1700,17 +1821,30 @@ if __name__ == "__main__":
 
                 # ---- GEV ----
 
-                ## location coefficients
-                plt.subplots()
-                for j in range(Beta_mu0_m):
-                    plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_' + str(j))
-                    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu0_trace_thin[:,j][-1]))
-                plt.title('traceplot for Beta_mu0 s')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('Beta_mu0')
-                plt.legend()
-                plt.savefig('Beta_mu0.pdf')
-                plt.close()
+                # ## location coefficients
+                # plt.subplots()
+                # for j in range(Beta_mu0_m):
+                #     plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_' + str(j))
+                #     plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu0_trace_thin[:,j][-1]))
+                # plt.title('traceplot for Beta_mu0 s')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('Beta_mu0')
+                # plt.legend()
+                # plt.savefig('Beta_mu0.pdf')
+                # plt.close()
+
+                ## location mu coefficients in blocks
+                for key in Beta_mu0_block_idx_dict.keys():
+                    plt.subplots()
+                    for j in Beta_mu0_block_idx_dict[key]:
+                        plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_' + str(j))
+                        plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu0_trace_thin[:,j][-1]))
+                    plt.title('traceplot for Beta_mu0' + str(Beta_mu0_block_idx_dict[key]))
+                    plt.xlabel('iter thinned by 10')
+                    plt.ylabel('Beta_mu0')
+                    plt.legend()
+                    plt.savefig(str(key)+'.pdf')
+                    plt.close()
 
                 ## scale coefficients
                 plt.subplots()
