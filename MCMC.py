@@ -90,18 +90,19 @@ if __name__ == "__main__":
     Nt = 16 # number of time replicates
     Ns = 100 # number of sites/stations
     n_iters = 5000
+    Time = np.linspace(-Nt/2, Nt/2-1, Nt)
 
     # ----------------------------------------------------------------------------------------------------------------
     # Sites - random uniformly (x,y) generate site locations
-    # Site elevations - simple elevation function 1/5(|x-5| + |y-5|)
     
     sites_xy = np.random.random((Ns, 2)) * 10
     sites_x = sites_xy[:,0]
     sites_y = sites_xy[:,1]
 
+    # ----------------------------------------------------------------------------------------------------------------
+    # Elevation Function - simple elevation function 1/5(|x-5| + |y-5|)
     def elevation_func(x,y):
         return(np.abs(x-5)/5 + np.abs(y-5)/5)
-    sites_elevations = elevation_func(sites_xy[:,0], sites_xy[:,1])
 
     # ----------------------------------------------------------------------------------------------------------------
     # Knots - uniform grid of 9 knots, should do this programatically...
@@ -165,6 +166,9 @@ if __name__ == "__main__":
     # C_mu0[0, :, :] = 1.0 # column of 1 for the intercept
     # C_mu0[1, :, :] = np.tile(sites_x, reps = (Nt, 1)).T # column of x for beta 1
     # C_mu0[2, :, :] = np.tile(sites_y, reps = (Nt, 1)).T # column of y for beta 2
+    # Beta_mu0 = np.array(list(Beta_mu0_dict.values())) # extract the coefficient values
+    # ## actual surface for mu0(s)
+    # mu0_matrix = (C_mu0.T @ Beta_mu0).T
 
 
     ## Scale sigma - logscale ##
@@ -179,6 +183,10 @@ if __name__ == "__main__":
     C_logsigma[0,:,:] = 1.0
     C_logsigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
     C_logsigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+    ## coefficients
+    Beta_logsigma = np.array(list(Beta_logsigma_dict.values()))
+    ## actual surface for sigma(s)
+    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
 
     ## Shape ksi ##
     # simple case of ksi(s) = Beta_ksi_0 + Beta_ksi_1 * x(s) + Beta_ksi_2 * y(s)
@@ -192,50 +200,16 @@ if __name__ == "__main__":
     C_ksi[0,:,:] = 1.0
     C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
     C_ksi[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
-
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # Extreme Value Parameters - GEV(mu, sigma, ksi)
-    # Use gstools to generate spatial random field as marginal parameter surface
-
-    # # Location mu #
-    # ## specify its gaussian surface
-    # mu_gaussian_model = gs.Gaussian(dim = 2, var = 1, len_scale = 5)
-    # mu_surf_generator = gs.SRF(mu_gaussian_model, seed=data_seed)
-    # ## number of spline basis and block size
-    # Beta_mu0_m             = 100 # number of spline basis
-    # Beta_mu0_block_idx_size = 7   # size of Beta_mu0 block update
-
-    # # Scale logsigma #
-    # ## specify its gaussian surface
-    # # sigma_gaussian_model = gs.Gaussian(dim = 2, var = 1, len_scale=5)
-    # # sigma_surf_generator = gs.SRF(sigma_gaussian_model, seed=data_seed+1)
-    # pass
-
-    # # Shape ksi #
-    # ## specify its gaussian surface
-    # # ksi_gaussian_model = None
-    # # ksi_surf_generator = None
-    # pass
-
-    # # construct blocks for block updating beta's (too many betas)
-    # ## Location mu
-    # if not Ns > Beta_mu0_m : raise Exception("Need more sites than spline covariates")
-    # Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in this block
-    # Beta_mu0_nblock        = int(Beta_mu0_m/Beta_mu0_block_idx_size)
-    # for i in range(Beta_mu0_nblock):
-    #     start_index = Beta_mu0_block_idx_size*i
-    #     end_index   = start_index + Beta_mu0_block_idx_size
-    #     if i+1 < Beta_mu0_nblock:
-    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
-    #     else: # last block
-    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
+    ## coefficients
+    Beta_ksi = np.array(list(Beta_ksi_dict.values()))
+    ## actual surface for ksi(s)
+    ksi_matrix = (C_ksi.T @ Beta_ksi).T
 
     # ----------------------------------------------------------------------------------------------------------------
     # Extreme Value Parameters - GEV(mu, sigma, ksi)
     # mu_0(s)     = Beta_mu0_0 + Beta_mu0_1 * Elev(s) + splines(s) @ Beta_mu0_splines
 
-    # "knots" and prediction sites for splines
+    # "knots" and prediction sites for splines -----------------------------------------------------------------------
     gs_x        = np.linspace(0, 10, 41)
     gs_y        = np.linspace(0, 10, 41)
     gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
@@ -258,7 +232,7 @@ if __name__ == "__main__":
         colnames(sites_xy_df) <- c('x','y')
         ''')
 
-    # Location mu_0(s)
+    # Location mu_0(s) ----------------------------------------------------------------------------------------------
     ## coefficients
     Beta_mu0_0              = 0
     Beta_mu0_1              = 0.1
@@ -277,17 +251,33 @@ if __name__ == "__main__":
                                     elevation_func(sites_xy[:,0], sites_xy[:,1]),
                                     C_mu0_splines))
     C_mu0         = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
-    ## product
+    ## mu0(s,t)
     mu0_matrix = (C_mu0.T @ Beta_mu0).T      
 
-    print(Beta_mu0)
-    print(C_mu0_splines)
-
-    # Location mu_1(s)
+    # Location mu_1(s) ----------------------------------------------------------------------------------------------
     ## coefficients
-
+    Beta_mu1_0              = 0
+    Beta_mu1_1              = 0.01
+    Beta_mu1_splines_m      = 12
+    Beta_mu1_splines        = np.array([0.01] * Beta_mu1_splines_m)
+    Beta_mu1                = np.concatenate(([Beta_mu1_0], [Beta_mu1_1], Beta_mu1_splines))
+    Beta_mu1_m              = len(Beta_mu1)
+    Beta_mu1_block_idx_size = 7
     ## covariates
+    C_mu1_splines = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                basis_site
+                            '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m))) # shaped(Ns, Beta_mu1_splines_m)
+    C_mu1_1t      = np.column_stack((np.ones(Ns),
+                                    elevation_func(sites_xy[:,0], sites_xy[:,1]),
+                                    C_mu1_splines))
+    C_mu1         = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+    ## mu1(s,t)
+    mu1_matrix = (C_mu1.T @ Beta_mu1).T
 
+    # Location mu(s,t) -----------------------------------------------------------------------------------------------
+    mu_matrix = mu0_matrix + mu1_matrix * Time
 
     # logsigma
     pass
@@ -295,10 +285,9 @@ if __name__ == "__main__":
     # ksi
     pass
 
-
     # Create Coefficient Blocks
     ## Beta_mu0
-    Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in this block
+    Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in each block
     Beta_mu0_nblock         = int(Beta_mu0_m/Beta_mu0_block_idx_size)
     for i in range(Beta_mu0_nblock):
         start_index = Beta_mu0_block_idx_size*i
@@ -309,15 +298,24 @@ if __name__ == "__main__":
             Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
 
     ## Beta_mu1
-    
+    Beta_mu1_block_idx_dict = {} # dictionary that stores the index of Beta_mu1 in each block
+    Beta_mu1_nblock         = int(Beta_mu1_m/Beta_mu1_block_idx_size)
+    for i in range(Beta_mu1_nblock):
+        start_index = Beta_mu1_block_idx_size*i
+        end_index   = start_index + Beta_mu1_block_idx_size
+        if i + 1 < Beta_mu1_nblock:
+            Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+        else:
+            Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu1_m)]
 
     # ----------------------------------------------------------------------------------------------------------------
     # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
 
     ## just initial values, right? Theses are not "truth"
-    sigma_Beta_mu0 = 1.0
-    sigma_Beta_logsigma = 1.0
-    sigma_Beta_ksi = 1.0
+    sigma_Beta_mu0      = 0.2
+    sigma_Beta_mu1      = 0.2
+    sigma_Beta_logsigma = 0.2
+    sigma_Beta_ksi      = 0.2
 
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: tuning constants
@@ -419,7 +417,7 @@ if __name__ == "__main__":
     # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
-    # trial run posterior variance matrix for mu splines
+    # trial run posterior variance matrix for Beta_mu0
     Beta_mu0_all_post_cov = 1e-4 * np.identity(Beta_mu0_m)
     assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
     Beta_mu0_block_post_cov_dict = {}
@@ -428,10 +426,14 @@ if __name__ == "__main__":
         end_idx                           = Beta_mu0_block_idx_dict[key][-1]+1
         Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
 
-
-    # trial run posterior variance matrix for (log)sigma splines
-
-    # trial run posterior variance matrix for ksi splines
+    # trial run posterior variance matrix for Beta_mu1
+    Beta_mu1_all_post_cov                 = 1e-4 * np.identity(Beta_mu1_m)
+    assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
+    Beta_mu1_block_post_cov_dict          = {}
+    for key in Beta_mu1_block_idx_dict.keys():
+        start_idx                         = Beta_mu1_block_idx_dict[key][0]
+        end_idx                           = Beta_mu1_block_idx_dict[key][-1]+1
+        Beta_mu1_block_post_cov_dict[key] = Beta_mu1_all_post_cov[start_idx:end_idx, start_idx:end_idx]
 
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: Proposal Variance Scalar, Covariance Matrix, and Counter
@@ -448,15 +450,15 @@ if __name__ == "__main__":
             # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
-            # 'sigma_Beta_mu0'      : (2.4**2),
             'sigma_Beta_mu0'      : 0.03749589, # from trial run
-            # 'sigma_Beta_logsigma' : (2.4**2),
+            'sigma_Beta_mu1'      : 0.01,
             'sigma_Beta_logsigma' : 0.24878523, # from trial run
-            # 'sigma_Beta_ksi'      : (2.4**2)
             'sigma_Beta_ksi'      : 0.44929566  # from trial run
         }
         for key in Beta_mu0_block_idx_dict.keys():
             sigma_m_sq[key] = (2.4**2)/len(Beta_mu0_block_idx_dict[key])
+        for key in Beta_mu1_block_idx_dict.keys():
+            sigma_m_sq[key] = (2.4**2)/len(Beta_mu1_block_idx_dict[key])
 
         # proposal covariance matrix
         Sigma_0 = {
@@ -472,6 +474,7 @@ if __name__ == "__main__":
             'Beta_ksi'      : Beta_ksi_post_cov
         }
         Sigma_0.update(Beta_mu0_block_post_cov_dict)
+        Sigma_0.update(Beta_mu1_block_post_cov_dict)
 
         num_accepted = { # acceptance counter
             'phi'                 : 0,
@@ -481,10 +484,13 @@ if __name__ == "__main__":
             'Beta_logsigma'       : 0,
             'Beta_ksi'            : 0,
             'sigma_Beta_mu0'      : 0,
+            'sigma_Beta_mu1'      : 0,
             'sigma_Beta_logsigma' : 0,
             'sigma_Beta_ksi'      : 0
         }
         for key in Beta_mu0_block_idx_dict.keys():
+            num_accepted[key] = 0
+        for key in Beta_mu1_block_idx_dict.keys():
             num_accepted[key] = 0
 
     # Rt: each Worker_t propose k-R(t)s at time t
@@ -682,184 +688,12 @@ if __name__ == "__main__":
         # plt.savefig('3d phi surface.pdf')
         # plt.close()
 
-    # %% 5. Generate and Plot GEV Surfaces
-    # 5. Generate and Plot GEV Surfaces -------------------------------------------------------------------------------------
+    # %% 5. Plot GEV Surfaces
+    # 5. Plot GEV Surfaces -------------------------------------------------------------------------------------
 
-    # Location #
-    # ## coefficients
-    # Beta_mu0 = np.array(list(Beta_mu0_dict.values())) # extract the coefficient values
-    # assert Beta_mu0_m == len(Beta_mu0) # number of betas for mu0
-    # ## actual surface for mu0(s)
-    # mu0_matrix = (C_mu0.T @ Beta_mu0).T
-    # if rank == 0: # plotting the location surface
-    #     ## heatplot of mu0 surface
-    #     C_mu0_plot = np.full(shape = (Beta_mu0_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
-    #     C_mu0_plot[0, :, :] = 1.0
-    #     C_mu0_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-    #     C_mu0_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-    #     mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T
-    #     graph, ax = plt.subplots()
-    #     heatmap = ax.imshow(mu_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-    #     ax.invert_yaxis()
-    #     graph.colorbar(heatmap)
-    #     # plt.show()
-    #     plt.savefig('heatmap mu0 surface.pdf')
-    #     plt.close()
-
-    #     ## 3d plot of mu0 surface
-    #     # fig = plt.figure()
-    #     # ax = fig.add_subplot(projection='3d')
-    #     # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(mu_surface_plot[:,0]).reshape(25,25))
-    #     # ax.set_xlabel('X')
-    #     # ax.set_ylabel('Y')
-    #     # ax.set_zlabel('mu0(s)')
-
-    # Scale #
-    ## coefficients
-    Beta_logsigma = np.array(list(Beta_logsigma_dict.values()))
-    assert Beta_logsigma_m == len(Beta_logsigma)
-    ## actual surface for sigma(s)
-    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-    if rank == 0: # heatplot of sigma(s) surface
-        C_logsigma_plot = np.full(shape = (Beta_logsigma_m, len(plotgrid_xy), Nt), fill_value = np.nan)
-        C_logsigma_plot[0, :, :] = 1.0
-        C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-        C_logsigma_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-        sigma_surface_plot = np.exp((C_logsigma_plot.T @ Beta_logsigma).T)
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        plt.title('sigma surface heatplot')
-        # plt.show()
-        plt.savefig('heatmap sigma surface.pdf')
-        plt.close()
-
-    # Shape #
-    ## coefficients
-    Beta_ksi = np.array(list(Beta_ksi_dict.values()))
-    assert Beta_ksi_m == len(Beta_ksi)
-    ## actual surface for ksi(s)
-    ksi_matrix = (C_ksi.T @ Beta_ksi).T
-    if rank == 0: # heatplot of ksi(s) surface
-        C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
-        C_ksi_plot[0, :, :] = 1.0
-        C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-        C_ksi_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-        ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        # plt.show()
-        plt.savefig('heatmap ksi surface.pdf')
-        plt.close()
-
-    # # Use mgcv tp spline as covariate for the marginal parameter surfaces
-    # if rank == 0: # do R stuff (parameter surface, covariate, and coefficient) under worker 0
-
-    #     # "knots" and prediction sites for splines
-    #     gs_x        = np.linspace(0, 10, 41)
-    #     gs_y        = np.linspace(0, 10, 41)
-    #     gs_xy       = np.full(shape = (len(gs_x) * len(gs_y),2), fill_value = np.nan)
-    #     current_row = 0
-    #     for i in range(len(gs_x)):
-    #         for j in range(len(gs_y)):
-    #             gs_xy[current_row,0] = gs_x[i]
-    #             gs_xy[current_row,1] = gs_y[j]
-    #             current_row          += 1
-
-    #     gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
-    #     gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
-    #     gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
-    #     sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
-
-    #     r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
-    #     r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
-    #     r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
-    #     r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
-
-    #     r("save(gs_x_ro, file='gs_x_ro.gzip', compress=TRUE)")
-    #     r("save(gs_y_ro, file='gs_y_ro.gzip', compress=TRUE)")
-    #     r("save(gs_xy_ro, file='gs_xy_ro.gzip', compress=TRUE)")
-    #     r("save(sites_xy_ro, file='sites_xy_ro.gzip', compress=TRUE)")
-
-    #     # "knot splines" and "site splines"
-    #     mgcv = importr('mgcv')
-    #     C_knot_spline_ro = r('''
-    #                         gs_xy_df <- as.data.frame(gs_xy_ro)
-    #                         colnames(gs_xy_df) <- c('x','y')
-    #                         basis <- smoothCon(s(x, y, k = {Beta_mu0_m}, fx = TRUE), data = gs_xy_df)[[1]]
-    #                         basis$X
-    #                     '''.format(Beta_mu0_m = Beta_mu0_m))
-    #     C_site_spline_ro = r('''
-    #                         sites_xy_df           <- as.data.frame(sites_xy_ro)
-    #                         colnames(sites_xy_df) <- c('x','y')
-    #                         C_site_spline         <- PredictMat(basis, data = sites_xy_df)
-    #                     ''')
-    #     # '''         gs_xy_df <- as.data.frame(gs_xy_ro)
-    #     #     colnames(gs_xy_df) <- c('x','y')
-    #     #     basis <- smoothCon(s(x, y, k = {Beta_mu}, fx = TRUE), data = gs_xy_df)[[1]]
-    #     #   '''.format(Beta_mu = 100)
-
-    #     # LOCATION mu #
-    #     ## mu values at sites
-    #     mu0_1t            = mu_surf_generator((sites_x, sites_y))
-    #     mu0_matrix        = np.tile(mu0_1t, reps = (Nt, 1)).T
-
-    #     ## Covariates
-    #     C_mu0_1t          = np.array(r('C_site_spline'))                 # shape (Ns, Nc) Nc: number of covariate/splines
-    #     C_mu0             = np.tile(C_mu0_1t.T[:,:,None], reps=(1,1,Nt)) # Tranposed each C_mu0_1t, now Shaped (Nc, Ns, Nt)
-    #                                                                      # for ease of matmul in np (last 2 indexes)
-    #                                                                      # laster do (C.T @ Beta).T
-                                                                         
-    #     ## Regression Spline to get initial beta values
-    #     mu0_1t_ro = numpy2rpy(mu0_1t)
-    #     r.assign("mu0_1t_ro", mu0_1t_ro)
-    #     r("save(mu0_1t_ro, file='mu0_1t_ro.gzip', compress=TRUE)")
-    #     Beta_mu0 = np.array(r('''
-    #                           Beta_mu0 <- coef(lm(c(mu0_1t_ro) ~ C_site_spline-1))
-    #                           Beta_mu0'''))
-
-    #     ## plotting the actual surface
-    #     mu_surf_grid      = mu_surf_generator((gs_x, gs_y), mesh_type='structured')
-    #     mu_surf_grid_ro   = numpy2rpy(mu_surf_grid)
-    #     r.assign("mu_surf_grid_ro", mu_surf_grid_ro)
-    #     r("save(mu_surf_grid_ro, file='mu_surf_grid_ro.gzip', compress=TRUE)")
-    #     # # note that for gaussian surface, the first index runs along the x axis, and the second index runs along the y axis
-    #     # mu_surf_grid.shape
-    #     # mu_surf_grid
-    #     # mu_surf_generator.plot()
-    #     # # This is in "contradiction" to the order of filling in heatmap of imshow, which require the first index runs along the vertical y axis, and the second index runs along the horizontal x axis,
-    #     # # so we should transpose the mu_surf_grid in order to propoerly use heatmap
-    #     # # Also, the imshow (heatmap) function literally took the matrix as it is and "heat map" its values, so the first row gets printed on top, and the last row gets printed bottom --- this might not be what we want, as we'd like y axis to go from down to top
-    #     # # hence we also need to invert the yaxis to achieve this (also don't forget to adjust the bottom top axis label in the extent parameter)
-    #     graph, ax = plt.subplots()
-    #     heatmap = ax.imshow(mu_surf_grid.T, cmap='hot', interpolation='nearest', extent=[0,10,10,0])  # extent (left, right, bottom, top)
-    #     ax.invert_yaxis()
-    #     graph.colorbar(heatmap)
-    #     plt.xlabel('x')
-    #     plt.ylabel('y')
-    #     plt.title('mu(s) surface heatplot')
-    #     plt.show()
-    #     plt.savefig('heatmap mu surface.pdf')
-    #     plt.close()
-    # else: # broadcast from worker 0 to other workers
-    #     mu0_matrix = None
-    #     C_mu0      = None
-    # mu0_matrix     = comm.bcast(mu0_matrix, root = 0)
-    # C_mu0          = comm.bcast(C_mu0, root = 0)
-
-    # sigma_surf_grid = sigma_surf_generator((gs_x, gs_y), mesh_type='structured')
-    # sigma_surf_generator.plot()
-    # graph, ax = plt.subplots()
-    # heatmap = ax.imshow(np.exp(sigma_surf_grid.T), cmap='hot', interpolation='nearest', extent=[0,10,10,0])
-    # ax.invert_yaxis()
-    # graph.colorbar(heatmap)
-        
-    # %% 5.2 Plotting the GEV Surfaces
-    # 5.2 Plotting the GEV Surfaces -------------------------------------------------------------------------------------
     if rank == 0:
+        # Location #
+        # mu0(s) plot
         C_mu0_plot        = np.full(shape = (Beta_mu0_m, len(gs_xy), Nt), fill_value = np.nan)
         C_mu0_plot[0,:,:] = 1.0
         C_mu0_plot[1,:,:] = np.tile(elevation_func(gs_xy[:,0], gs_xy[:,1])[:,None], reps=(1,Nt))
@@ -874,9 +708,62 @@ if __name__ == "__main__":
         heatmap = ax.imshow(mu0_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, cmap='hot',interpolation='nearest',extent=[0,10,10,0])
         ax.invert_yaxis()
         graph.colorbar(heatmap)
+        ax.set_title('mu0 surface plot')
         # plt.show()
-        print(mu0_surface_plot[:,0])
+        # print(mu0_surface_plot[:,0])
         plt.savefig('heatmap mu0 surface.pdf')
+        plt.close()
+
+        # # mu(s,t) = mu0(s) + mu1(s) * Time 
+        # import matplotlib.animation as animation
+        # plt.rcParams['animation.ffmpeg_path'] = '/opt/homebrew/bin/ffmpeg'
+        # C_mu1_plot = C_mu0_plot.copy()
+        # mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T + (C_mu1_plot.T @ Beta_mu1).T * Time
+        # graph, ax = plt.subplots()
+        # heatmap = ax.imshow(mu_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, 
+        #                     cmap='hot',interpolation='nearest',extent=[0,10,10,0],
+        #                     vmin = np.min(mu_surface_plot), vmax = np.max(mu_surface_plot))
+        # ax.invert_yaxis()
+        # graph.colorbar(heatmap)
+        # title = ax.set_title('mu(s,t) surface plot')
+        # def animate(i):
+        #     heatmap.set_array(mu_surface_plot[:,i].reshape(len(gs_x),len(gs_y)).T)
+        #     title.set_text('Time {0}'.format(i))
+        #     return [graph]
+        # anim = animation.FuncAnimation(graph,animate,frames = Nt, interval = 200)
+        # anim.save('muSurfaceOverTime.mp4', fps=1)
+        # # plt.show()
+        # plt.close()
+    
+        # Scale #
+        # heatplot of sigma(s) surface
+        C_logsigma_plot = np.full(shape = (Beta_logsigma_m, len(plotgrid_xy), Nt), fill_value = np.nan)
+        C_logsigma_plot[0, :, :] = 1.0
+        C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_logsigma_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+        sigma_surface_plot = np.exp((C_logsigma_plot.T @ Beta_logsigma).T)
+        graph, ax = plt.subplots()
+        heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+        ax.invert_yaxis()
+        graph.colorbar(heatmap)
+        plt.title('sigma surface heatplot')
+        # plt.show()
+        plt.savefig('heatmap sigma surface.pdf')
+        plt.close()
+
+        # Shape #
+        # heatplot of ksi(s) surface
+        C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+        C_ksi_plot[0, :, :] = 1.0
+        C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+        C_ksi_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+        ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
+        graph, ax = plt.subplots()
+        heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+        ax.invert_yaxis()
+        graph.colorbar(heatmap)
+        # plt.show()
+        plt.savefig('heatmap ksi surface.pdf')
         plt.close()
 
     # %% 6. Generate X_star and Y
@@ -893,7 +780,7 @@ if __name__ == "__main__":
     Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
     for t in np.arange(Nt):
         # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu0_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
     # %% 7. Checking Data Generation
     # 7. Checking Data Generation -------------------------------------------------------------------------------------
@@ -1002,9 +889,11 @@ if __name__ == "__main__":
         phi_knots_trace           = np.full(shape = (n_iters, k), fill_value = np.nan) # phi_at_knots
         range_knots_trace         = np.full(shape = (n_iters, k), fill_value = np.nan) # range_at_knots
         Beta_mu0_trace            = np.full(shape = (n_iters, Beta_mu0_m), fill_value = np.nan) # mu0 Covariate Coefficients
+        Beta_mu1_trace            = np.full(shape = (n_iters, Beta_mu1_m), fill_value = np.nan) # mu1 covariate Coefficients
         Beta_logsigma_trace       = np.full(shape = (n_iters, Beta_logsigma_m), fill_value = np.nan) # logsigma Covariate Coefficients
         Beta_ksi_trace            = np.full(shape=(n_iters, Beta_ksi_m), fill_value = np.nan) # ksi Covariate Coefficients
         sigma_Beta_mu0_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan) # prior sd for beta_mu0's
+        sigma_Beta_mu1_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan) # prior sd for beta_mu1's
         sigma_Beta_logsigma_trace = np.full(shape=(n_iters, 1), fill_value = np.nan) # prior sd for beta_logsigma's
         sigma_Beta_ksi_trace      = np.full(shape = (n_iters, 1), fill_value = np.nan) # prior sd for beta_ksi's
     else:
@@ -1014,9 +903,11 @@ if __name__ == "__main__":
         phi_knots_trace           = None
         range_knots_trace         = None
         Beta_mu0_trace            = None
+        Beta_mu1_trace            = None
         Beta_logsigma_trace       = None
         Beta_ksi_trace            = None
         sigma_Beta_mu0_trace      = None
+        sigma_Beta_mu1_trace      = None
         sigma_Beta_logsigma_trace = None
         sigma_Beta_ksi_trace      = None
 
@@ -1028,9 +919,11 @@ if __name__ == "__main__":
     phi_knots_init           = phi_at_knots        if rank == 0 else None
     range_knots_init         = range_at_knots      if rank == 0 else None
     Beta_mu0_init            = Beta_mu0            if rank == 0 else None
+    Beta_mu1_init            = Beta_mu1            if rank == 0 else None
     Beta_logsigma_init       = Beta_logsigma       if rank == 0 else None
     Beta_ksi_init            = Beta_ksi            if rank == 0 else None
     sigma_Beta_mu0_init      = sigma_Beta_mu0      if rank == 0 else None
+    sigma_Beta_mu1_init      = sigma_Beta_mu1      if rank == 0 else None
     sigma_Beta_logsigma_init = sigma_Beta_logsigma if rank == 0 else None
     sigma_Beta_ksi_init      = sigma_Beta_ksi      if rank == 0 else None
     if rank == 0: # store initial value into first row of traceplot
@@ -1038,9 +931,11 @@ if __name__ == "__main__":
         phi_knots_trace[0,:]           = phi_knots_init
         range_knots_trace[0,:]         = range_knots_init
         Beta_mu0_trace[0,:]            = Beta_mu0_init
+        Beta_mu1_trace[0,:]            = Beta_mu1_init
         Beta_logsigma_trace[0,:]       = Beta_logsigma_init
         Beta_ksi_trace[0,:]            = Beta_ksi_init
         sigma_Beta_mu0_trace[0,:]      = sigma_Beta_mu0_init
+        sigma_Beta_mu1_trace[0,:]      = sigma_Beta_mu1_init
         sigma_Beta_logsigma_trace[0,:] = sigma_Beta_logsigma_init
         sigma_Beta_ksi_trace[0,:]      = sigma_Beta_ksi_init
 
@@ -1068,14 +963,17 @@ if __name__ == "__main__":
 
     ## ---- GEV covariate coefficients --> GEV surface ----------------------------------------------------------
     Beta_mu0_current      = comm.bcast(Beta_mu0_init, root = 0)
+    Beta_mu1_current      = comm.bcast(Beta_mu1_init, root = 0)
     Beta_logsigma_current = comm.bcast(Beta_logsigma_init, root = 0)
     Beta_ksi_current      = comm.bcast(Beta_ksi_init, root = 0)
-    Loc_matrix_current    = (C_mu0.T @ Beta_mu0_current).T
+    # Loc_matrix_current    = (C_mu0.T @ Beta_mu0_current).T
+    Loc_matrix_current    = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
     Scale_matrix_current  = np.exp((C_logsigma.T @ Beta_logsigma_current).T)
     Shape_matrix_current  = (C_ksi.T @ Beta_ksi_current).T
 
     ## ---- GEV covariate coefficients prior variance -----------------------------------------------------------
     sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_init, root = 0)
+    sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_init, root = 0)
     sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_init, root = 0)
     sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_init, root = 0)
 
@@ -1405,7 +1303,8 @@ if __name__ == "__main__":
             else:
                 Beta_mu0_proposal = None
             Beta_mu0_proposal     = comm.bcast(Beta_mu0_proposal, root = 0)
-            Loc_matrix_proposal   = (C_mu0.T @ Beta_mu0_proposal).T
+            # Loc_matrix_proposal   = (C_mu0.T @ Beta_mu0_proposal).T
+            Loc_matrix_proposal   = (C_mu0.T @ Beta_mu0_proposal).T + (C_mu1.T @ Beta_mu1_current).T * Time
 
             # Conditional log likelihood at proposal
             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
@@ -1455,10 +1354,80 @@ if __name__ == "__main__":
             # Update X_star, mu0 surface, and likelihood
             if Beta_mu0_accepted:
                 X_star_1t_current  = X_star_1t_proposal
-                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
+                # Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
+                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T
                 lik_1t_current     = lik_1t_proposal
             
             comm.Barrier() # block for beta_mu0 updates
+        
+        # %% Update Beta_mu1
+        #############################################################
+        #### ----- Update covariate coefficients, Beta_mu1 ----- ####
+        #############################################################
+        
+        # Update by blocks
+        for key in Beta_mu1_block_idx_dict.keys():
+            change_indices = np.array(Beta_mu1_block_idx_dict[key])
+
+            # Propose new Beta_mu1 at the change_indices
+            if rank == 0:
+                # Beta_mu1 in this block share a sample proposal scale, has proposal variance matrix
+                Beta_mu1_proposal                  = Beta_mu1_current.copy()
+                Beta_mu1_proposal[change_indices] += np.sqrt(sigma_m_sq[key]) * random_generator.multivariate_normal(np.zeros(len(change_indices)), Sigma_0[key])
+            else:
+                Beta_mu1_proposal                  = None
+            Beta_mu1_proposal                      = comm.bcast(Beta_mu1_proposal, root = 0)
+            Loc_matrix_proposal                    = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_proposal).T * Time
+
+            # Conditional log likelihood at proposal
+            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_current, gamma_vec)
+            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+                                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+            # Gather likelihood calculated across time
+            lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+            lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+            # Handle prior and (Accept or Reject) on worker 0
+            if rank == 0:
+                # use Norm(0, sigma_Beta_mu1) prior on each Beta_mu1, like "shrinkage"
+                prior_Beta_mu1_current  = scipy.stats.norm.logpdf(Beta_mu1_current, loc = 0, scale = sigma_Beta_mu1_current)
+                prior_Beta_mu1_proposal = scipy.stats.norm.logpdf(Beta_mu1_proposal,loc = 0, scale = sigma_Beta_mu1_current)
+
+                lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu1_current)
+                lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu1_proposal)
+
+                # Accept or Reject
+                u = random_generator.uniform()
+                ratio = np.exp(lik_proposal - lik_current)
+                if not np.isfinite(ratio):
+                    ratio = 0
+                if u > ratio: # Reject
+                    Beta_mu1_accepted = False
+                    Beta_mu1_update   = Beta_mu1_current
+                else: # Accept
+                    Beta_mu1_accepted = True
+                    Beta_mu1_update   = Beta_mu1_proposal
+                    num_accepted[key] += 1
+                
+                # Store the result
+                Beta_mu1_trace[iter,:] = Beta_mu1_update
+
+                # Update the "current" value
+                Beta_mu1_current = Beta_mu1_update
+            else: # other workers
+                Beta_mu1_accepted = None
+            Beta_mu1_accepted     = comm.bcast(Beta_mu1_accepted, root = 0)
+            Beta_mu1_current      = comm.bcast(Beta_mu1_current, root = 0)
+
+            # Update X_star, mu surface, and likelihood
+            if Beta_mu1_accepted:
+                X_star_1t_current  = X_star_1t_proposal
+                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T
+                lik_1t_current     = lik_1t_proposal
+
+            comm.Barrier() # block for Beta_mu1 updates
 
         # %% Update Beta_logsigma
         ##################################################################
@@ -1631,16 +1600,17 @@ if __name__ == "__main__":
 
         # Propose new sigma_beta_xx
         if rank == 0:
-            sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * \
-                                                                            random_generator.standard_normal()
-            sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * \
-                                                                            random_generator.standard_normal()
-            sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * \
-                                                                            random_generator.standard_normal()
+            sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
+            sigma_Beta_mu1_proposal      = sigma_Beta_mu1_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
+            sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
+            sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
         # Handle accept or reject on worker0
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
             lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
+
+            lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
+            lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
 
             lik_sigma_Beta_logsigma_current  = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
             lik_sigma_Beta_logsigma_proposal = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
@@ -1652,6 +1622,9 @@ if __name__ == "__main__":
             lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
             lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
 
+            lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
+            lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
+
             lik_Beta_logsigma_prior_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
             lik_Beta_logsigma_prior_proposal = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
             
@@ -1660,15 +1633,19 @@ if __name__ == "__main__":
 
             # Beta_xx not changed, so no need to calculate the data likelihood
             lik_current = lik_sigma_Beta_mu0_current + \
+                          lik_sigma_Beta_mu1_current + \
                           lik_sigma_Beta_logsigma_current + \
                           lik_sigma_Beta_ksi_current + \
                           sum(lik_Beta_mu0_prior_current) + \
+                          sum(lik_Beta_mu1_prior_current) + \
                           sum(lik_Beta_logsigma_prior_current) + \
                           sum(lik_Beta_ksi_prior_current)
             lik_proposal = lik_sigma_Beta_mu0_proposal + \
+                           lik_sigma_Beta_mu1_proposal + \
                            lik_sigma_Beta_logsigma_proposal + \
                            lik_sigma_Beta_ksi_proposal + \
                            sum(lik_Beta_mu0_prior_proposal) + \
+                           sum(lik_Beta_mu1_prior_proposal) + \
                            sum(lik_Beta_logsigma_prior_proposal) + \
                            sum(lik_Beta_ksi_prior_proposal)
 
@@ -1681,6 +1658,9 @@ if __name__ == "__main__":
                 sigma_Beta_mu0_accepted      = False
                 sigma_Beta_mu0_update        = sigma_Beta_mu0_current
 
+                sigma_Beta_mu1_accepted      = False
+                sigma_Beta_mu1_update        = sigma_Beta_mu1_current
+
                 sigma_Beta_logsigma_accepted = False
                 sigma_Beta_logsigma_update   = sigma_Beta_logsigma_current
 
@@ -1690,6 +1670,10 @@ if __name__ == "__main__":
                 sigma_Beta_mu0_accepted             = True
                 sigma_Beta_mu0_update               = sigma_Beta_mu0_proposal
                 num_accepted['sigma_Beta_mu0']      += 1
+
+                sigma_Beta_mu1_accepted             = True
+                sigma_Beta_mu1_update               = sigma_Beta_mu1_proposal
+                num_accepted['sigma_Beta_mu1']      += 1
 
                 sigma_Beta_logsigma_accepted        = True
                 sigma_Beta_logsigma_update          = sigma_Beta_logsigma_proposal
@@ -1701,16 +1685,19 @@ if __name__ == "__main__":
 
             # Store the result
             sigma_Beta_mu0_trace[iter,:]      = sigma_Beta_mu0_update
+            sigma_Beta_mu1_trace[iter,:]      = sigma_Beta_mu1_update
             sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
             sigma_Beta_ksi_trace[iter,:]      = sigma_Beta_ksi_update
 
             # Update the current value
             sigma_Beta_mu0_current      = sigma_Beta_mu0_update
+            sigma_Beta_mu1_current      = sigma_Beta_mu1_update
             sigma_Beta_logsigma_current = sigma_Beta_logsigma_update
             sigma_Beta_ksi_current      = sigma_Beta_ksi_update
         
         # Boradcast the updated values (actually no need because only involves worker0)
         sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
+        sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
         sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
         sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
 
@@ -1841,12 +1828,28 @@ if __name__ == "__main__":
                     Sigma_0_hat        = np.array(np.cov(Beta_mu0_trace[iter-adapt_size:iter, start_idx:end_idx].T))
                     Sigma_0[key]       = Sigma_0[key] + gamma1*(Sigma_0_hat - Sigma_0[key])
 
+                ## Beta_mu1 Block Update
+                for key in Beta_mu1_block_idx_dict.keys():
+                    start_idx = Beta_mu1_block_idx_dict[key][0]
+                    end_idx   = Beta_mu1_block_idx_dict[key][-1]+1
+                    r_hat              = num_accepted[key]/adapt_size
+                    num_accepted[key]  = 0
+                    log_sigma_m_sq_hat = np.log(sigma_m_sq[key]) + gamma2 * (r_hat - r_opt)
+                    sigma_m_sq[key]    = np.exp(log_sigma_m_sq_hat)
+                    Sigma_0_hat        = np.array(np.cov(Beta_mu1_trace[iter-adapt_size:iter, start_idx:end_idx].T))
+                    Sigma_0[key]       = Sigma_0[key] + gamma1 * (Sigma_0_hat - Sigma_0[key])
+
                 # Prior variance for GEV Coefficients
                 ## sigma_Beta_mu0
                 r_hat                          = num_accepted['sigma_Beta_mu0']/adapt_size
                 num_accepted['sigma_Beta_mu0'] = 0
                 log_sigma_m_sq_hat             = np.log(sigma_m_sq['sigma_Beta_mu0']) + gamma2*(r_hat - r_opt)
                 sigma_m_sq['sigma_Beta_mu0']   = np.exp(log_sigma_m_sq_hat)
+                ## sigma_Beta_mu1
+                r_hat                          = num_accepted['sigma_Beta_mu1']/adapt_size
+                num_accepted['sigma_Beta_mu1'] = 0
+                log_sigma_m_sq_hat             = np.log(sigma_m_sq['sigma_Beta_mu1']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['sigma_Beta_mu1']   = np.exp(log_sigma_m_sq_hat)
                 ## sigma_Beta_logsigma
                 r_hat                               = num_accepted['sigma_Beta_logsigma']/adapt_size
                 num_accepted['sigma_Beta_logsigma'] = 0
@@ -1880,9 +1883,11 @@ if __name__ == "__main__":
                 np.save('range_knots_trace', range_knots_trace)
                 # np.save('GEV_knots_trace', GEV_knots_trace)
                 np.save('Beta_mu0_trace', Beta_mu0_trace)
+                np.save('Beta_mu1_trace', Beta_mu1_trace)
                 np.save('Beta_logsigma_trace', Beta_logsigma_trace)
                 np.save('Beta_ksi_trace', Beta_ksi_trace)
                 np.save('sigma_Beta_mu0_trace', sigma_Beta_mu0_trace)
+                np.save('sigma_Beta_mu1_trace', sigma_Beta_mu1_trace)
                 np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
                 np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
 
@@ -1898,9 +1903,11 @@ if __name__ == "__main__":
                 range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
                 # GEV_knots_trace_thin           = GEV_knots_trace[0:iter:10,:,:]
                 Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
+                Beta_mu1_trace_thin            = Beta_mu1_trace[0:iter:10,:]
                 Beta_logsigma_trace_thin       = Beta_logsigma_trace[0:iter:10,:]
                 Beta_ksi_trace_thin            = Beta_ksi_trace[0:iter:10,:]
                 sigma_Beta_mu0_trace_thin      = sigma_Beta_mu0_trace[0:iter:10,:]
+                sigma_Beta_mu1_trace_thin      = sigma_Beta_mu1_trace[0:iter:10,:]
                 sigma_Beta_logsigma_trace_thin = sigma_Beta_logsigma_trace[0:iter:10,:]
                 sigma_Beta_ksi_trace_thin      = sigma_Beta_ksi_trace[0:iter:10,:]
                 
@@ -1976,7 +1983,7 @@ if __name__ == "__main__":
                 # plt.savefig('Beta_mu0.pdf')
                 # plt.close()
 
-                ## location mu coefficients in blocks
+                ## location mu0 coefficients in blocks
                 for key in Beta_mu0_block_idx_dict.keys():
                     plt.subplots()
                     for j in Beta_mu0_block_idx_dict[key]:
@@ -1987,6 +1994,19 @@ if __name__ == "__main__":
                     plt.ylabel('Beta_mu0')
                     plt.legend()
                     plt.savefig(str(key)+'.pdf')
+                    plt.close()
+                
+                ## location Beta_mu1 in blocks:
+                for key in Beta_mu1_block_idx_dict.keys():
+                    plt.subplots()
+                    for j in Beta_mu1_block_idx_dict[key]:
+                        plt.plot(xs_thin2, Beta_mu1_trace_thin[:,j], label = 'Beta_' + str(j))
+                        plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu1_trace_thin[:,j][-1]))
+                    plt.title('traceplot for Beta_mu1' + str(Beta_mu1_block_idx_dict[key]))
+                    plt.xlabel('iter thinned by 10')
+                    plt.ylabel('Beta_mu1')
+                    plt.legend()
+                    plt.savefig(str(key) + '.pdf')
                     plt.close()
 
                 ## scale coefficients
@@ -2013,32 +2033,57 @@ if __name__ == "__main__":
                 plt.savefig('Beta_ksi.pdf')
                 plt.close()
         
-                ## location Beta_xx prior variance
+                ## location Beta_xx prior variances combined on one plot (since they're updated togeter)
                 plt.subplots()
-                plt.plot(xs_thin2, sigma_Beta_mu0_trace_thin)
-                plt.title('sigma in Beta_mu0 ~ N(0, sigma^2)')
+                plt.plot(xs_thin2, sigma_Beta_mu0_trace_thin,      label = 'sigma_Beta_mu0')
+                plt.plot(xs_thin2, sigma_Beta_mu1_trace_thin,      label = 'sigma_Beta_mu1')
+                plt.plot(xs_thin2, sigma_Beta_logsigma_trace_thin, label = 'sigma_Beta_logsigma')
+                plt.plot(xs_thin2, sigma_Beta_ksi_trace_thin,      label = 'sigma_Beta_ksi')
+                plt.annotate('sigma_Beta_mu0',      xy=(xs_thin2[-1], sigma_Beta_mu0_trace_thin[:,0][-1]))
+                plt.annotate('sigma_Beta_mu1',      xy=(xs_thin2[-1], sigma_Beta_mu1_trace_thin[:,0][-1]))
+                plt.annotate('sigma_Beta_logsigma', xy=(xs_thin2[-1], sigma_Beta_logsigma_trace_thin[:,0][-1]))
+                plt.annotate('sigma_Beta_ksi',      xy=(xs_thin2[-1], sigma_Beta_ksi_trace_thin[:,0][-1]))
+                plt.title('sigma in Beta_xx ~ N(0, sigma^2)')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('sigma')
-                plt.savefig('sigma_Beta_mu0.pdf')
+                plt.savefig('sigma_Beta_xx.pdf')
                 plt.close()
 
-                ## scale Beta_xx prior variance
-                plt.subplots()
-                plt.plot(xs_thin2, sigma_Beta_logsigma_trace_thin)
-                plt.title('sigma in Beta_logsigma ~ N(0, sigma^2)')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('sigma')
-                plt.savefig('sigma_Beta_logsigma.pdf')
-                plt.close()
+                # ## location Beta_xx prior variance
+                # plt.subplots()
+                # plt.plot(xs_thin2, sigma_Beta_mu0_trace_thin)
+                # plt.title('sigma in Beta_mu0 ~ N(0, sigma^2)')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('sigma')
+                # plt.savefig('sigma_Beta_mu0.pdf')
+                # plt.close()
 
-                ## shape coefficients prior variance
-                plt.subplots()
-                plt.plot(xs_thin2, sigma_Beta_ksi_trace_thin)
-                plt.title('sigma in Beta_ksi ~ N(0, sigma^2)')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('sigma')
-                plt.savefig('sigma_Beta_ksi.pdf')
-                plt.close()
+                # ## location Beta_xx prior variance
+                # plt.subplots()
+                # plt.plot(xs_thin2, sigma_Beta_mu1_trace_thin)
+                # plt.title('sigma in Beta_mu1 ~ N(0, sigma^2)')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('sigma')
+                # plt.savefig('sigma_Beta_mu1.pdf')
+                # plt.close()
+
+                # ## scale Beta_xx prior variance
+                # plt.subplots()
+                # plt.plot(xs_thin2, sigma_Beta_logsigma_trace_thin)
+                # plt.title('sigma in Beta_logsigma ~ N(0, sigma^2)')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('sigma')
+                # plt.savefig('sigma_Beta_logsigma.pdf')
+                # plt.close()
+
+                # ## shape coefficients prior variance
+                # plt.subplots()
+                # plt.plot(xs_thin2, sigma_Beta_ksi_trace_thin)
+                # plt.title('sigma in Beta_ksi ~ N(0, sigma^2)')
+                # plt.xlabel('iter thinned by 10')
+                # plt.ylabel('sigma')
+                # plt.savefig('sigma_Beta_ksi.pdf')
+                # plt.close()
 
         comm.Barrier() # block for drawing
 
@@ -2056,8 +2101,10 @@ if __name__ == "__main__":
         np.save('range_knots_trace', range_knots_trace)
         # np.save('GEV_knots_trace', GEV_knots_trace)
         np.save('Beta_mu0_trace', Beta_mu0_trace)
+        np.save('Beta_mu1_trace', Beta_mu1_trace)
         np.save('Beta_logsigma_trace', Beta_logsigma_trace)
         np.save('Beta_ksi_trace', Beta_ksi_trace)
         np.save('sigma_Beta_mu0_trace', sigma_Beta_mu0_trace)
+        np.save('sigma_Beta_mu1_trace', sigma_Beta_mu1_trace)
         np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
         np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
