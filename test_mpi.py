@@ -15,3 +15,6 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 print('my rank is: ', rank)
+
+from RW_inte import *
+print(rank, pRW_transformed_cpp(20, 0.5, 0.5))
