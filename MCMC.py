@@ -29,7 +29,9 @@ plotgrid_xy is meshgrid(order='xy') fills horizontally (x changes first, then y 
 gs_xy is meshgrid(order='ij') fills vertically (y changes first, then x changes), so NEED tranpose in imshow
 
 Note on mgcv
-It appears the basis matrix produced by smoothCon is slightly (~ 3 to 4 decimal places) different between machines
+- It appears the basis matrix produced by smoothCon is slightly (~ 3 to 4 decimal places) different between machines
+- Note that in the splines constructed by mgcv, the 3rd to last column is a flat plane (which duplicate the intercept term) 
+    so remember to remove it!
 """
 # Require:
 #   - utilities.py
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     
     np.random.seed(data_seed)
     Nt = 16 # number of time replicates
-    Ns = 100 # number of sites/stations
+    Ns = 50 # number of sites/stations
     n_iters = 5000
     Time = np.linspace(-Nt/2, Nt/2-1, Nt)
 
@@ -100,9 +102,12 @@ if __name__ == "__main__":
     sites_y = sites_xy[:,1]
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Elevation Function - simple elevation function 1/5(|x-5| + |y-5|)
-    def elevation_func(x,y):
-        return(np.abs(x-5)/5 + np.abs(y-5)/5)
+    # Elevation Function - 
+    # Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
+    #       this might cause identifiability issue
+    # def elevation_func(x,y):
+        # return(np.abs(x-5)/5 + np.abs(y-5)/5)
+    elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
 
     # ----------------------------------------------------------------------------------------------------------------
     # Knots - uniform grid of 9 knots, should do this programatically...
@@ -235,43 +240,51 @@ if __name__ == "__main__":
     # Location mu_0(s) ----------------------------------------------------------------------------------------------
     ## coefficients
     Beta_mu0_0              = 0
-    Beta_mu0_1              = 0.1
-    Beta_mu0_splines_m      = 12
-    Beta_mu0_splines        = np.array([0.1]*Beta_mu0_splines_m)
+    Beta_mu0_1              = 0.05
+    Beta_mu0_splines_m      = 12 - 1 # dropped the 3rd to last column of constant
+    Beta_mu0_splines        = np.array([0.05]*Beta_mu0_splines_m)
     Beta_mu0                = np.concatenate(([Beta_mu0_0], [Beta_mu0_1], Beta_mu0_splines))
     Beta_mu0_m              = len(Beta_mu0)
-    Beta_mu0_block_idx_size = 7
+    Beta_mu0_block_idx_size = 4
     ## covariates
     C_mu0_splines = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
                                 basis_site <- PredictMat(basis, data = sites_xy_df)
-                                basis_site
-                            '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m))) # shaped(Ns, Beta_mu0_splines_m)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                            '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+    # C_mu0_1t      = np.column_stack((np.ones(Ns),
+    #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
+    #                                 C_mu0_splines))
     C_mu0_1t      = np.column_stack((np.ones(Ns),
-                                    elevation_func(sites_xy[:,0], sites_xy[:,1]),
-                                    C_mu0_splines))
+                                     elev_surf_generator((sites_x, sites_y)),
+                                     C_mu0_splines))
     C_mu0         = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
     ## mu0(s,t)
     mu0_matrix = (C_mu0.T @ Beta_mu0).T      
 
     # Location mu_1(s) ----------------------------------------------------------------------------------------------
     ## coefficients
-    Beta_mu1_0              = 0
+    Beta_mu1_0              = 0.0
     Beta_mu1_1              = 0.01
-    Beta_mu1_splines_m      = 12
+    Beta_mu1_splines_m      = 12 - 1 # drop the 3rd to last column of constant
     Beta_mu1_splines        = np.array([0.01] * Beta_mu1_splines_m)
     Beta_mu1                = np.concatenate(([Beta_mu1_0], [Beta_mu1_1], Beta_mu1_splines))
     Beta_mu1_m              = len(Beta_mu1)
-    Beta_mu1_block_idx_size = 7
+    Beta_mu1_block_idx_size = 4
     ## covariates
     C_mu1_splines = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
                                 basis_site <- PredictMat(basis, data = sites_xy_df)
-                                basis_site
-                            '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m))) # shaped(Ns, Beta_mu1_splines_m)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 4rd to last column of constant
+                            '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+    # C_mu1_1t      = np.column_stack((np.ones(Ns),
+    #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
+    #                                 C_mu1_splines))
     C_mu1_1t      = np.column_stack((np.ones(Ns),
-                                    elevation_func(sites_xy[:,0], sites_xy[:,1]),
-                                    C_mu1_splines))
+                                     elev_surf_generator((sites_x, sites_y)),
+                                     C_mu1_splines))
     C_mu1         = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
     ## mu1(s,t)
     mu1_matrix = (C_mu1.T @ Beta_mu1).T
@@ -418,7 +431,73 @@ if __name__ == "__main__":
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
     # trial run posterior variance matrix for Beta_mu0
-    Beta_mu0_all_post_cov = 1e-4 * np.identity(Beta_mu0_m)
+    # Beta_mu0_all_post_cov = 1e-5 * np.identity(Beta_mu0_m)
+    Beta_mu0_all_post_cov = np.array([
+       [ 1.02232222e-04,  1.07641454e-04, -4.29876345e-05,
+         9.00767758e-07,  4.67001634e-05, -2.84196291e-05,
+        -3.20859509e-05, -4.91600192e-05,  7.19819875e-05,
+        -4.50499061e-06,  8.36549211e-05,  1.92750622e-05,
+        -3.93172442e-05],
+       [ 1.07641454e-04,  1.24411320e-04, -4.31773189e-05,
+         1.57526306e-06,  4.83747795e-05, -3.20217976e-05,
+        -3.65094225e-05, -5.32585671e-05,  7.78256402e-05,
+        -4.21859117e-06,  9.24903467e-05,  2.28529293e-05,
+        -4.39507987e-05],
+       [-4.29876345e-05, -4.31773189e-05,  8.37881251e-05,
+        -8.62484011e-06, -4.47266430e-05,  3.12661782e-05,
+         3.39707700e-06,  2.32120292e-05, -4.17616700e-05,
+         1.78052064e-06, -2.01913941e-05, -1.21579716e-05,
+         2.98268649e-05],
+       [ 9.00767758e-07,  1.57526306e-06, -8.62484011e-06,
+         8.04740168e-06,  1.64092574e-06, -6.55288462e-06,
+         4.44219622e-07,  1.18293779e-07,  1.37817837e-06,
+         3.20019329e-06,  1.59833568e-06,  3.02065081e-06,
+        -2.85990578e-06],
+       [ 4.67001634e-05,  4.83747795e-05, -4.47266430e-05,
+         1.64092574e-06,  3.94692898e-05, -1.53410340e-05,
+        -9.13160577e-06, -1.73550502e-05,  3.75305690e-05,
+         1.94367238e-06,  2.52713329e-05,  9.28637998e-06,
+        -2.20509256e-05],
+       [-2.84196291e-05, -3.20217976e-05,  3.12661782e-05,
+        -6.55288462e-06, -1.53410340e-05,  3.61929749e-05,
+         1.13013896e-05,  2.37015107e-05, -2.57149573e-05,
+        -2.40125221e-06, -3.30162278e-05, -1.42479939e-05,
+         1.72322886e-05],
+       [-3.20859509e-05, -3.65094225e-05,  3.39707700e-06,
+         4.44219622e-07, -9.13160577e-06,  1.13013896e-05,
+         2.06335302e-05,  2.00357625e-05, -2.38750193e-05,
+         6.88097112e-06, -3.57177457e-05, -7.63591844e-06,
+         1.32712141e-05],
+       [-4.91600192e-05, -5.32585671e-05,  2.32120292e-05,
+         1.18293779e-07, -1.73550502e-05,  2.37015107e-05,
+         2.00357625e-05,  3.61525794e-05, -3.70352246e-05,
+         9.65842432e-06, -5.16818137e-05, -1.24040718e-05,
+         2.17139646e-05],
+       [ 7.19819875e-05,  7.78256402e-05, -4.17616700e-05,
+         1.37817837e-06,  3.75305690e-05, -2.57149573e-05,
+        -2.38750193e-05, -3.70352246e-05,  5.71290663e-05,
+        -4.10599178e-06,  5.77689889e-05,  1.53890194e-05,
+        -3.15206285e-05],
+       [-4.50499061e-06, -4.21859117e-06,  1.78052064e-06,
+         3.20019329e-06,  1.94367238e-06, -2.40125221e-06,
+         6.88097112e-06,  9.65842432e-06, -4.10599178e-06,
+         1.91346945e-05, -1.58093402e-05,  1.30736989e-06,
+         5.50567410e-06],
+       [ 8.36549211e-05,  9.24903467e-05, -2.01913941e-05,
+         1.59833568e-06,  2.52713329e-05, -3.30162278e-05,
+        -3.57177457e-05, -5.16818137e-05,  5.77689889e-05,
+        -1.58093402e-05,  9.79773576e-05,  1.86605207e-05,
+        -3.42240506e-05],
+       [ 1.92750622e-05,  2.28529293e-05, -1.21579716e-05,
+         3.02065081e-06,  9.28637998e-06, -1.42479939e-05,
+        -7.63591844e-06, -1.24040718e-05,  1.53890194e-05,
+         1.30736989e-06,  1.86605207e-05,  1.15313136e-05,
+        -1.28937194e-05],
+       [-3.93172442e-05, -4.39507987e-05,  2.98268649e-05,
+        -2.85990578e-06, -2.20509256e-05,  1.72322886e-05,
+         1.32712141e-05,  2.17139646e-05, -3.15206285e-05,
+         5.50567410e-06, -3.42240506e-05, -1.28937194e-05,
+         2.46844772e-05]])
     assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
     Beta_mu0_block_post_cov_dict = {}
     for key in Beta_mu0_block_idx_dict.keys():
@@ -427,7 +506,73 @@ if __name__ == "__main__":
         Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
 
     # trial run posterior variance matrix for Beta_mu1
-    Beta_mu1_all_post_cov                 = 1e-4 * np.identity(Beta_mu1_m)
+    # Beta_mu1_all_post_cov = 1e-5 * np.identity(Beta_mu1_m)
+    Beta_mu1_all_post_cov = np.array([
+       [ 1.77436933e-04,  3.97334628e-05, -6.83467198e-05,
+        -5.47414781e-05, -7.59612246e-05, -2.11679916e-04,
+        -2.74663425e-06,  8.36306791e-05, -1.63793391e-05,
+         1.41232328e-04,  4.84748052e-05, -1.15715307e-04,
+         1.04476279e-04],
+       [ 3.97334628e-05,  3.89035229e-05, -7.04014176e-06,
+         3.47420767e-06, -7.37841325e-07, -4.48268998e-05,
+         5.48122033e-06,  2.24780104e-05, -1.51493693e-05,
+         3.38653813e-05,  1.96975965e-05, -1.53058261e-05,
+         3.32919375e-05],
+       [-6.83467198e-05, -7.04014176e-06,  1.00644434e-04,
+         4.56001633e-05,  7.48294818e-05,  1.38640077e-04,
+         3.20719664e-05, -4.71386600e-06, -2.52764470e-05,
+        -6.65582865e-05,  1.68891606e-05,  2.85096379e-05,
+        -6.66526424e-05],
+       [-5.47414781e-05,  3.47420767e-06,  4.56001633e-05,
+         4.64095740e-05,  5.11405706e-05,  8.70910257e-05,
+         3.51532723e-06, -3.02454553e-05, -2.36543908e-06,
+        -6.03726186e-05, -3.31380317e-06,  5.61148691e-05,
+        -3.05285633e-05],
+       [-7.59612246e-05, -7.37841325e-07,  7.48294818e-05,
+         5.11405706e-05,  8.65771027e-05,  1.28272475e-04,
+         2.13742522e-05, -2.03801580e-05, -1.89717499e-05,
+        -7.49923575e-05,  8.87033984e-06,  4.95877781e-05,
+        -5.28452535e-05],
+       [-2.11679916e-04, -4.48268998e-05,  1.38640077e-04,
+         8.70910257e-05,  1.28272475e-04,  3.06782001e-04,
+         2.23662057e-05, -8.75344441e-05,  6.59776057e-07,
+        -1.82938507e-04, -3.31538873e-05,  1.32964183e-04,
+        -1.53235470e-04],
+       [-2.74663425e-06,  5.48122033e-06,  3.20719664e-05,
+         3.51532723e-06,  2.13742522e-05,  2.23662057e-05,
+         3.70923955e-05,  2.33136942e-05, -2.58724656e-05,
+         8.48837685e-06,  1.57779636e-05, -2.04252412e-05,
+        -1.68472149e-05],
+       [ 8.36306791e-05,  2.24780104e-05, -4.71386600e-06,
+        -3.02454553e-05, -2.03801580e-05, -8.75344441e-05,
+         2.33136942e-05,  7.96128900e-05, -3.36383685e-05,
+         8.07819040e-05,  5.15841063e-05, -9.61420093e-05,
+         4.95021891e-05],
+       [-1.63793391e-05, -1.51493693e-05, -2.52764470e-05,
+        -2.36543908e-06, -1.89717499e-05,  6.59776057e-07,
+        -2.58724656e-05, -3.36383685e-05,  3.62375793e-05,
+        -1.90622060e-05, -2.89752790e-05,  3.18656997e-05,
+        -3.49673518e-06],
+       [ 1.41232328e-04,  3.38653813e-05, -6.65582865e-05,
+        -6.03726186e-05, -7.49923575e-05, -1.82938507e-04,
+         8.48837685e-06,  8.07819040e-05, -1.90622060e-05,
+         1.45695957e-04,  3.65970598e-05, -1.15925787e-04,
+         8.32049968e-05],
+       [ 4.84748052e-05,  1.96975965e-05,  1.68891606e-05,
+        -3.31380317e-06,  8.87033984e-06, -3.31538873e-05,
+         1.57779636e-05,  5.15841063e-05, -2.89752790e-05,
+         3.65970598e-05,  5.65538739e-05, -5.77637075e-05,
+         3.71403850e-05],
+       [-1.15715307e-04, -1.53058261e-05,  2.85096379e-05,
+         5.61148691e-05,  4.95877781e-05,  1.32964183e-04,
+        -2.04252412e-05, -9.61420093e-05,  3.18656997e-05,
+        -1.15925787e-04, -5.77637075e-05,  1.40953571e-04,
+        -6.21985399e-05],
+       [ 1.04476279e-04,  3.32919375e-05, -6.66526424e-05,
+        -3.05285633e-05, -5.28452535e-05, -1.53235470e-04,
+        -1.68472149e-05,  4.95021891e-05, -3.49673518e-06,
+         8.32049968e-05,  3.71403850e-05, -6.21985399e-05,
+         1.11985305e-04]])
     assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
     Beta_mu1_block_post_cov_dict          = {}
     for key in Beta_mu1_block_idx_dict.keys():
@@ -479,6 +624,9 @@ if __name__ == "__main__":
         num_accepted = { # acceptance counter
             'phi'                 : 0,
             'range'               : 0,
+            'phi_block1'          : 0,
+            'phi_block2'          : 0,
+            'phi_block3'          : 0,
             # 'GEV'                 : 0,
             # 'Beta_mu0'            : 0,
             'Beta_logsigma'       : 0,
@@ -529,7 +677,8 @@ if __name__ == "__main__":
         plt.close()
     
     if rank == 0: # Plot the elevation
-        plotgrid_elevations = elevation_func(plotgrid_xy[:,0], plotgrid_xy[:,1])
+        # plotgrid_elevations = elevation_func(plotgrid_xy[:,0], plotgrid_xy[:,1])
+        plotgrid_elevations = elev_surf_generator((plotgrid_xy[:,0], plotgrid_xy[:,1]))
         graph, ax = plt.subplots()
         heatmap = ax.imshow(plotgrid_elevations.reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
         ax.invert_yaxis()
@@ -696,7 +845,8 @@ if __name__ == "__main__":
         # mu0(s) plot
         C_mu0_plot        = np.full(shape = (Beta_mu0_m, len(gs_xy), Nt), fill_value = np.nan)
         C_mu0_plot[0,:,:] = 1.0
-        C_mu0_plot[1,:,:] = np.tile(elevation_func(gs_xy[:,0], gs_xy[:,1])[:,None], reps=(1,Nt))
+        # C_mu0_plot[1,:,:] = np.tile(elevation_func(gs_xy[:,0], gs_xy[:,1])[:,None], reps=(1,Nt))
+        C_mu0_plot[1,:,:] = np.tile(elev_surf_generator((gs_xy[:,0], gs_xy[:,1]))[:,None], reps = (1,Nt))
         # C_mu0_plot[1,:,:] = 0.0
         C_mu0_plot[2:Beta_mu0_m,:,:] = np.tile(np.array(r('''
                                                     basis <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -717,7 +867,7 @@ if __name__ == "__main__":
         # # mu(s,t) = mu0(s) + mu1(s) * Time 
         # import matplotlib.animation as animation
         # plt.rcParams['animation.ffmpeg_path'] = '/opt/homebrew/bin/ffmpeg'
-        # C_mu1_plot = C_mu0_plot.copy()
+        # C_mu1_plot = C_mu0_plot.copy() # as we use same number of splines, basis are exact same
         # mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T + (C_mu1_plot.T @ Beta_mu1).T * Time
         # graph, ax = plt.subplots()
         # heatmap = ax.imshow(mu_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, 
@@ -1049,165 +1199,306 @@ if __name__ == "__main__":
         ####   Update phi_at_knots   ######################################################
         ###################################################################################
 
-        # Propose new phi at the knots --> new phi vector
-        if rank == 0:
-            random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
-            random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
-            random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
-            random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-            # random_walk_kx1 = np.repeat(random_walk_kx1[0], k) # keep phi spatially constant
-            phi_knots_proposal = phi_knots_current + random_walk_kx1
-        else:
-            phi_knots_proposal = None
-        phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
-        phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
+        # # Propose new phi at the knots --> new phi vector
+        # if rank == 0:
+        #     random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
+        #     random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
+        #     random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
+        #     random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+        #     # random_walk_kx1 = np.repeat(random_walk_kx1[0], k) # keep phi spatially constant
+        #     phi_knots_proposal = phi_knots_current + random_walk_kx1
+        # else:
+        #     phi_knots_proposal = None
+        # phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
+        # phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
 
-        # Conditional Likelihood at Current
-        # No need to re-calculate because likelihood inherit from above
-        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # # Conditional Likelihood at Current
+        # # No need to re-calculate because likelihood inherit from above
+        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        # #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         
-        # Conditional Likelihood at Proposed
-        phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
+        # # Conditional Likelihood at Proposed
+        # phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
 
-        if phi_out_of_range: #U(0,1] prior
-            # X_star_1t_proposal = np.NINF
-            lik_1t_proposal = np.NINF
-        else: # 0 < phi <= 1
-            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_proposal, gamma_vec)
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
+        # if phi_out_of_range: #U(0,1] prior
+        #     # X_star_1t_proposal = np.NINF
+        #     lik_1t_proposal = np.NINF
+        # else: # 0 < phi <= 1
+        #     X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+        #                                 phi_vec_proposal, gamma_vec)
+        #     lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                                     phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
         
-        # Gather likelihood calculated across time (no prior yet)
-        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+        # # Gather likelihood calculated across time (no prior yet)
+        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-        # Handle prior and (Accept or Reject) on worker 0
-        if rank == 0:
-            # use Beta(5,5) prior on each one of the k range parameters
-            lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
-            lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
+        # # Handle prior and (Accept or Reject) on worker 0
+        # if rank == 0:
+        #     # use Beta(5,5) prior on each one of the k range parameters
+        #     lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
+        #     lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
 
-            # Accept or Reject
-            u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
-                ratio = 0
-            if u > ratio: # Reject
-                phi_accepted     = False
-                phi_vec_update   = phi_vec_current
-                phi_knots_update = phi_knots_current
-            else: # Accept, u <= ratio
-                phi_accepted     = True
-                phi_vec_update   = phi_vec_proposal
-                phi_knots_update = phi_knots_proposal
-                num_accepted['phi'] += 1
+        #     # Accept or Reject
+        #     u = random_generator.uniform()
+        #     ratio = np.exp(lik_proposal - lik_current)
+        #     if not np.isfinite(ratio):
+        #         ratio = 0
+        #     if u > ratio: # Reject
+        #         phi_accepted     = False
+        #         phi_vec_update   = phi_vec_current
+        #         phi_knots_update = phi_knots_current
+        #     else: # Accept, u <= ratio
+        #         phi_accepted     = True
+        #         phi_vec_update   = phi_vec_proposal
+        #         phi_knots_update = phi_knots_proposal
+        #         num_accepted['phi'] += 1
             
-            # Store the result
-            phi_knots_trace[iter,:] = phi_knots_update
+        #     # Store the result
+        #     phi_knots_trace[iter,:] = phi_knots_update
 
-            # Update the "current" value
-            phi_vec_current = phi_vec_update
-            phi_knots_current = phi_knots_update
-        else:
-            phi_accepted = None
+        #     # Update the "current" value
+        #     phi_vec_current = phi_vec_update
+        #     phi_knots_current = phi_knots_update
+        # else:
+        #     phi_accepted = None
 
-        # Brodcast the updated values
-        phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
-        phi_knots_current = comm.bcast(phi_knots_current, root = 0)
-        phi_accepted      = comm.bcast(phi_accepted, root = 0)
+        # # Brodcast the updated values
+        # phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
+        # phi_knots_current = comm.bcast(phi_knots_current, root = 0)
+        # phi_accepted      = comm.bcast(phi_accepted, root = 0)
 
-        # Update X_star and likelihood
-        if phi_accepted:
-            X_star_1t_current = X_star_1t_proposal
-            lik_1t_current = lik_1t_proposal
+        # # Update X_star and likelihood
+        # if phi_accepted:
+        #     X_star_1t_current = X_star_1t_proposal
+        #     lik_1t_current = lik_1t_proposal
 
-        comm.Barrier() # block for phi updates
+        # comm.Barrier() # block for phi updates
+
+        # Update phi ACTUALLY in blocks
+        for i in range(3):
+            change_indices = np.array([i*3, i*3+1, i*3+2])
+            block_name     = 'phi_block' + str(i+1)
+
+            # Propose new phi_block at the change_indices
+            if rank == 0:
+                phi_knots_proposal                  = phi_knots_current.copy()
+                phi_knots_proposal[change_indices] += np.sqrt(sigma_m_sq[block_name]) * \
+                                                        random_generator.multivariate_normal(np.zeros(3), Sigma_0[block_name])
+            else:
+                phi_knots_proposal = None
+            phi_knots_proposal     = comm.bcast(phi_knots_proposal, root = 0)
+            phi_vec_proposal       = gaussian_weight_matrix @ phi_knots_proposal
+
+            # Conditional log likelihood at proposal
+            phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
+            if phi_out_of_range:
+                lik_1t_proposal = np.NINF
+            else:
+                X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+                                        phi_vec_proposal, gamma_vec)
+                lik_1t_proposal    = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                        phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
+            
+            # Gather likelihood calculated across time
+            lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+            lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+            # Handle prior and Accept/Reject on worker 0
+            if rank == 0:
+                # use Beta(5,5) prior on each one of the 3 parameters
+                lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current,  a = 5, b = 5))
+                lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
+                
+                # Accept or Reject
+                u     = random_generator.uniform()
+                ratio = np.exp(lik_proposal - lik_current)
+                if not np.isfinite(ratio):
+                    ratio = 0
+                if u > ratio: # Reject
+                    phi_accepted     = False
+                    phi_vec_update   = phi_vec_current
+                    phi_knots_update = phi_knots_current
+                else: # Accept, u <= ratio
+                    phi_accepted              = True
+                    phi_vec_update            = phi_vec_proposal
+                    phi_knots_update          = phi_knots_proposal
+                    num_accepted[block_name] += 1
+                
+                # Store the result
+                phi_knots_trace[iter,:] = phi_knots_update
+                
+                # Update the current value
+                phi_vec_current   = phi_vec_update
+                phi_knots_current = phi_knots_update
+            else: # broadcast to other workers
+                phi_accepted  = None
+            phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
+            phi_knots_current = comm.bcast(phi_knots_current, root = 0)
+            phi_accepted      = comm.bcast(phi_accepted, root = 0)
+            
+            # Update X_star and likelihood if accepted
+            if phi_accepted:
+                X_star_1t_current = X_star_1t_proposal
+                lik_1t_current    = lik_1t_proposal
+
+            comm.Barrier() # block for phi update
 
         # %% Update range
         #########################################################################################
         ####  Update range_at_knots  ############################################################
         #########################################################################################
         
-        # Propose new range at the knots --> new range vector
-        if rank == 0:
-            random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
-            random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
-            random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
-            random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-            range_knots_proposal = range_knots_current + random_walk_kx1
-        else:
-            range_knots_proposal = None
-        range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
-        range_vec_proposal = gaussian_weight_matrix @ range_knots_proposal
+        # # Propose new range at the knots --> new range vector
+        # if rank == 0:
+        #     random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
+        #     random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
+        #     random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
+        #     random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
+        #     range_knots_proposal = range_knots_current + random_walk_kx1
+        # else:
+        #     range_knots_proposal = None
+        # range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
+        # range_vec_proposal = gaussian_weight_matrix @ range_knots_proposal
 
-        # Conditional log Likelihood at Current
-        # No need to re-calculate because likelihood inherit from above
-        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # # Conditional log Likelihood at Current
+        # # No need to re-calculate because likelihood inherit from above
+        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        # #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+
+        # # Conditional log Likelihood at Proposed
+        # if any(range <= 0 for range in range_knots_proposal):
+        #     lik_1t_proposal = np.NINF
+        # else:
+        #     K_proposal = ns_cov(range_vec = range_vec_proposal,
+        #                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
+        #     cholesky_matrix_proposal = scipy.linalg.cholesky(K_proposal, lower = False)
+
+        #     lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
         #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
 
-        # Conditional log Likelihood at Proposed
-        if any(range <= 0 for range in range_knots_proposal):
-            lik_1t_proposal = np.NINF
-        else:
-            K_proposal = ns_cov(range_vec = range_vec_proposal,
-                            sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
-            cholesky_matrix_proposal = scipy.linalg.cholesky(K_proposal, lower = False)
+        # # Gather likelihood calculated across time (no prior yet)
+        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                        phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
+        # # Handle prior and (Accept or Reject) on worker 0
+        # if rank == 0:
+        #     # use Half-Normal Prior on each one of the k range parameters
+        #     lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
+        #     lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
 
-        # Gather likelihood calculated across time (no prior yet)
-        lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-
-        # Handle prior and (Accept or Reject) on worker 0
-        if rank == 0:
-            # use Half-Normal Prior on each one of the k range parameters
-            lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
-            lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
-
-            # Accept or Reject
-            u = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
-                ratio = 0 # Force a rejection
-            if u > ratio: # Reject
-                range_accepted     = False
-                range_vec_update   = range_vec_current
-                range_knots_update = range_knots_current
-            else: # Accept, u <= ratio
-                range_accepted     = True
-                range_vec_update   = range_vec_proposal
-                range_knots_update = range_knots_proposal
-                num_accepted['range'] += 1
+        #     # Accept or Reject
+        #     u = random_generator.uniform()
+        #     ratio = np.exp(lik_proposal - lik_current)
+        #     if not np.isfinite(ratio):
+        #         ratio = 0 # Force a rejection
+        #     if u > ratio: # Reject
+        #         range_accepted     = False
+        #         range_vec_update   = range_vec_current
+        #         range_knots_update = range_knots_current
+        #     else: # Accept, u <= ratio
+        #         range_accepted     = True
+        #         range_vec_update   = range_vec_proposal
+        #         range_knots_update = range_knots_proposal
+        #         num_accepted['range'] += 1
             
-            # Store the result
-            range_knots_trace[iter,:] = range_knots_update
+        #     # Store the result
+        #     range_knots_trace[iter,:] = range_knots_update
 
-            # Update the "current" value
-            range_vec_current = range_vec_update
-            range_knots_current = range_knots_update
-        else:
-            range_accepted = None
+        #     # Update the "current" value
+        #     range_vec_current = range_vec_update
+        #     range_knots_current = range_knots_update
+        # else:
+        #     range_accepted = None
 
-        # Brodcast the updated values
-        range_vec_current   = comm.bcast(range_vec_current, root = 0)
-        range_knots_current = comm.bcast(range_knots_current, root = 0)
-        range_accepted      = comm.bcast(range_accepted, root = 0)
+        # # Brodcast the updated values
+        # range_vec_current   = comm.bcast(range_vec_current, root = 0)
+        # range_knots_current = comm.bcast(range_knots_current, root = 0)
+        # range_accepted      = comm.bcast(range_accepted, root = 0)
 
-        # Update the K, cholesky_matrix, and likelihood
-        if range_accepted:
-            K_current = K_proposal
-            cholesky_matrix_current = cholesky_matrix_proposal
-            lik_1t_current = lik_1t_proposal
+        # # Update the K, cholesky_matrix, and likelihood
+        # if range_accepted:
+        #     K_current = K_proposal
+        #     cholesky_matrix_current = cholesky_matrix_proposal
+        #     lik_1t_current = lik_1t_proposal
 
-        comm.Barrier() # block for range updates
+        # comm.Barrier() # block for range updates
+
+        # Update range ACTUALLY in blocks
+        for i in range(3):
+            change_indices = np.array([i*3, i*3+1, i*3+2])
+            block_name     = 'range_block' + str(i+1)
+
+            # Propose new range_block at the change indices
+            if rank == 0:
+                range_knots_proposal                  = range_knots_current.copy()
+                range_knots_proposal[change_indices] += np.sqrt(sigma_m_sq[block_name])* \
+                                                        random_generator.multivariate_normal(np.zeros(3), Sigma_0[block_name])
+            else:
+                range_knots_proposal = None
+            range_knots_proposal     = comm.bcast(range_knots_proposal, root = 0)
+            range_vec_proposal       = gaussian_weight_matrix @ range_knots_proposal
+
+            # Conditional log likelihood at proposal
+            if any(range <= 0 for range in range_knots_proposal):
+                lik_1t_proposal = np.NINF
+            else:
+                K_proposal = ns_cov(range_vec = range_vec_proposal,
+                                    sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
+                cholesky_matrix_proposal = scipy.linalg.cholesky(K_proposal, lower = False)
+                lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                    phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
+            
+            # Gather likelihood calculated across time (no prior yet)
+            lik_current_gathered   = comm.gather(lik_1t_current, root = 0)
+            like_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+
+            # Handle prior and Accept/Reject on worker 0
+            if rank == 0:
+                # use Half-Normal prior on each one of the 3 range parameters
+                lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
+                lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
+
+                # Accept or Reject
+                u     = random_generator.uniform()
+                ratio = np.exp(lik_proposal - lik_current)
+                if not np.isfinite(ratio):
+                    ratio = 0 # Force a rejection
+                if u > ratio: # Reject
+                    range_accepted     = False
+                    range_vec_update   = range_vec_current
+                    range_knots_update = range_knots_current
+                else:
+                    range_accepted            = True
+                    range_vec_update          = range_vec_proposal
+                    range_knots_update        = range_knots_proposal
+                    num_accepted[block_name] += 1
+                
+                # Store the result
+                range_knots_trace[iter,:] = range_knots_update
+
+                # Update the current value
+                range_vec_current   = range_vec_update
+                range_knots_current = range_knots_update
+            else: # Broadcast the update values
+                range_accepted  = None
+            range_vec_current   = comm.bcast(range_vec_current, root = 0)
+            range_knots_current = comm.bcast(range_knots_current, root = 0)
+            range_accepted      = comm.bcast(range_accepted, root = 0)
+
+            # Update the K, cholesky_matrix, and likelihood
+            if range_accepted:
+                K_current               = K_proposal
+                cholesky_matrix_current = cholesky_matrix_proposal
+                lik_1t_current          = lik_1t_proposal
+
+            comm.Barrier() # block for range_block updates
 
         # %% Update Beta_mu0
         #############################################################
@@ -1598,109 +1889,251 @@ if __name__ == "__main__":
         ## ---- Update sigma_beta_xx, priors variance for Beta_xx ---- ##
         #################################################################
 
-        # Propose new sigma_beta_xx
+        # # Propose new sigma_beta_xx
+        # if rank == 0:
+        #     sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
+        #     sigma_Beta_mu1_proposal      = sigma_Beta_mu1_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
+        #     sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
+        #     sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
+        # # Handle accept or reject on worker0
+        #     # use Half-t(4) hyperprior on the sigma_Beta_xx priors
+        #     lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
+        #     lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
+
+        #     lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
+        #     lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
+
+        #     lik_sigma_Beta_logsigma_current  = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
+        #     lik_sigma_Beta_logsigma_proposal = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
+
+        #     lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
+        #     lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
+
+        #     # Beta_mu_xx at current/proposal prior
+        #     lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
+        #     lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
+
+        #     lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
+        #     lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
+
+        #     lik_Beta_logsigma_prior_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
+        #     lik_Beta_logsigma_prior_proposal = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
+            
+        #     lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
+        #     lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
+
+        #     # Beta_xx not changed, so no need to calculate the data likelihood
+        #     lik_current = lik_sigma_Beta_mu0_current + \
+        #                   lik_sigma_Beta_mu1_current + \
+        #                   lik_sigma_Beta_logsigma_current + \
+        #                   lik_sigma_Beta_ksi_current + \
+        #                   sum(lik_Beta_mu0_prior_current) + \
+        #                   sum(lik_Beta_mu1_prior_current) + \
+        #                   sum(lik_Beta_logsigma_prior_current) + \
+        #                   sum(lik_Beta_ksi_prior_current)
+        #     lik_proposal = lik_sigma_Beta_mu0_proposal + \
+        #                    lik_sigma_Beta_mu1_proposal + \
+        #                    lik_sigma_Beta_logsigma_proposal + \
+        #                    lik_sigma_Beta_ksi_proposal + \
+        #                    sum(lik_Beta_mu0_prior_proposal) + \
+        #                    sum(lik_Beta_mu1_prior_proposal) + \
+        #                    sum(lik_Beta_logsigma_prior_proposal) + \
+        #                    sum(lik_Beta_ksi_prior_proposal)
+
+        #     # Accept or Reject
+        #     u = random_generator.uniform()
+        #     ratio = np.exp(lik_proposal - lik_current)
+        #     if not np.isfinite(ratio):
+        #         ratio = 0
+        #     if u > ratio: # Reject
+        #         sigma_Beta_mu0_accepted      = False
+        #         sigma_Beta_mu0_update        = sigma_Beta_mu0_current
+
+        #         sigma_Beta_mu1_accepted      = False
+        #         sigma_Beta_mu1_update        = sigma_Beta_mu1_current
+
+        #         sigma_Beta_logsigma_accepted = False
+        #         sigma_Beta_logsigma_update   = sigma_Beta_logsigma_current
+
+        #         sigma_Beta_ksi_accepted      = False
+        #         sigma_Beta_ksi_update        = sigma_Beta_ksi_current
+        #     else: # Accept
+        #         sigma_Beta_mu0_accepted             = True
+        #         sigma_Beta_mu0_update               = sigma_Beta_mu0_proposal
+        #         num_accepted['sigma_Beta_mu0']      += 1
+
+        #         sigma_Beta_mu1_accepted             = True
+        #         sigma_Beta_mu1_update               = sigma_Beta_mu1_proposal
+        #         num_accepted['sigma_Beta_mu1']      += 1
+
+        #         sigma_Beta_logsigma_accepted        = True
+        #         sigma_Beta_logsigma_update          = sigma_Beta_logsigma_proposal
+        #         num_accepted['sigma_Beta_logsigma'] += 1
+
+        #         sigma_Beta_ksi_accepted             = True
+        #         sigma_Beta_ksi_update               = sigma_Beta_ksi_proposal
+        #         num_accepted['sigma_Beta_ksi']      += 1
+
+        #     # Store the result
+        #     sigma_Beta_mu0_trace[iter,:]      = sigma_Beta_mu0_update
+        #     sigma_Beta_mu1_trace[iter,:]      = sigma_Beta_mu1_update
+        #     sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
+        #     sigma_Beta_ksi_trace[iter,:]      = sigma_Beta_ksi_update
+
+        #     # Update the current value
+        #     sigma_Beta_mu0_current      = sigma_Beta_mu0_update
+        #     sigma_Beta_mu1_current      = sigma_Beta_mu1_update
+        #     sigma_Beta_logsigma_current = sigma_Beta_logsigma_update
+        #     sigma_Beta_ksi_current      = sigma_Beta_ksi_update
+        
+        # # Boradcast the updated values (actually no need because only involves worker0)
+        # sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
+        # sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
+        # sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
+        # sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
+
+        # comm.Barrier() # for updating prior variance for Beta_xx
+
+        # Update sigma_Beta_xx separately -- poor mixing in combined update
         if rank == 0:
-            sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
-            sigma_Beta_mu1_proposal      = sigma_Beta_mu1_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
-            sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
-            sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
-        # Handle accept or reject on worker0
+            ## sigma_Beta_mu0
+            sigma_Beta_mu0_proposal = sigma_Beta_mu0_current + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
+            
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
             lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
-
-            lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
-            lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
-
-            lik_sigma_Beta_logsigma_current  = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
-            lik_sigma_Beta_logsigma_proposal = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
-
-            lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
-            lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
-
+            
             # Beta_mu_xx at current/proposal prior
             lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
             lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
 
-            lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
-            lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
-
-            lik_Beta_logsigma_prior_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
-            lik_Beta_logsigma_prior_proposal = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
-            
-            lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
-            lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
-
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current = lik_sigma_Beta_mu0_current + \
-                          lik_sigma_Beta_mu1_current + \
-                          lik_sigma_Beta_logsigma_current + \
-                          lik_sigma_Beta_ksi_current + \
-                          sum(lik_Beta_mu0_prior_current) + \
-                          sum(lik_Beta_mu1_prior_current) + \
-                          sum(lik_Beta_logsigma_prior_current) + \
-                          sum(lik_Beta_ksi_prior_current)
-            lik_proposal = lik_sigma_Beta_mu0_proposal + \
-                           lik_sigma_Beta_mu1_proposal + \
-                           lik_sigma_Beta_logsigma_proposal + \
-                           lik_sigma_Beta_ksi_proposal + \
-                           sum(lik_Beta_mu0_prior_proposal) + \
-                           sum(lik_Beta_mu1_prior_proposal) + \
-                           sum(lik_Beta_logsigma_prior_proposal) + \
-                           sum(lik_Beta_ksi_prior_proposal)
+            lik_current  = lik_sigma_Beta_mu0_current  + sum(lik_Beta_mu0_prior_current)
+            lik_proposal = lik_sigma_Beta_mu0_proposal + sum(lik_Beta_mu0_prior_proposal)
 
             # Accept or Reject
-            u = random_generator.uniform()
+            u     = random_generator.uniform()
             ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio):
                 ratio = 0
             if u > ratio: # Reject
-                sigma_Beta_mu0_accepted      = False
-                sigma_Beta_mu0_update        = sigma_Beta_mu0_current
+                sigma_Beta_mu0_accepted = False
+                sigma_Beta_mu0_update   = sigma_Beta_mu0_current
+            else: # Accept
+                sigma_Beta_mu0_accepted         = True
+                sigma_Beta_mu0_update           = sigma_Beta_mu0_proposal
+                num_accepted['sigma_Beta_mu0'] += 1
+            
+            # Store the result
+            sigma_Beta_mu0_trace[iter,:] = sigma_Beta_mu0_update
+            # Update the current value
+            sigma_Beta_mu0_current       = sigma_Beta_mu0_update
+        
+            ## sigma_Beta_mu1
+            sigma_Beta_mu1_proposal = sigma_Beta_mu1_current + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
+            
+            # use Half-t(4) hyperprior on the sigma_Beta_xx priors
+            lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
+            lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
+            
+            # Beta_mu_xx at current/proposal prior
+            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_current)
+            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_proposal)
 
-                sigma_Beta_mu1_accepted      = False
-                sigma_Beta_mu1_update        = sigma_Beta_mu1_current
+            # Beta_xx not changed, so no need to calculate the data likelihood
+            lik_current  = lik_sigma_Beta_mu1_current  + sum(lik_Beta_mu0_prior_current)
+            lik_proposal = lik_sigma_Beta_mu1_proposal + sum(lik_Beta_mu0_prior_proposal)
 
+            # Accept or Reject
+            u     = random_generator.uniform()
+            ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio):
+                ratio = 0
+            if u > ratio: # Reject
+                sigma_Beta_mu1_accepted = False
+                sigma_Beta_mu1_update   = sigma_Beta_mu1_current
+            else: # Accept
+                sigma_Beta_mu1_accepted         = True
+                sigma_Beta_mu1_update           = sigma_Beta_mu1_proposal
+                num_accepted['sigma_Beta_mu1'] += 1
+            
+            # Store the result
+            sigma_Beta_mu1_trace[iter,:] = sigma_Beta_mu1_update
+            # Update the current value
+            sigma_Beta_mu1_current       = sigma_Beta_mu1_update        
+
+            ## sigma_Beta_logsigma
+            sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
+            
+            # use Half-t(4) hyperprior on the sigma_Beta_xx priors
+            lik_sigma_Beta_logsigma_current       = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
+            lik_sigma_Beta_logsigma_proposal      = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
+            
+            # Beta_mu_xx at current/proposal prior
+            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_current)
+            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_proposal)
+
+            # Beta_xx not changed, so no need to calculate the data likelihood
+            lik_current  = lik_sigma_Beta_logsigma_current  + sum(lik_Beta_mu0_prior_current)
+            lik_proposal = lik_sigma_Beta_logsigma_proposal + sum(lik_Beta_mu0_prior_proposal)
+
+            # Accept or Reject
+            u     = random_generator.uniform()
+            ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio):
+                ratio = 0
+            if u > ratio: # Reject
                 sigma_Beta_logsigma_accepted = False
                 sigma_Beta_logsigma_update   = sigma_Beta_logsigma_current
-
-                sigma_Beta_ksi_accepted      = False
-                sigma_Beta_ksi_update        = sigma_Beta_ksi_current
             else: # Accept
-                sigma_Beta_mu0_accepted             = True
-                sigma_Beta_mu0_update               = sigma_Beta_mu0_proposal
-                num_accepted['sigma_Beta_mu0']      += 1
-
-                sigma_Beta_mu1_accepted             = True
-                sigma_Beta_mu1_update               = sigma_Beta_mu1_proposal
-                num_accepted['sigma_Beta_mu1']      += 1
-
-                sigma_Beta_logsigma_accepted        = True
-                sigma_Beta_logsigma_update          = sigma_Beta_logsigma_proposal
+                sigma_Beta_logsigma_accepted         = True
+                sigma_Beta_logsigma_update           = sigma_Beta_logsigma_proposal
                 num_accepted['sigma_Beta_logsigma'] += 1
-
-                sigma_Beta_ksi_accepted             = True
-                sigma_Beta_ksi_update               = sigma_Beta_ksi_proposal
-                num_accepted['sigma_Beta_ksi']      += 1
-
+            
             # Store the result
-            sigma_Beta_mu0_trace[iter,:]      = sigma_Beta_mu0_update
-            sigma_Beta_mu1_trace[iter,:]      = sigma_Beta_mu1_update
             sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
-            sigma_Beta_ksi_trace[iter,:]      = sigma_Beta_ksi_update
-
             # Update the current value
-            sigma_Beta_mu0_current      = sigma_Beta_mu0_update
-            sigma_Beta_mu1_current      = sigma_Beta_mu1_update
-            sigma_Beta_logsigma_current = sigma_Beta_logsigma_update
-            sigma_Beta_ksi_current      = sigma_Beta_ksi_update
-        
-        # Boradcast the updated values (actually no need because only involves worker0)
-        sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
+            sigma_Beta_logsigma_current       = sigma_Beta_logsigma_update
+
+            ## sigma_Beta_ksi
+            sigma_Beta_ksi_proposal = sigma_Beta_ksi_current + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
+            
+            # use Half-t(4) hyperprior on the sigma_Beta_xx priors
+            lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
+            lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
+            
+            # Beta_mu_xx at current/proposal prior
+            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_current)
+            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_proposal)
+
+            # Beta_xx not changed, so no need to calculate the data likelihood
+            lik_current  = lik_sigma_Beta_ksi_current  + sum(lik_Beta_mu0_prior_current)
+            lik_proposal = lik_sigma_Beta_ksi_proposal + sum(lik_Beta_mu0_prior_proposal)
+
+            # Accept or Reject
+            u     = random_generator.uniform()
+            ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio):
+                ratio = 0
+            if u > ratio: # Reject
+                sigma_Beta_ksi_accepted = False
+                sigma_Beta_ksi_update   = sigma_Beta_ksi_current
+            else: # Accept
+                sigma_Beta_ksi_accepted         = True
+                sigma_Beta_ksi_update           = sigma_Beta_ksi_proposal
+                num_accepted['sigma_Beta_ksi'] += 1
+            
+            # Store the result
+            sigma_Beta_ksi_trace[iter,:] = sigma_Beta_ksi_update
+            # Update the current value
+            sigma_Beta_ksi_current       = sigma_Beta_ksi_update
+
+        # Broadcast the updated values
+        sigma_Beta_mu0_current = comm.bcast(sigma_Beta_mu0_current, root = 0)
         sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
         sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
         sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
-
+        
         comm.Barrier() # for updating prior variance for Beta_xx
 
         # %% After iteration likelihood
@@ -1745,42 +2178,54 @@ if __name__ == "__main__":
             # phi, range, and GEV
             if rank == 0:
                 # phi
-                r_hat = num_accepted['phi']/adapt_size
-                num_accepted['phi'] = 0
+                # r_hat = num_accepted['phi']/adapt_size
+                # num_accepted['phi'] = 0
                 ## phi_block1
-                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(0,3)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block1']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['phi_block1'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['phi_block1'] = Sigma_0['phi_block1'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block1'])
+                r_hat                      = num_accepted['phi_block1']/adapt_size
+                num_accepted['phi_block1'] = 0
+                log_sigma_m_sq_hat         = np.log(sigma_m_sq['phi_block1']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['phi_block1']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(0,3)]))
+                Sigma_0['phi_block1']      = Sigma_0['phi_block1'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block1'])
                 ## phi_block2
-                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(3,6)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block2']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['phi_block2'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['phi_block2'] = Sigma_0['phi_block2'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block2'])
+                r_hat                      = num_accepted['phi_block2']/adapt_size
+                num_accepted['phi_block2'] = 0
+                log_sigma_m_sq_hat         = np.log(sigma_m_sq['phi_block2']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['phi_block2']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(3,6)]))
+                Sigma_0['phi_block2']      = Sigma_0['phi_block2'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block2'])
                 ## phi_block3
-                Sigma_0_hat = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(6,9)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['phi_block3']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['phi_block3'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['phi_block3'] = Sigma_0['phi_block3'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block3'])
+                r_hat                      = num_accepted['phi_block3']/adapt_size
+                num_accepted['phi_block3'] = 0
+                log_sigma_m_sq_hat         = np.log(sigma_m_sq['phi_block3']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['phi_block3']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                = np.cov(np.array([phi_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(6,9)]))
+                Sigma_0['phi_block3']      = Sigma_0['phi_block3'] + gamma1*(Sigma_0_hat - Sigma_0['phi_block3'])
 
                 # range
-                r_hat = num_accepted['range']/adapt_size
-                num_accepted['range'] = 0
+                # r_hat = num_accepted['range']/adapt_size
+                # num_accepted['range'] = 0
                 ## range_block1
-                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(0,3)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block1']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['range_block1'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['range_block1'] = Sigma_0['range_block1'] + gamma1*(Sigma_0_hat - Sigma_0['range_block1'])
+                r_hat                        = num_accepted['range_block1']/adapt_size
+                num_accepted['range_block1'] = 0
+                log_sigma_m_sq_hat           = np.log(sigma_m_sq['range_block1']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['range_block1']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                  = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(0,3)]))
+                Sigma_0['range_block1']      = Sigma_0['range_block1'] + gamma1*(Sigma_0_hat - Sigma_0['range_block1'])
                 ## range_block2
-                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(3,6)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block2']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['range_block2'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['range_block2'] = Sigma_0['range_block2'] + gamma1*(Sigma_0_hat - Sigma_0['range_block2'])
+                r_hat                        = num_accepted['range_block2']/adapt_size
+                num_accepted['range_block2'] = 0
+                log_sigma_m_sq_hat           = np.log(sigma_m_sq['range_block2']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['range_block2']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                  = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(3,6)]))
+                Sigma_0['range_block2']      = Sigma_0['range_block2'] + gamma1*(Sigma_0_hat - Sigma_0['range_block2'])
                 ## range_block3
-                Sigma_0_hat = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(6,9)]))
-                log_sigma_m_sq_hat = np.log(sigma_m_sq['range_block3']) + gamma2*(r_hat - r_opt)
-                sigma_m_sq['range_block3'] = np.exp(log_sigma_m_sq_hat)
-                Sigma_0['range_block3'] = Sigma_0['range_block3'] + gamma1*(Sigma_0_hat - Sigma_0['range_block3'])
+                r_hat                        = num_accepted['range_block3']/adapt_size
+                num_accepted['range_block3'] = 0
+                log_sigma_m_sq_hat           = np.log(sigma_m_sq['range_block3']) + gamma2*(r_hat - r_opt)
+                sigma_m_sq['range_block3']   = np.exp(log_sigma_m_sq_hat)
+                Sigma_0_hat                  = np.cov(np.array([range_knots_trace[iter-adapt_size:iter,i].ravel() for i in range(6,9)]))
+                Sigma_0['range_block3']      = Sigma_0['range_block3'] + gamma1*(Sigma_0_hat - Sigma_0['range_block3'])
                 
                 # # GEV
                 # r_hat = num_accepted['GEV']/adapt_size
@@ -2046,6 +2491,7 @@ if __name__ == "__main__":
                 plt.title('sigma in Beta_xx ~ N(0, sigma^2)')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('sigma')
+                plt.legend()
                 plt.savefig('sigma_Beta_xx.pdf')
                 plt.close()
 
