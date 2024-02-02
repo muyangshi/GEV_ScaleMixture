@@ -1667,7 +1667,7 @@ if __name__ == "__main__":
             if Beta_mu0_accepted:
                 X_star_1t_current  = X_star_1t_proposal
                 # Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
-                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T
+                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
                 lik_1t_current     = lik_1t_proposal
             
             comm.Barrier() # block for beta_mu0 updates
@@ -1736,7 +1736,7 @@ if __name__ == "__main__":
             # Update X_star, mu surface, and likelihood
             if Beta_mu1_accepted:
                 X_star_1t_current  = X_star_1t_proposal
-                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T
+                Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
                 lik_1t_current     = lik_1t_proposal
 
             comm.Barrier() # block for Beta_mu1 updates
