@@ -50,6 +50,12 @@ persp(gs_x_ro, gs_y_ro, matrix(c(basis$X %*% beta), nrow = 41, ncol = 41, byrow=
       theta = -30, ticktype = 'detailed',
       main = 'using observed data', xlab = 'x', ylab = 'y', zlab = 'mu')
 
+persp(gs_x_ro, gs_y_ro, matrix(basis$X[,c(10)], nrow = 41, ncol = 41, byrow=FALSE),
+      theta = -30, ticktype = 'detailed',
+      main = 'using observed data', xlab = 'x', ylab = 'y', zlab = 'mu')
+
+
+
 xy <- data.frame(x = double(), y = double())
 for(row in 1:100){
   for(col in 1:100){

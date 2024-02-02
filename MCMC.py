@@ -292,6 +292,24 @@ if __name__ == "__main__":
     # Location mu(s,t) -----------------------------------------------------------------------------------------------
     mu_matrix = mu0_matrix + mu1_matrix * Time
 
+    # C_mu0_ro     = numpy2rpy(C_mu0)
+    # C_mu1_ro     = numpy2rpy(C_mu1)
+    # mu_matrix_ro = numpy2rpy(mu_matrix)
+    # Beta_mu0_ro  = numpy2rpy(Beta_mu0)
+    # Beta_mu1_ro  = numpy2rpy(Beta_mu1)
+
+    # r.assign('C_mu0_ro', C_mu0_ro)
+    # r.assign('C_mu1_ro', C_mu1_ro)
+    # r.assign('mu_matrix_ro',mu_matrix_ro)
+    # r.assign('Beta_mu0_ro', Beta_mu0_ro)
+    # r.assign('Beta_mu1_ro', Beta_mu1_ro)
+
+    # r("save(C_mu0_ro, file='C_mu0_ro.gzip', compress=TRUE)")
+    # r("save(C_mu1_ro, file='C_mu1_ro.gzip', compress=TRUE)")
+    # r("save(mu_matrix_ro, file='mu_matrix_ro.gzip', compress=TRUE)")
+    # r("save(Beta_mu0_ro, file='Beta_mu0_ro.gzip',compress=TRUE)")
+    # r("save(Beta_mu1_ro, file='Beta_mu1_ro.gzip',compress=TRUE)")
+
     # logsigma
     pass
 
@@ -627,6 +645,9 @@ if __name__ == "__main__":
             'phi_block1'          : 0,
             'phi_block2'          : 0,
             'phi_block3'          : 0,
+            'range_block1'        : 0,
+            'range_block2'        : 0,
+            'range_block3'        : 0,
             # 'GEV'                 : 0,
             # 'Beta_mu0'            : 0,
             'Beta_logsigma'       : 0,
