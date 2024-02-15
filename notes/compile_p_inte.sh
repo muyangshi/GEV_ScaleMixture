@@ -2,16 +2,16 @@
 # To compile on Alpine:
 ##################################################
 # note that Alpine uses its system installed openmpi through module load
-# load anaconda then load gcc, openmpi, gsl, and boost makes sure that
+# load anaconda, activate environment, then load gcc, openmpi, gsl, and boost makes sure that
 # the system mpicxx gets used and not the anaconda3/bin/mpicxx
 # mpi4py is installed through using pip
 module load anaconda
+conda activate mcmc
 module load gcc
 module load openmpi
 module load gsl
 module load boost
-conda activate alpine_MCMC
-$CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB p_inte.cpp -shared -fPIC -o p_inte.so -lgsl -lgslcblas
+# $CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB p_inte.cpp -shared -fPIC -o p_inte.so -lgsl -lgslcblas
 $CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LIB -L$CURC_BOOST_LIB RW_inte_cpp.cpp -shared -fPIC -o RW_inte_cpp.so -lgsl -lgslcblas
 ##################################################
 
