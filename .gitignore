@@ -8,6 +8,7 @@ scratch/*
 write_bash.py
 write_bash*.py
 data/*
+*.gzip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
