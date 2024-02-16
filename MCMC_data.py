@@ -33,10 +33,6 @@ if __name__ == "__main__":
     # seed (maybe not necessary now)
     import sys
     data_seed = int(sys.argv[1]) if len(sys.argv) == 2 else 2345
-    try: # data_seed is defined when python MCMC.py
-        data_seed
-    except: # when running on local machine interactively
-        data_seed = 2345
 
     # %%
     # imports
@@ -65,6 +61,12 @@ if __name__ == "__main__":
     size = comm.Get_size()
     random_generator = np.random.RandomState((rank+1)*7) # use of this avoids impacting the global np state
 
+    try: # data_seed is defined when python MCMC.py
+        data_seed
+    except: # when running on local machine interactively
+        data_seed = 2345
+    np.random.seed(data_seed)
+
     #####################################################################################################################
     # Loading Dataset and Setting Parameters ############################################################################
     #####################################################################################################################
@@ -82,12 +84,22 @@ if __name__ == "__main__":
     elevations         = np.array(r('elev')).T
 
     # truncate for easier run on misspiggy
-    JJA_maxima = JJA_maxima[:,0:32]
+    Nt                 = 32
+    Ns                 = 125
+    times_subset       = np.arange(Nt)
+    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    GEV_estimates      = GEV_estimates[sites_subset,:]
+    mu0_estimates      = GEV_estimates[:,0]
+    mu1_estimates      = GEV_estimates[:,1]
+    logsigma_estimates = GEV_estimates[:,2]
+    ksi_estimates      = GEV_estimates[:,3]
+    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    stations           = stations[sites_subset]
+    elevations         = elevations[sites_subset]
 
     # ----------------------------------------------------------------------------------------------------------------
     # Numbers - Ns, Nt, n_iters
     
-    np.random.seed(data_seed)
     Nt = JJA_maxima.shape[1] # number of time replicates
     Ns = JJA_maxima.shape[0] # number of sites/stations
     n_iters = 5000
@@ -97,8 +109,7 @@ if __name__ == "__main__":
     end_year   = 2017
     all_years  = np.linspace(start_year, end_year, Nt)
     Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1) # delta degress of freedom, to match the n-1 in R
-
-    Time = Time[0:JJA_maxima.shape[1]]
+    Time       = Time[0:Nt] # if there is any truncation
 
     # ----------------------------------------------------------------------------------------------------------------
     # Sites - random uniformly (x,y) generate site locations
@@ -529,7 +540,8 @@ if __name__ == "__main__":
         # ax = fit_model.plot(x_max = 4)
         # ax.scatter(bin_center, gamma_variog)
         range_at_knots = np.append(range_at_knots, fit_model.len_scale)
-
+    if rank == 0:
+        print(range_at_knots)
 
     ## range_vec
     range_vec = gaussian_weight_matrix @ range_at_knots
@@ -540,8 +552,8 @@ if __name__ == "__main__":
     sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
     K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
             coords = sites_xy, kappa = nu, cov_model = "matern")
-    Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
-    W = norm_to_Pareto(Z) 
+    # Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
+    # W = norm_to_Pareto(Z) 
 
     if rank == 0: # plotting the range surface
         # heatplot of range surface
@@ -562,26 +574,6 @@ if __name__ == "__main__":
     ## phi_vec
     phi_vec = gaussian_weight_matrix @ phi_at_knots
     # phi_vec = one_weight_matrix @ phi_at_knots
-
-    ## R
-    ## Generate them at the knots
-    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        # R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
-        R_at_knots[:,t] = scipy.stats.multivariate_normal.rvs(mean = 10*np.ones(k),cov=2*np.eye(k)) # for initial values for data analysis
-        # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
-        # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
-        # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
-
-    ## Matrix Multiply to the sites
-    R_at_sites = wendland_weight_matrix @ R_at_knots
-    # R_at_sites = constant_weight_matrix @ R_at_knots
-
-    ## R^phi
-    R_phi = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
-
     if rank == 0: # plotting the phi surface
         # heatplot of phi surface
         phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
@@ -593,6 +585,26 @@ if __name__ == "__main__":
         # plt.show()
         plt.savefig('heatmap phi surface.pdf')
         plt.close()
+
+    # ## R
+    # ## Generate them at the knots
+    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     # R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+    #     R_at_knots[:,t] = scipy.stats.multivariate_normal.rvs(mean = 10*np.ones(k),cov=2*np.eye(k)) # for initial values for data analysis
+    #     # R_at_knots[:,t] = [3e-12] * k # if using standard Pareto, g(Z) = X/R**phi must be > 1
+    #     # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
+    #     # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
+    #     # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
+
+    # ## Matrix Multiply to the sites
+    # R_at_sites = wendland_weight_matrix @ R_at_knots
+    # # R_at_sites = constant_weight_matrix @ R_at_knots
+
+    # ## R^phi
+    # R_phi = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
 
     # %% 5. Plot GEV Surfaces
     # 5. Plot GEV Surfaces -------------------------------------------------------------------------------------
@@ -685,23 +697,42 @@ if __name__ == "__main__":
     gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
                        axis = 1)**(1/alpha) # axis = 1 to sum over K knots
 
-    # X_star = R_phi * W
-
-    # Calculation of Y can(?) be parallelized by time(?)
-    # Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
-    # for t in np.arange(Nt):
-    #     # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
-    #     Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+    # Y = JJA_maxima
+    # comm.Barrier()
+    # X_1t            = qRW(pgev(Y[:,rank], mu_matrix[:,rank], sigma_matrix[:,rank], ksi_matrix[:,rank]),
+    #                         phi_vec, gamma_vec)
+    # X_star_gathered = comm.gather(X_1t, root = 0)
+    # X_star          = np.array(X_star_gathered).T if rank == 0 else None
+    # X_star          = comm.bcast(X_star, root = 0)
 
     Y = JJA_maxima
-    comm.Barrier()
+    pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        pY[:,t] = pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+    # plt.hist(pY.ravel())
 
-    X_1t            = qRW(pgev(Y[:,rank], mu_matrix[:,rank], sigma_matrix[:,rank], ksi_matrix[:,rank]),
-                            phi_vec, gamma_vec)
-    X_star_gathered = comm.gather(X_1t, root = 0)
-    X_star          = np.array(X_star_gathered).T if rank == 0 else None
-    X_star          = comm.bcast(X_star, root = 0)
+    X_star = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        X_star[:,t] = qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]),
+                          phi_vec, gamma_vec)
 
+    # X_star/(R_at_sites.T ** phi_vec).T
+
+    # solved_R_at_sites = ((X_star/1.5).T ** (1/phi_vec)).T
+    # fig, ax     = plt.subplots()
+    # solved_R_at_sites_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = solved_R_at_sites[:,0])
+    # ax.set_aspect('equal', 'box')
+    # plt.colorbar(solved_R_at_sites_scatter)
+        
+    ## R
+    ## Generate them at the knots
+    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        R_at_knots[:,t] = np.median(X_star[:,t])**2
+
+    ## Matrix Multiply to the sites
+    R_at_sites = wendland_weight_matrix @ R_at_knots
+    # R_at_sites = constant_weight_matrix @ R_at_knots
 
     # %% Metropolis-Hasting Updates
     
@@ -814,6 +845,15 @@ if __name__ == "__main__":
     if rank == 0:
         start_time = time.time()
         print('started on:', strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
+    lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+                                                                Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
+                                                                phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+    prior_1t_current = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
+    if not np.isfinite(lik_1t_current) or not np.isfinite(prior_1t_current):
+        print('initial values lead to none finite likelihood')
+        print(rank)
+        print(lik_1t_current)
+        print(prior_1t_current)
 
     for iter in range(1, n_iters):
         # %% Update Rt
@@ -850,7 +890,13 @@ if __name__ == "__main__":
 
         # Accept or Reject
         u = random_generator.uniform()
-        ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
+        if not all(np.isfinite([lik_1t_proposal,prior_1t_proposal, lik_1t_current, prior_1t_current])):
+            ratio = 0
+            print('iter:', iter, 'updating Rt', 't:', rank)
+            print('lik_1t_proposal:', lik_1t_proposal, 'prior_1t_proposal:', prior_1t_proposal)
+            print('lik_1t_current:', lik_1t_current, 'prior_1t_current:', prior_1t_current)
+        else:
+            ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
         if not np.isfinite(ratio):
             ratio = 0 # Force a rejection
         if u > ratio: # Reject
@@ -1600,7 +1646,8 @@ if __name__ == "__main__":
 
         # Update sigma_Beta_xx separately -- poor mixing in combined update
         if rank == 0:
-            ## sigma_Beta_mu0
+            ## sigma_Beta_mu0  ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_mu0_proposal = sigma_Beta_mu0_current + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -1616,9 +1663,16 @@ if __name__ == "__main__":
             lik_proposal = lik_sigma_Beta_mu0_proposal + sum(lik_Beta_mu0_prior_proposal)
 
             # Accept or Reject
-            u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            u = random_generator.uniform()
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu0')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu0')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu0_accepted = False
@@ -1633,7 +1687,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_mu0_current       = sigma_Beta_mu0_update
         
-            ## sigma_Beta_mu1
+            ## sigma_Beta_mu1 ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_mu1_proposal = sigma_Beta_mu1_current + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -1641,17 +1696,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_proposal)
+            lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
+            lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_mu1_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_mu1_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_mu1_current  + sum(lik_Beta_mu1_prior_current)
+            lik_proposal = lik_sigma_Beta_mu1_proposal + sum(lik_Beta_mu1_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu1')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu1')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu1_accepted = False
@@ -1666,7 +1728,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_mu1_current       = sigma_Beta_mu1_update        
 
-            ## sigma_Beta_logsigma
+            ## sigma_Beta_logsigma ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -1674,17 +1737,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_logsigma_proposal      = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_proposal)
+            lik_Beta_logsigma_prior_current       = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
+            lik_Beta_logsigma_prior_proposal      = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_logsigma_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_logsigma_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_logsigma_current  + sum(lik_Beta_logsigma_prior_current)
+            lik_proposal = lik_sigma_Beta_logsigma_proposal + sum(lik_Beta_logsigma_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_logsigma')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_logsigma')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_logsigma_accepted = False
@@ -1699,7 +1769,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_logsigma_current       = sigma_Beta_logsigma_update
 
-            ## sigma_Beta_ksi
+            ## sigma_Beta_ksi ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_ksi_proposal = sigma_Beta_ksi_current + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -1707,17 +1778,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_proposal)
+            lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
+            lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_ksi_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_ksi_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_ksi_current  + sum(lik_Beta_ksi_prior_current)
+            lik_proposal = lik_sigma_Beta_ksi_proposal + sum(lik_Beta_ksi_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_ksi')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_ksi')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_ksi_accepted = False
@@ -1918,12 +1996,13 @@ if __name__ == "__main__":
         ##############################################
 
         if rank == 0: # Handle Drawing at worker 0
+            print(iter)
             if iter % 50 == 0:
                 print(iter)
                 # print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
                 end_time = time.time()
                 print('elapsed: ', round(end_time - start_time, 1), ' seconds')
-            if iter % 100 == 0 or iter == n_iters-1: # Save and pring data every 1000 iterations
+            if iter % 50 == 0 or iter == n_iters-1: # Save and pring data every 1000 iterations
 
                 np.save('loglik_trace', loglik_trace)
                 np.save('loglik_detail_trace', loglik_detail_trace)
