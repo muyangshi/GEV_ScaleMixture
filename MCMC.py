@@ -1153,6 +1153,15 @@ if __name__ == "__main__":
     if rank == 0:
         start_time = time.time()
         print('started on:', strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
+    lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+                                                                Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
+                                                                phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+    prior_1t_current = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
+    if not np.isfinite(lik_1t_current) or not np.isfinite(prior_1t_current):
+        print('initial values lead to none finite likelihood')
+        print(rank)
+        print(lik_1t_current)
+        print(prior_1t_current)
 
     for iter in range(1, n_iters):
         # %% Update Rt
@@ -1189,7 +1198,13 @@ if __name__ == "__main__":
 
         # Accept or Reject
         u = random_generator.uniform()
-        ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
+        if not all(np.isfinite([lik_1t_proposal,prior_1t_proposal, lik_1t_current, prior_1t_current])):
+            ratio = 0
+            print('iter:', iter, 'updating Rt', 't:', rank)
+            print('lik_1t_proposal:', lik_1t_proposal, 'prior_1t_proposal:', prior_1t_proposal)
+            print('lik_1t_current:', lik_1t_current, 'prior_1t_current:', prior_1t_current)
+        else:
+            ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
         if not np.isfinite(ratio):
             ratio = 0 # Force a rejection
         if u > ratio: # Reject
@@ -1219,84 +1234,6 @@ if __name__ == "__main__":
         ###################################################################################
         ####   Update phi_at_knots   ######################################################
         ###################################################################################
-
-        # # Propose new phi at the knots --> new phi vector
-        # if rank == 0:
-        #     random_walk_block1 = np.sqrt(sigma_m_sq['phi_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block1'])
-        #     random_walk_block2 = np.sqrt(sigma_m_sq['phi_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block2'])
-        #     random_walk_block3 = np.sqrt(sigma_m_sq['phi_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['phi_block3'])        
-        #     random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-        #     # random_walk_kx1 = np.repeat(random_walk_kx1[0], k) # keep phi spatially constant
-        #     phi_knots_proposal = phi_knots_current + random_walk_kx1
-        # else:
-        #     phi_knots_proposal = None
-        # phi_knots_proposal = comm.bcast(phi_knots_proposal, root = 0)
-        # phi_vec_proposal = gaussian_weight_matrix @ phi_knots_proposal
-
-        # # Conditional Likelihood at Current
-        # # No need to re-calculate because likelihood inherit from above
-        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        # #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        # #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-        
-        # # Conditional Likelihood at Proposed
-        # phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
-
-        # if phi_out_of_range: #U(0,1] prior
-        #     # X_star_1t_proposal = np.NINF
-        #     lik_1t_proposal = np.NINF
-        # else: # 0 < phi <= 1
-        #     X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-        #                                 phi_vec_proposal, gamma_vec)
-        #     lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-        #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                     phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
-        
-        # # Gather likelihood calculated across time (no prior yet)
-        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-
-        # # Handle prior and (Accept or Reject) on worker 0
-        # if rank == 0:
-        #     # use Beta(5,5) prior on each one of the k range parameters
-        #     lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current, a = 5, b = 5))
-        #     lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
-
-        #     # Accept or Reject
-        #     u = random_generator.uniform()
-        #     ratio = np.exp(lik_proposal - lik_current)
-        #     if not np.isfinite(ratio):
-        #         ratio = 0
-        #     if u > ratio: # Reject
-        #         phi_accepted     = False
-        #         phi_vec_update   = phi_vec_current
-        #         phi_knots_update = phi_knots_current
-        #     else: # Accept, u <= ratio
-        #         phi_accepted     = True
-        #         phi_vec_update   = phi_vec_proposal
-        #         phi_knots_update = phi_knots_proposal
-        #         num_accepted['phi'] += 1
-            
-        #     # Store the result
-        #     phi_knots_trace[iter,:] = phi_knots_update
-
-        #     # Update the "current" value
-        #     phi_vec_current = phi_vec_update
-        #     phi_knots_current = phi_knots_update
-        # else:
-        #     phi_accepted = None
-
-        # # Brodcast the updated values
-        # phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
-        # phi_knots_current = comm.bcast(phi_knots_current, root = 0)
-        # phi_accepted      = comm.bcast(phi_accepted, root = 0)
-
-        # # Update X_star and likelihood
-        # if phi_accepted:
-        #     X_star_1t_current = X_star_1t_proposal
-        #     lik_1t_current = lik_1t_proposal
-
-        # comm.Barrier() # block for phi updates
 
         # Update phi ACTUALLY in blocks
         for i in range(3):
@@ -2017,7 +1954,8 @@ if __name__ == "__main__":
 
         # Update sigma_Beta_xx separately -- poor mixing in combined update
         if rank == 0:
-            ## sigma_Beta_mu0
+            ## sigma_Beta_mu0  ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_mu0_proposal = sigma_Beta_mu0_current + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -2033,9 +1971,16 @@ if __name__ == "__main__":
             lik_proposal = lik_sigma_Beta_mu0_proposal + sum(lik_Beta_mu0_prior_proposal)
 
             # Accept or Reject
-            u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            u = random_generator.uniform()
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu0')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu0')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu0_accepted = False
@@ -2050,7 +1995,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_mu0_current       = sigma_Beta_mu0_update
         
-            ## sigma_Beta_mu1
+            ## sigma_Beta_mu1 ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_mu1_proposal = sigma_Beta_mu1_current + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -2058,17 +2004,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu1_proposal)
+            lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
+            lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_mu1_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_mu1_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_mu1_current  + sum(lik_Beta_mu1_prior_current)
+            lik_proposal = lik_sigma_Beta_mu1_proposal + sum(lik_Beta_mu1_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu1')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu1')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu1_accepted = False
@@ -2083,7 +2036,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_mu1_current       = sigma_Beta_mu1_update        
 
-            ## sigma_Beta_logsigma
+            ## sigma_Beta_logsigma ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -2091,17 +2045,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_logsigma_proposal      = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_logsigma_proposal)
+            lik_Beta_logsigma_prior_current       = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
+            lik_Beta_logsigma_prior_proposal      = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_logsigma_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_logsigma_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_logsigma_current  + sum(lik_Beta_logsigma_prior_current)
+            lik_proposal = lik_sigma_Beta_logsigma_proposal + sum(lik_Beta_logsigma_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_logsigma')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_logsigma')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_logsigma_accepted = False
@@ -2116,7 +2077,8 @@ if __name__ == "__main__":
             # Update the current value
             sigma_Beta_logsigma_current       = sigma_Beta_logsigma_update
 
-            ## sigma_Beta_ksi
+            ## sigma_Beta_ksi ----------------------------------------------------------------------------------------------------------
+
             sigma_Beta_ksi_proposal = sigma_Beta_ksi_current + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
             
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
@@ -2124,17 +2086,24 @@ if __name__ == "__main__":
             lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
             
             # Beta_mu_xx at current/proposal prior
-            lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_current)
-            lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_ksi_proposal)
+            lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
+            lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
 
             # Beta_xx not changed, so no need to calculate the data likelihood
-            lik_current  = lik_sigma_Beta_ksi_current  + sum(lik_Beta_mu0_prior_current)
-            lik_proposal = lik_sigma_Beta_ksi_proposal + sum(lik_Beta_mu0_prior_proposal)
+            lik_current  = lik_sigma_Beta_ksi_current  + sum(lik_Beta_ksi_prior_current)
+            lik_proposal = lik_sigma_Beta_ksi_proposal + sum(lik_Beta_ksi_prior_proposal)
 
             # Accept or Reject
             u     = random_generator.uniform()
-            ratio = np.exp(lik_proposal - lik_current)
-            if not np.isfinite(ratio):
+            if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
+                print('likelihood values not finite in iter', iter, 'updating sigma_beta_ksi')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                ratio = 0
+            else: # the likelihood values are finite
+                ratio = np.exp(lik_proposal - lik_current)
+            if not np.isfinite(ratio): # likelihood fine, but ratio not finite
+                print('np.exp overflow in iter', iter, 'updating sigma_beta_ksi')
+                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_ksi_accepted = False
@@ -2335,6 +2304,7 @@ if __name__ == "__main__":
         ##############################################
 
         if rank == 0: # Handle Drawing at worker 0
+            print(iter)
             if iter % 50 == 0:
                 print(iter)
                 # print(strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
