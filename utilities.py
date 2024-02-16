@@ -191,7 +191,11 @@ def marg_transform_data_mixture_likelihood_1t_shifted(Y, X, Loc, Scale, Shape, p
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
     # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
     # part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
-    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    try:
+        Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    except Exception as e:
+        print('lik_1t_shifted: ', e)
+        return np.NINF
     part1 = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
 
     ## Jacobian determinant
@@ -216,7 +220,11 @@ def marg_transform_data_mixture_likelihood_1t_standard(Y, X, Loc, Scale, Shape, 
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
     # cholesky_inv = lapack.dpotrs(cholesky_U,Z_vec)
     # part1 = -0.5*np.sum(Z_vec*cholesky_inv[0])-np.sum(np.log(np.diag(cholesky_U))) # multivariate density
-    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    try:
+        Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    except Exception as e:
+        print('lik_1t_standard: ', e)
+        return np.NINF
     part1 = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
 
     ## Jacobian determinant
@@ -243,7 +251,7 @@ def marg_transform_data_mixture_likelihood_1t_detail(Y, X, Loc, Scale, Shape, ph
 
     # for standard Pareto, check for W out of range (W < 1 ?)
     if norm_pareto == 'standard' and any(W_vec < 1):
-        return np.NINF
+        return np.array([np.NINF])
 
     Z_vec = pareto_to_Norm(W_vec)
     # part1 = -0.5*eig2inv_quadform_vector(V, 1/d, Z_vec)-0.5*np.sum(np.log(d)) # multivariate density
