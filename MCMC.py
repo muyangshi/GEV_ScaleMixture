@@ -1031,19 +1031,19 @@ if __name__ == "__main__":
     stations           = np.array(r('stations')).T
     elevations         = np.array(r('elev')).T
 
-    # truncate for easier run on misspiggy
-    Nt                 = 32
-    Ns                 = 125
-    times_subset       = np.arange(Nt)
-    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-    GEV_estimates      = GEV_estimates[sites_subset,:]
-    mu0_estimates      = GEV_estimates[:,0]
-    mu1_estimates      = GEV_estimates[:,1]
-    logsigma_estimates = GEV_estimates[:,2]
-    ksi_estimates      = GEV_estimates[:,3]
-    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-    stations           = stations[sites_subset]
-    elevations         = elevations[sites_subset]
+    # # truncate for easier run on misspiggy
+    # Nt                 = 32
+    # Ns                 = 125
+    # times_subset       = np.arange(Nt)
+    # sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    # GEV_estimates      = GEV_estimates[sites_subset,:]
+    # mu0_estimates      = GEV_estimates[:,0]
+    # mu1_estimates      = GEV_estimates[:,1]
+    # logsigma_estimates = GEV_estimates[:,2]
+    # ksi_estimates      = GEV_estimates[:,3]
+    # JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    # stations           = stations[sites_subset]
+    # elevations         = elevations[sites_subset]
 
     Y = JJA_maxima
     
@@ -1226,10 +1226,10 @@ if __name__ == "__main__":
     Beta_mu1 = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
     Beta_logsigma = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
     Beta_ksi = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
-    sigma_Beta_mu0      = 1
-    sigma_Beta_mu1      = 1
-    sigma_Beta_logsigma = 1
-    sigma_Beta_ksi      = 1
+    sigma_Beta_mu0      = 9.62944645
+    sigma_Beta_mu1      = 0.22947093
+    sigma_Beta_logsigma = 1.79421561
+    sigma_Beta_ksi      = 0.13111096
 
     # ----------------------------------------------------------------------------------------------------------------
     # Data Model Parameters - X_star = R^phi * g(Z)
@@ -1257,20 +1257,31 @@ if __name__ == "__main__":
         range_at_knots = np.append(range_at_knots, fit_model.len_scale)
     if rank == 0:
         print('estimated range:',range_at_knots)
-    
 
     # Scale Mixture R^phi --------------------------------------------------------------------------------------------
 
     phi_at_knots = np.array([0.5] * k)
     phi_vec = gaussian_weight_matrix @ phi_at_knots
 
-    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_at_knots[:,t] = np.median(qRW(pgev(Y[:,t], 
-                                             ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)[:,t], 
-                                             np.exp((C_logsigma.T @ Beta_logsigma).T)[:,t], 
-                                             ((C_ksi.T @ Beta_ksi).T)[:,t]), 
-                                        phi_vec, gamma_vec))**2
+    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_at_knots[:,t] = np.median(qRW(pgev(Y[:,t], 
+    #                                          ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)[:,t], 
+    #                                          np.exp((C_logsigma.T @ Beta_logsigma).T)[:,t], 
+    #                                          ((C_ksi.T @ Beta_ksi).T)[:,t]), 
+    #                                     phi_vec, gamma_vec))**2
+
+
+    mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+    ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+    comm.Barrier()
+    X_1t            = qRW(pgev(Y[:,rank], mu_matrix[:,rank], sigma_matrix[:,rank], ksi_matrix[:,rank]),
+                            phi_vec, gamma_vec)
+    R_1t = np.median(X_1t)**2
+    R_gathered = comm.gather(R_1t, root = 0)
+    R_at_knots          = np.array(R_gathered).T if rank == 0 else None
+    R_at_knots          = comm.bcast(R_at_knots, root = 0)
 
     # %% Load Copula Parameter
     # Load Copula Parameter
@@ -1299,7 +1310,7 @@ if __name__ == "__main__":
     # range_at_knots      = np.array([1.65307445, 1.39232541, 1.4681875 , 1.87987903, 1.76398995,
     #                         1.89409614, 2.17136573, 2.9180074 , 1.95218012])
     # phi_at_knots        = np.array([0.29687906, 0.28087445, 0.2281692 , 0.2907345 , 0.25957508,
-                            # 0.21345036, 0.46410585, 0.21582571, 0.12667254])
+    #                         0.21345036, 0.46410585, 0.21582571, 0.12667254])
     # R_at_knots          = np.exp(np.array([
     # [-8.98617185e-02,  2.74798892e-01,  2.45333243e-02,
     # -4.25861643e-01, -3.74519275e-01,  3.96693387e-01,
