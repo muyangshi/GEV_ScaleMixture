@@ -152,7 +152,9 @@ if __name__ == "__main__":
     alpha = 0.5
 
     ## scaling parameter
-    phi_at_knots = np.array([0.5] * k)
+    # phi_at_knots = np.array([0.5] * k)
+    phi_at_knots = np.array([0.29687906, 0.28087445, 0.2281692 , 0.2907345 , 0.25957508,
+       0.21345036, 0.46410585, 0.21582571, 0.12667254]) # from trial run
 
     ## g(Z)
     nu = 0.5 # exponential kernel for matern with nu = 1/2
@@ -203,7 +205,11 @@ if __name__ == "__main__":
     
     ## coefficients
     lm                      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)
-    Beta_mu0                = lm[0]
+    # Beta_mu0                = lm[0]
+    Beta_mu0 = np.array([ 4.08205821e+01,  9.36103337e-03, -9.23861988e+00, -1.34159177e+00,
+       -2.36156787e-02,  1.94801477e+00,  1.91740509e+00,  6.19714857e-02,
+       -1.09744627e+00, -1.09819892e+00,  6.42493076e-01,  2.55915315e+00,
+        2.21968675e+00]) # from trial run
     Beta_mu0_m              = len(Beta_mu0)
     Beta_mu0_block_idx_size = 4
     
@@ -227,7 +233,11 @@ if __name__ == "__main__":
     
     ## coefficients
     lm                      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)
-    Beta_mu1                = lm[0]
+    # Beta_mu1                = lm[0]
+    Beta_mu1 = np.array([-0.03563326, -0.00067859,  0.00039511, -0.05205269, -0.06598879,
+        0.00828854, -0.0258282 ,  0.07638217,  0.02972159,  0.00268447,
+        0.00480196,  0.08632567,  0.07072005,  0.1153287 ,  0.02732415,
+       -0.01753503, -0.00446298,  0.00356159, -0.02291168]) # from trial run
     Beta_mu1_m              = len(Beta_mu1)
     Beta_mu1_block_idx_size = 4
 
@@ -275,7 +285,8 @@ if __name__ == "__main__":
     lm                = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)
     for key, value in zip(Beta_logsigma_dict.keys(), lm[0]):
         Beta_logsigma_dict[key] = value
-    Beta_logsigma     = np.array(list(Beta_logsigma_dict.values()))
+    # Beta_logsigma     = np.array(list(Beta_logsigma_dict.values()))
+    Beta_logsigma = np.array([3.04064352e+00, 1.08355897e-04]) # from trial run
     logsigma_matrix   = (C_logsigma.T @ Beta_logsigma).T
     sigma_matrix = np.exp(logsigma_matrix)
 
@@ -291,17 +302,18 @@ if __name__ == "__main__":
     lm           = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)
     for key, value in zip(Beta_ksi_dict.keys(), lm[0]):
         Beta_ksi_dict[key] = value
-    Beta_ksi     = np.array(list(Beta_ksi_dict.values()))
+    # Beta_ksi     = np.array(list(Beta_ksi_dict.values()))
+    Beta_ksi = np.array([0.09464893, 0.00034565]) # from trial run
     ksi_matrix   = (C_ksi.T @ Beta_ksi).T
 
     # ----------------------------------------------------------------------------------------------------------------
     # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
 
     ## just initial values, right? Theses are not "truth"
-    sigma_Beta_mu0      = 0.2
-    sigma_Beta_mu1      = 0.2
-    sigma_Beta_logsigma = 0.2
-    sigma_Beta_ksi      = 0.2
+    sigma_Beta_mu0      = 9.62944645 # from trial run
+    sigma_Beta_mu1      = 0.22947093 # from trial run
+    sigma_Beta_logsigma = 1.79421561 # from trial run
+    sigma_Beta_ksi      = 0.13111096 # from trial run
 
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: tuning constants
@@ -319,23 +331,137 @@ if __name__ == "__main__":
     # Adaptive Update: TRIAL RUN Posterior Covariance Matrix
 
     # trial run posterior variance matrix for phi
-    phi_post_cov = 1e-3 * np.identity(k)
+    # phi_post_cov = 1e-3 * np.identity(k)
+    phi_post_cov = np.array([[ 1.41690873e-02, -1.31819338e-03,  1.63997142e-04,
+        -2.48314064e-03, -4.95886959e-04, -9.44143581e-04,
+        -2.52207672e-03,  6.40746616e-04,  7.43450537e-04],
+       [-1.31819338e-03,  1.40019599e-02,  1.15478212e-04,
+         3.15778650e-04,  1.59044810e-04,  1.30045845e-04,
+         1.17284012e-03, -5.20264351e-05, -5.57884982e-04],
+       [ 1.63997142e-04,  1.15478212e-04,  7.47419023e-03,
+         7.14508153e-04,  4.05478853e-04, -2.87942578e-04,
+         9.82250430e-04, -3.04825334e-05, -1.90911690e-04],
+       [-2.48314064e-03,  3.15778650e-04,  7.14508153e-04,
+         1.45482329e-02,  2.43552213e-04,  3.16162445e-06,
+         5.14824407e-04, -6.47864542e-04, -1.53729562e-04],
+       [-4.95886959e-04,  1.59044810e-04,  4.05478853e-04,
+         2.43552213e-04,  1.22281408e-02, -3.05131594e-04,
+         1.03419483e-03, -6.96799196e-04, -5.92767620e-04],
+       [-9.44143581e-04,  1.30045845e-04, -2.87942578e-04,
+         3.16162445e-06, -3.05131594e-04,  6.64674049e-03,
+         1.02963337e-03, -4.00574033e-04, -6.40316673e-04],
+       [-2.52207672e-03,  1.17284012e-03,  9.82250430e-04,
+         5.14824407e-04,  1.03419483e-03,  1.02963337e-03,
+         2.09523492e-02, -2.69168790e-03, -6.43099675e-04],
+       [ 6.40746616e-04, -5.20264351e-05, -3.04825334e-05,
+        -6.47864542e-04, -6.96799196e-04, -4.00574033e-04,
+        -2.69168790e-03,  7.10708450e-03, -3.35433446e-04],
+       [ 7.43450537e-04, -5.57884982e-04, -1.90911690e-04,
+        -1.53729562e-04, -5.92767620e-04, -6.40316673e-04,
+        -6.43099675e-04, -3.35433446e-04,  2.54071817e-03]])
     assert k == phi_post_cov.shape[0]
 
     # trial run posterior variance matrix for range rho
-    range_post_cov = 1e-2 * np.identity(k)
+    # range_post_cov = 1e-2 * np.identity(k)
+    range_post_cov = np.array([[ 1.93807319, -0.07644008, -0.03407754, -0.40038668, -0.24505633,
+        -0.06625558, -0.36210336, -0.23939581,  0.32598898],
+       [-0.07644008,  1.77806829, -0.02607283,  0.29610079,  0.05388925,
+        -0.15240615,  0.73889057, -0.17755841,  0.14268497],
+       [-0.03407754, -0.02607283,  1.85314501,  0.2896667 ,  0.04498687,
+        -0.16359608, -0.44325312, -0.13674137, -0.13175086],
+       [-0.40038668,  0.29610079,  0.2896667 ,  3.026816  , -0.07222645,
+         0.0769115 ,  0.07879683,  0.08891145, -0.26438665],
+       [-0.24505633,  0.05388925,  0.04498687, -0.07222645,  3.1630466 ,
+        -0.10708449,  0.19186879,  0.14325512, -0.36378894],
+       [-0.06625558, -0.15240615, -0.16359608,  0.0769115 , -0.10708449,
+         2.76726599, -0.05907889,  0.4238949 , -0.58826069],
+       [-0.36210336,  0.73889057, -0.44325312,  0.07879683,  0.19186879,
+        -0.05907889,  6.67146167, -1.03610212,  1.6628879 ],
+       [-0.23939581, -0.17755841, -0.13674137,  0.08891145,  0.14325512,
+         0.4238949 , -1.03610212,  1.34760372, -1.23250264],
+       [ 0.32598898,  0.14268497, -0.13175086, -0.26438665, -0.36378894,
+        -0.58826069,  1.6628879 , -1.23250264,  2.49512129]])
     assert k == range_post_cov.shape[0]
 
     # posterior/proposal variance matrix for linear surface logsigma
-    Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
+    # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
+    Beta_logsigma_post_cov = np.array([[3.09634164e-06, 4.98342613e-08],
+       [4.98342613e-08, 7.93744821e-09]])
     assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
 
     # posterior/proposal variance matrix for linear surface ksi
-    Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
+    # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
+    Beta_ksi_post_cov = np.array([[ 6.30686383e-07, -1.32493121e-09],
+       [-1.32493121e-09,  1.41460410e-09]])
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
     # trial run posterior variance matrix for Beta_mu0
-    Beta_mu0_all_post_cov = 1e-5 * np.identity(Beta_mu0_m)
+    # Beta_mu0_all_post_cov = 1e-5 * np.identity(Beta_mu0_m)
+    Beta_mu0_all_post_cov = np.array([[ 5.30210632e+00, -7.84717796e-03,  2.13257980e+00,
+         7.38101671e-01,  1.29452077e+00,  8.64955764e-01,
+        -2.46478110e-01,  7.86289248e-01,  5.04449279e-01,
+         1.12715801e+00, -2.01152201e-01, -1.39248945e+00,
+        -3.19733850e-01],
+       [-7.84717796e-03,  2.24488991e-05, -3.13160681e-03,
+        -1.12069113e-03, -2.28364768e-03, -1.25128445e-03,
+         1.45748657e-03, -1.30964970e-03,  2.11014303e-03,
+        -1.25915696e-03,  6.13410195e-04,  3.11686129e-03,
+         1.09767889e-03],
+       [ 2.13257980e+00, -3.13160681e-03,  8.82635910e-01,
+         2.88291399e-01,  5.13818327e-01,  3.58465420e-01,
+        -1.25246755e-01,  2.96813924e-01,  2.03630110e-01,
+         4.65104719e-01, -6.98142136e-02, -5.03713096e-01,
+        -7.08280903e-02],
+       [ 7.38101671e-01, -1.12069113e-03,  2.88291399e-01,
+         1.11795504e-01,  1.86329350e-01,  4.61676755e-02,
+        -1.07460256e-02,  1.09336104e-01,  6.93387081e-02,
+         1.56871255e-01, -3.70373120e-02, -2.41043963e-01,
+        -9.85216122e-02],
+       [ 1.29452077e+00, -2.28364768e-03,  5.13818327e-01,
+         1.86329350e-01,  1.40367524e+00,  4.02143690e-01,
+         6.03260511e-02,  3.45384480e-01, -3.33547796e-01,
+         5.15406050e-01,  1.78306256e-02, -6.78583913e-01,
+         2.38906079e-01],
+       [ 8.64955764e-01, -1.25128445e-03,  3.58465420e-01,
+         4.61676755e-02,  4.02143690e-01,  4.64968967e+00,
+         7.15437065e-01,  4.02608505e-01, -9.75031072e-01,
+         5.27349625e-01, -3.44561308e-02, -7.68661061e-01,
+         2.83815626e+00],
+       [-2.46478110e-01,  1.45748657e-03, -1.25246755e-01,
+        -1.07460256e-02,  6.03260511e-02,  7.15437065e-01,
+         2.57292483e+00, -5.53104673e-02, -2.96648120e-01,
+         5.64517947e-01, -2.13938468e-02, -1.76520186e+00,
+         9.44368732e-01],
+       [ 7.86289248e-01, -1.30964970e-03,  2.96813924e-01,
+         1.09336104e-01,  3.45384480e-01,  4.02608505e-01,
+        -5.53104673e-02,  6.24524654e-01,  4.24884048e-02,
+         1.98835689e-01, -2.96807467e-02, -3.60506535e-01,
+         1.94601469e-02],
+       [ 5.04449279e-01,  2.11014303e-03,  2.03630110e-01,
+         6.93387081e-02, -3.33547796e-01, -9.75031072e-01,
+        -2.96648120e-01,  4.24884048e-02,  2.36498428e+00,
+        -5.35135401e-01,  8.59493095e-02,  8.30284470e-01,
+        -3.81235122e-01],
+       [ 1.12715801e+00, -1.25915696e-03,  4.65104719e-01,
+         1.56871255e-01,  5.15406050e-01,  5.27349625e-01,
+         5.64517947e-01,  1.98835689e-01, -5.35135401e-01,
+         2.25806602e+00, -4.49335135e-02, -2.07052081e+00,
+         4.56214576e-01],
+       [-2.01152201e-01,  6.13410195e-04, -6.98142136e-02,
+        -3.70373120e-02,  1.78306256e-02, -3.44561308e-02,
+        -2.13938468e-02, -2.96807467e-02,  8.59493095e-02,
+        -4.49335135e-02,  3.70657910e-01,  5.74238197e-02,
+         7.86344443e-02],
+       [-1.39248945e+00,  3.11686129e-03, -5.03713096e-01,
+        -2.41043963e-01, -6.78583913e-01, -7.68661061e-01,
+        -1.76520186e+00, -3.60506535e-01,  8.30284470e-01,
+        -2.07052081e+00,  5.74238197e-02,  4.15279456e+00,
+        -9.37888696e-01],
+       [-3.19733850e-01,  1.09767889e-03, -7.08280903e-02,
+        -9.85216122e-02,  2.38906079e-01,  2.83815626e+00,
+         9.44368732e-01,  1.94601469e-02, -3.81235122e-01,
+         4.56214576e-01,  7.86344443e-02, -9.37888696e-01,
+         3.57984262e+00]])
     assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
     Beta_mu0_block_post_cov_dict = {}
     for key in Beta_mu0_block_idx_dict.keys():
@@ -344,7 +470,140 @@ if __name__ == "__main__":
         Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
 
     # trial run posterior variance matrix for Beta_mu1
-    Beta_mu1_all_post_cov = 1e-5 * np.identity(Beta_mu1_m)
+    # Beta_mu1_all_post_cov = 1e-5 * np.identity(Beta_mu1_m)
+    Beta_mu1_all_post_cov = np.array([[ 3.32782340e+00,  2.02263211e-03, -4.15218788e+00,
+        -4.06599101e-02, -1.25327217e-01,  4.76165537e-01,
+         6.12962591e-01, -1.54789621e-01, -4.04755108e-01,
+        -1.88349223e-01, -3.29377777e-03, -2.61769431e-01,
+        -1.01762166e-01, -5.94067372e-01, -3.77626195e-01,
+         9.42125206e-02, -4.22270498e-01,  1.29107523e-01,
+         8.75601636e-01],
+       [ 2.02263211e-03,  4.55248039e-06, -3.40035024e-03,
+         6.03152726e-06, -1.33347738e-04,  4.45843781e-04,
+         7.37672016e-04, -1.44343103e-04, -1.36231107e-04,
+        -1.63444659e-04, -3.00823508e-05, -2.18331115e-04,
+        -1.11356895e-04, -6.60039070e-04, -3.65296206e-04,
+         2.07844204e-04, -4.00573595e-04,  3.22501280e-04,
+         8.48247680e-04],
+       [-4.15218788e+00, -3.40035024e-03,  5.64842185e+00,
+         6.33801811e-02,  2.32817225e-01, -6.47965587e-01,
+        -8.64676079e-01,  2.04014354e-01,  4.94730701e-01,
+         2.50735783e-01,  1.35854027e-02,  3.12010327e-01,
+         1.15470029e-01,  7.99216317e-01,  4.91076359e-01,
+        -1.11368882e-01,  5.98000751e-01, -2.77357175e-01,
+        -1.19818157e+00],
+       [-4.06599101e-02,  6.03152726e-06,  6.33801811e-02,
+         7.51096935e-02,  1.44035740e-02, -2.94341758e-02,
+         1.54757239e-02,  2.30873838e-03, -1.06228131e-02,
+        -8.87116618e-03,  1.15674539e-03, -1.08341694e-02,
+        -1.18406211e-02, -2.88282960e-02, -6.36151411e-03,
+         8.64296205e-03,  4.48715643e-03, -2.19447270e-02,
+        -1.22919940e-02],
+       [-1.25327217e-01, -1.33347738e-04,  2.32817225e-01,
+         1.44035740e-02,  9.76180267e-02, -9.28726109e-03,
+        -3.19918249e-02,  7.98330399e-03, -5.19233230e-03,
+         1.82020922e-02,  2.50068584e-03, -2.87254191e-03,
+        -5.77599205e-03,  2.29912862e-02,  1.61830481e-02,
+        -1.31631174e-02,  3.02763393e-02, -2.80835469e-02,
+        -4.18854760e-02],
+       [ 4.76165537e-01,  4.45843781e-04, -6.47965587e-01,
+        -2.94341758e-02, -9.28726109e-03,  2.32933806e-01,
+         7.57853638e-02, -3.70146572e-03, -6.15757465e-02,
+        -2.51165713e-02,  1.32782620e-02, -2.82632097e-02,
+        -7.07149494e-03, -4.09241108e-02, -6.39049922e-02,
+         2.34409296e-02, -6.29308769e-02,  5.30800973e-02,
+         1.91179061e-01],
+       [ 6.12962591e-01,  7.37672016e-04, -8.64676079e-01,
+         1.54757239e-02, -3.19918249e-02,  7.57853638e-02,
+         2.69100805e-01, -4.97409716e-02, -6.06991244e-02,
+        -8.66015897e-02,  5.12476962e-03, -7.35102146e-02,
+        -4.42802635e-02, -1.81661777e-01, -9.90957752e-02,
+         6.07175489e-02, -1.06780438e-01,  2.75420952e-02,
+         2.18064601e-01],
+       [-1.54789621e-01, -1.44343103e-04,  2.04014354e-01,
+         2.30873838e-03,  7.98330399e-03, -3.70146572e-03,
+        -4.97409716e-02,  6.80566503e-02,  4.11712980e-03,
+         1.59059231e-02,  4.86235568e-03,  1.11686633e-02,
+         1.50875731e-02,  4.19674595e-02,  1.88459336e-02,
+        -2.97095011e-03,  1.72153905e-02, -7.79086219e-04,
+        -4.49271171e-02],
+       [-4.04755108e-01, -1.36231107e-04,  4.94730701e-01,
+        -1.06228131e-02, -5.19233230e-03, -6.15757465e-02,
+        -6.06991244e-02,  4.11712980e-03,  1.64481429e-01,
+         5.98546104e-03,  2.14896968e-03,  4.39226286e-02,
+         9.62205211e-03,  7.17620528e-02,  3.60232546e-02,
+        -2.87995065e-02,  4.56667884e-02,  8.67182250e-03,
+        -1.03510442e-01],
+       [-1.88349223e-01, -1.63444659e-04,  2.50735783e-01,
+        -8.87116618e-03,  1.82020922e-02, -2.51165713e-02,
+        -8.66015897e-02,  1.59059231e-02,  5.98546104e-03,
+         1.08489128e-01, -3.59999179e-03,  1.59196956e-02,
+         1.26391690e-02,  6.49759662e-02,  5.05262239e-02,
+        -2.39540830e-02,  2.42947297e-02, -2.75199543e-02,
+        -8.40703132e-02],
+       [-3.29377777e-03, -3.00823508e-05,  1.35854027e-02,
+         1.15674539e-03,  2.50068584e-03,  1.32782620e-02,
+         5.12476962e-03,  4.86235568e-03,  2.14896968e-03,
+        -3.59999179e-03,  6.25146459e-02, -6.31512687e-03,
+        -2.46103454e-03,  1.05551202e-03,  2.83604540e-03,
+         9.11673513e-03, -5.37229279e-04, -5.90682561e-03,
+         4.43861488e-03],
+       [-2.61769431e-01, -2.18331115e-04,  3.12010327e-01,
+        -1.08341694e-02, -2.87254191e-03, -2.82632097e-02,
+        -7.35102146e-02,  1.11686633e-02,  4.39226286e-02,
+         1.59196956e-02, -6.31512687e-03,  9.85252769e-02,
+         2.62498405e-02,  8.46292395e-02,  3.42012594e-02,
+        -9.12395656e-03,  4.74203969e-02,  4.68358746e-03,
+        -7.64297743e-02],
+       [-1.01762166e-01, -1.11356895e-04,  1.15470029e-01,
+        -1.18406211e-02, -5.77599205e-03, -7.07149494e-03,
+        -4.42802635e-02,  1.50875731e-02,  9.62205211e-03,
+         1.26391690e-02, -2.46103454e-03,  2.62498405e-02,
+         6.15496436e-02,  3.82369692e-02,  1.80721638e-02,
+        -1.57272936e-02,  1.33862066e-02,  1.61406979e-02,
+        -4.37815038e-02],
+       [-5.94067372e-01, -6.60039070e-04,  7.99216317e-01,
+        -2.88282960e-02,  2.29912862e-02, -4.09241108e-02,
+        -1.81661777e-01,  4.19674595e-02,  7.17620528e-02,
+         6.49759662e-02,  1.05551202e-03,  8.46292395e-02,
+         3.82369692e-02,  2.79055476e-01,  8.78158888e-02,
+        -3.86640089e-02,  1.29705667e-01, -5.57613553e-02,
+        -2.18495318e-01],
+       [-3.77626195e-01, -3.65296206e-04,  4.91076359e-01,
+        -6.36151411e-03,  1.61830481e-02, -6.39049922e-02,
+        -9.90957752e-02,  1.88459336e-02,  3.60232546e-02,
+         5.05262239e-02,  2.83604540e-03,  3.42012594e-02,
+         1.80721638e-02,  8.78158888e-02,  1.50862191e-01,
+        -3.53316909e-02,  4.97262572e-02,  2.76808851e-02,
+        -1.36862549e-01],
+       [ 9.42125206e-02,  2.07844204e-04, -1.11368882e-01,
+         8.64296205e-03, -1.31631174e-02,  2.34409296e-02,
+         6.07175489e-02, -2.97095011e-03, -2.87995065e-02,
+        -2.39540830e-02,  9.11673513e-03, -9.12395656e-03,
+        -1.57272936e-02, -3.86640089e-02, -3.53316909e-02,
+         1.31650860e-01, -3.53787918e-02, -7.65169055e-03,
+         6.13900085e-02],
+       [-4.22270498e-01, -4.00573595e-04,  5.98000751e-01,
+         4.48715643e-03,  3.02763393e-02, -6.29308769e-02,
+        -1.06780438e-01,  1.72153905e-02,  4.56667884e-02,
+         2.42947297e-02, -5.37229279e-04,  4.74203969e-02,
+         1.33862066e-02,  1.29705667e-01,  4.97262572e-02,
+        -3.53787918e-02,  1.52081218e-01, -5.78386383e-02,
+        -1.66396622e-01],
+       [ 1.29107523e-01,  3.22501280e-04, -2.77357175e-01,
+        -2.19447270e-02, -2.80835469e-02,  5.30800973e-02,
+         2.75420952e-02, -7.79086219e-04,  8.67182250e-03,
+        -2.75199543e-02, -5.90682561e-03,  4.68358746e-03,
+         1.61406979e-02, -5.57613553e-02,  2.76808851e-02,
+        -7.65169055e-03, -5.78386383e-02,  1.64848467e-01,
+         7.62491107e-02],
+       [ 8.75601636e-01,  8.48247680e-04, -1.19818157e+00,
+        -1.22919940e-02, -4.18854760e-02,  1.91179061e-01,
+         2.18064601e-01, -4.49271171e-02, -1.03510442e-01,
+        -8.40703132e-02,  4.43861488e-03, -7.64297743e-02,
+        -4.37815038e-02, -2.18495318e-01, -1.36862549e-01,
+         6.13900085e-02, -1.66396622e-01,  7.62491107e-02,
+         3.85905308e-01]])
     assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
     Beta_mu1_block_post_cov_dict          = {}
     for key in Beta_mu1_block_idx_dict.keys():
@@ -367,10 +626,10 @@ if __name__ == "__main__":
             # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
-            'sigma_Beta_mu0'      : 0.03749589, # from trial run
-            'sigma_Beta_mu1'      : 0.01,
-            'sigma_Beta_logsigma' : 0.24878523, # from trial run
-            'sigma_Beta_ksi'      : 0.44929566  # from trial run
+            'sigma_Beta_mu0'      : 1.87655405, # from trial run
+            'sigma_Beta_mu1'      : 0.42904163, # from trial run
+            'sigma_Beta_logsigma' : 0.41164912, # from trial run
+            'sigma_Beta_ksi'      : 0.04358157  # from trial run
         }
         for key in Beta_mu0_block_idx_dict.keys():
             sigma_m_sq[key] = (2.4**2)/len(Beta_mu0_block_idx_dict[key])
@@ -529,19 +788,22 @@ if __name__ == "__main__":
         knot_name = 'knot_' + str(knot_id)
         sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= radius_from_knots[knot_id])[0]
 
-    range_at_knots = np.array([])
-    for key in sites_within_knots.keys():
-        selected_sites = sites_within_knots[key]
-        demeaned_Y     = JJA_maxima - mu_matrix
-        bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
-                                            np.mean(demeaned_Y[selected_sites], axis=1))
-        fit_model = gs.Exponential(dim=2)
-        fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
-        # ax = fit_model.plot(x_max = 4)
-        # ax.scatter(bin_center, gamma_variog)
-        range_at_knots = np.append(range_at_knots, fit_model.len_scale)
-    if rank == 0:
-        print(range_at_knots)
+    # range_at_knots = np.array([])
+    # for key in sites_within_knots.keys():
+    #     selected_sites = sites_within_knots[key]
+    #     demeaned_Y     = JJA_maxima - mu_matrix
+    #     bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
+    #                                         np.mean(demeaned_Y[selected_sites], axis=1))
+    #     fit_model = gs.Exponential(dim=2)
+    #     fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
+    #     # ax = fit_model.plot(x_max = 4)
+    #     # ax.scatter(bin_center, gamma_variog)
+    #     range_at_knots = np.append(range_at_knots, fit_model.len_scale)
+    # if rank == 0:
+    #     print(range_at_knots)
+    
+    range_at_knots = np.array([1.65307445, 1.39232541, 1.4681875 , 1.87987903, 1.76398995,
+       1.89409614, 2.17136573, 2.9180074 , 1.95218012]) # from trial run
 
     ## range_vec
     range_vec = gaussian_weight_matrix @ range_at_knots
@@ -726,9 +988,109 @@ if __name__ == "__main__":
         
     ## R
     ## Generate them at the knots
-    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_at_knots[:,t] = np.median(X_star[:,t])**2
+    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_at_knots[:,t] = np.median(X_star[:,t])**2
+    R_at_knots = np.array([[-8.98617185e-02,  2.74798892e-01,  2.45333243e-02,
+        -4.25861643e-01, -3.74519275e-01,  3.96693387e-01,
+        -2.37895268e-01, -3.41247665e-01,  1.04323936e-02,
+        -3.17885284e-01,  9.02222126e-01,  4.16273455e-01,
+         4.41121700e-02, -9.93926519e-02, -2.51844686e-01,
+         5.13938840e-01, -2.63634102e-01,  6.41403880e-01,
+         4.31156487e-01, -2.94307086e-01, -8.28258803e-01,
+        -7.02203770e-01,  5.91889034e-01, -7.05082181e-01,
+        -2.77652918e-01,  6.49475164e-01,  5.47973067e-01,
+         4.22059546e-01, -5.25013994e-01,  7.95146327e-01,
+        -9.08815606e-01,  2.93980229e-05],
+       [ 1.84856692e+00,  1.78770658e+00, -2.12489859e-01,
+         3.29664835e+00, -3.16873383e-01,  4.53688056e-01,
+        -4.53836647e-01, -1.74274272e-01,  7.26905218e-01,
+         7.51334662e-01,  8.50930859e-01,  1.00941102e-02,
+         2.69277973e-01, -9.13504088e-02,  1.59933032e-01,
+        -5.15114118e-01,  9.36174200e-01,  1.32522604e-01,
+         1.16892088e+00, -3.64491079e-01, -2.97315552e-01,
+         4.55919527e-01, -2.84776987e-01,  1.14092057e-01,
+         1.66000965e+00,  1.29943402e+00,  3.02194055e-02,
+        -2.21530992e-01, -2.84275124e-01,  2.99978327e+00,
+        -7.36372490e-01,  1.18361178e+00],
+       [ 2.14689539e+00,  3.34363301e-01,  6.70015339e-02,
+        -3.05277615e-01, -4.49059635e-01,  2.64252123e+00,
+        -2.61980139e-01,  1.73884519e+00,  2.11096768e+00,
+         2.06304525e-01,  7.02254275e-01,  1.21341633e+00,
+        -4.34823188e-01, -1.19359568e-01,  8.59479917e-01,
+        -3.50986678e-01,  1.24949157e+00,  4.44301147e-01,
+         3.73704620e-01,  4.61082970e-02,  4.16425866e+00,
+         8.58385512e-01,  1.71837996e+00,  1.43424335e+00,
+         3.29844753e+00,  1.50585771e-01,  4.31259928e-01,
+         1.68167937e+00,  1.26762972e+00,  4.82021644e-01,
+        -2.17305372e-01,  1.83087211e+00],
+       [ 1.57374636e-01,  4.62000270e-01, -6.58063638e-01,
+         1.43055551e-01,  6.37202479e-03, -2.16595292e-02,
+        -4.70988055e-01,  1.85989201e+00,  7.43519954e-01,
+        -4.46988448e-01,  1.08021166e-01, -4.29457735e-02,
+         4.31221103e-01,  4.74059740e-01, -1.41970554e-01,
+         8.47749434e-01,  1.99443377e-01, -2.11107202e-01,
+         1.50323997e+00, -4.65113987e-01,  5.84662031e-01,
+        -5.90356742e-01, -2.63012232e-02,  1.06744693e-01,
+         1.10963143e-01,  5.12940860e-01, -4.64838212e-01,
+        -3.64355300e-01, -2.58514824e-01,  1.36842527e-01,
+         2.32583446e-01,  2.37580363e-02],
+       [ 1.03714331e+00,  2.06201940e+00,  1.52862483e-01,
+        -2.65457062e-01,  3.26858149e-01,  3.47308171e-01,
+        -5.74055466e-01,  1.26009140e+00, -3.28576060e-01,
+         1.69247725e+00, -1.11062607e-01,  2.87776324e-01,
+         7.69344960e-01,  2.79935070e-01,  4.39664613e-01,
+        -3.12491673e-01, -1.92366466e-01,  1.58480758e-01,
+         4.02447921e-01,  1.89143084e-01,  3.35419758e-01,
+         6.04920105e-01,  2.53896892e-01,  4.14429402e-01,
+         1.23613853e-01,  1.32160223e+00,  6.06089776e-03,
+         8.38906816e-01, -1.70137872e-01,  5.20823837e-02,
+         1.40615834e+00,  5.80531281e-01],
+       [ 1.85829376e+00,  7.61224974e-01, -6.43714748e-02,
+        -5.60485046e-01, -1.53565638e-01,  4.10966254e-01,
+        -2.53132357e-01,  5.62677789e-02, -5.91246972e-02,
+        -2.75543251e-01, -5.34815572e-01, -7.21435330e-02,
+        -5.91485175e-01, -1.14863183e-01,  6.05700475e-01,
+        -1.63273585e-01, -3.58608762e-01,  3.18983478e-01,
+        -2.92829647e-01, -3.10147075e-01,  1.63537808e+00,
+        -3.81126461e-01,  7.38154327e-01,  4.76339144e-02,
+         2.42802719e-01,  1.32403088e-01, -2.12439864e-01,
+         2.44254272e-01,  5.47991348e-01,  2.32275405e-01,
+         1.67978018e-01,  7.45686051e-01],
+       [-2.90797517e-01, -8.59252059e-02, -6.26915012e-01,
+        -3.06029969e-01, -1.38763183e-01, -5.92517823e-01,
+        -4.47956460e-01, -1.84183291e-01, -1.87277071e-01,
+        -6.66244567e-01, -9.35573730e-02,  1.03411465e+00,
+        -8.43468654e-01, -6.60891375e-01, -4.57307699e-01,
+        -1.81108096e-02,  3.30540695e-01, -3.51097673e-01,
+         4.19583154e-01, -5.89675652e-01, -6.57911538e-01,
+        -6.83848624e-01, -3.84753424e-01, -6.36091770e-01,
+         1.18343590e+00, -8.55915640e-01, -8.55928972e-01,
+        -4.42188978e-01,  2.43996060e-01,  2.55806794e-01,
+        -7.40360746e-01,  7.57338151e-03],
+       [-2.76832905e-01,  2.89970919e-01, -2.97050994e-01,
+        -1.09144269e-01,  2.90974300e-01, -4.25563559e-01,
+         3.01897237e-02, -1.56967033e-01, -4.65889842e-01,
+        -2.55225049e-01,  3.95212572e-01,  1.26793348e-01,
+         4.33192220e-01,  2.25228787e+00,  3.34693627e-02,
+        -2.44454739e-01,  1.20812217e-01,  7.00548323e-01,
+         2.48639974e-01,  2.01825962e-01, -1.44348371e-01,
+         3.73549612e-01,  4.79701137e-01, -2.19732037e-01,
+         6.20558376e-02, -2.23612125e-01, -1.18218449e-01,
+         2.39425233e+00,  4.30716124e-01, -8.10145388e-02,
+        -2.58603866e-01,  2.96930853e-01],
+       [ 2.06649673e-01,  7.18883976e-01,  1.57776036e+00,
+        -4.12535886e-01,  9.67010370e-01,  3.26887785e-01,
+         9.11246471e-01,  1.29993760e+00, -8.07388575e-01,
+        -2.79960501e-01,  3.82874918e-01, -4.66318805e-01,
+         2.78913405e-01, -2.96688988e-01, -3.05699030e-02,
+         3.94488984e-02,  6.21956787e-01,  9.24004597e-01,
+         1.35493500e-01, -5.41996883e-03, -1.24036382e-01,
+        -2.59075909e-01, -3.16789635e-01,  7.91146634e-01,
+         5.49020058e-02,  3.10107671e-01, -4.45218932e-01,
+        -1.70244999e-01, -7.34325941e-03,  3.00294557e-01,
+         5.39677868e-01,  7.97229067e-01]])
+
 
     ## Matrix Multiply to the sites
     R_at_sites = wendland_weight_matrix @ R_at_knots
@@ -1001,83 +1363,6 @@ if __name__ == "__main__":
         #########################################################################################
         ####  Update range_at_knots  ############################################################
         #########################################################################################
-        
-        # # Propose new range at the knots --> new range vector
-        # if rank == 0:
-        #     random_walk_block1 = np.sqrt(sigma_m_sq['range_block1'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block1'])
-        #     random_walk_block2 = np.sqrt(sigma_m_sq['range_block2'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block2'])
-        #     random_walk_block3 = np.sqrt(sigma_m_sq['range_block3'])*random_generator.multivariate_normal(np.zeros(3), Sigma_0['range_block3'])    
-        #     random_walk_kx1 = np.hstack((random_walk_block1,random_walk_block2,random_walk_block3))
-        #     range_knots_proposal = range_knots_current + random_walk_kx1
-        # else:
-        #     range_knots_proposal = None
-        # range_knots_proposal = comm.bcast(range_knots_proposal, root = 0)
-        # range_vec_proposal = gaussian_weight_matrix @ range_knots_proposal
-
-        # # Conditional log Likelihood at Current
-        # # No need to re-calculate because likelihood inherit from above
-        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        # #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        # #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-
-        # # Conditional log Likelihood at Proposed
-        # if any(range <= 0 for range in range_knots_proposal):
-        #     lik_1t_proposal = np.NINF
-        # else:
-        #     K_proposal = ns_cov(range_vec = range_vec_proposal,
-        #                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
-        #     cholesky_matrix_proposal = scipy.linalg.cholesky(K_proposal, lower = False)
-
-        #     lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        #                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
-
-        # # Gather likelihood calculated across time (no prior yet)
-        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-
-        # # Handle prior and (Accept or Reject) on worker 0
-        # if rank == 0:
-        #     # use Half-Normal Prior on each one of the k range parameters
-        #     lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.halfnorm.logpdf(range_knots_current, loc = 0, scale = 2))
-        #     lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.halfnorm.logpdf(range_knots_proposal, loc = 0, scale = 2))
-
-        #     # Accept or Reject
-        #     u = random_generator.uniform()
-        #     ratio = np.exp(lik_proposal - lik_current)
-        #     if not np.isfinite(ratio):
-        #         ratio = 0 # Force a rejection
-        #     if u > ratio: # Reject
-        #         range_accepted     = False
-        #         range_vec_update   = range_vec_current
-        #         range_knots_update = range_knots_current
-        #     else: # Accept, u <= ratio
-        #         range_accepted     = True
-        #         range_vec_update   = range_vec_proposal
-        #         range_knots_update = range_knots_proposal
-        #         num_accepted['range'] += 1
-            
-        #     # Store the result
-        #     range_knots_trace[iter,:] = range_knots_update
-
-        #     # Update the "current" value
-        #     range_vec_current = range_vec_update
-        #     range_knots_current = range_knots_update
-        # else:
-        #     range_accepted = None
-
-        # # Brodcast the updated values
-        # range_vec_current   = comm.bcast(range_vec_current, root = 0)
-        # range_knots_current = comm.bcast(range_knots_current, root = 0)
-        # range_accepted      = comm.bcast(range_accepted, root = 0)
-
-        # # Update the K, cholesky_matrix, and likelihood
-        # if range_accepted:
-        #     K_current = K_proposal
-        #     cholesky_matrix_current = cholesky_matrix_proposal
-        #     lik_1t_current = lik_1t_proposal
-
-        # comm.Barrier() # block for range updates
 
         # Update range ACTUALLY in blocks
         for i in range(3):
@@ -1154,81 +1439,6 @@ if __name__ == "__main__":
         #############################################################
         #### ----- Update covariate coefficients, Beta_mu0 ----- ####
         #############################################################
-
-        # # Propose new Beta_mu0 --> new mu0 surface
-        # if rank == 0:
-        #     # Beta_mu0's share a same proposal scale, no proposal matrix
-        #     # Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0'])*random_generator.normal(0, 1, size = Beta_mu0_m)
-            
-        #     # Beta_mu0's share a smae proposal scale, ALSO HAS proposal matrix
-        #     Beta_mu0_proposal = Beta_mu0_current + np.sqrt(sigma_m_sq['Beta_mu0']) * \
-        #                                         random_generator.multivariate_normal(np.zeros(Beta_mu0_m), Sigma_0['Beta_mu0'])
-            
-        #     # Beta_mu0's have individual proposal scale, no proposal matrix
-        #     # Beta_mu0_proposal = Beta_mu0_current + np.array([np.sqrt(sigma_m_sq['Beta_mu0_'+str(j)])*random_generator.normal(0,1) for j in range(Beta_mu0_m)])
-        # else:    
-        #     Beta_mu0_proposal = None
-        # Beta_mu0_proposal    = comm.bcast(Beta_mu0_proposal, root = 0)
-        # Loc_matrix_proposal = (C_mu0.T @ Beta_mu0_proposal).T
-
-        # # Conditional log likelihood at current
-        # # No need to re-calculate because likelihood inherit from above
-        # # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-        # #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        # #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-        
-        # # Conditional log likelihood at proposal
-        # X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-        #                             phi_vec_current, gamma_vec)
-        # lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-        #                                                 Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-        #                                                 phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-
-        # # Gather likelihood calculated across time
-        # lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-        # lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
-
-        # # Handle prior and (Accept or Reject) on worker 0
-        # if rank == 0:
-        #     # use Norm(0, sigma_Beta_mu0) prior on each Beta_mu0, like "shrinkage"
-        #     prior_Beta_mu0_current  = scipy.stats.norm.logpdf(Beta_mu0_current, loc=0, scale=sigma_Beta_mu0_current)
-        #     prior_Beta_mu0_proposal = scipy.stats.norm.logpdf(Beta_mu0_proposal, loc=0, scale=sigma_Beta_mu0_current)
-
-        #     lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_mu0_current)
-        #     lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_mu0_proposal)
-
-        #     # Accept or Reject
-        #     u = random_generator.uniform()
-        #     ratio = np.exp(lik_proposal - lik_current)
-        #     if not np.isfinite(ratio):
-        #         ratio = 0
-        #     if u > ratio: # Reject
-        #         Beta_mu0_accepted = False
-        #         Beta_mu0_update   = Beta_mu0_current
-        #     else: # Accept
-        #         Beta_mu0_accepted = True
-        #         Beta_mu0_update   = Beta_mu0_proposal
-        #         num_accepted['Beta_mu0'] += 1
-            
-        #     # Store the result
-        #     Beta_mu0_trace[iter,:] = Beta_mu0_update
-
-        #     # Update the current value
-        #     Beta_mu0_current = Beta_mu0_update
-        # else: # other workers
-        #     Beta_mu0_accepted = None
-
-        # # Broadcast the updated values
-        # Beta_mu0_accepted = comm.bcast(Beta_mu0_accepted, root = 0)
-        # Beta_mu0_current  = comm.bcast(Beta_mu0_current, root = 0)
-
-        # # Update X_star, mu0 surface, and likelihood
-        # if Beta_mu0_accepted:
-        #     X_star_1t_current  = X_star_1t_proposal
-        #     Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
-        #     lik_1t_current     = lik_1t_proposal
-        
-        # comm.Barrier() # block for beta_mu0 updates
 
         # Update by blocks
         for key in Beta_mu0_block_idx_dict.keys():
@@ -1538,111 +1748,6 @@ if __name__ == "__main__":
         #################################################################
         ## ---- Update sigma_beta_xx, priors variance for Beta_xx ---- ##
         #################################################################
-
-        # # Propose new sigma_beta_xx
-        # if rank == 0:
-        #     sigma_Beta_mu0_proposal      = sigma_Beta_mu0_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
-        #     sigma_Beta_mu1_proposal      = sigma_Beta_mu1_current      + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
-        #     sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
-        #     sigma_Beta_ksi_proposal      = sigma_Beta_ksi_current      + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
-        # # Handle accept or reject on worker0
-        #     # use Half-t(4) hyperprior on the sigma_Beta_xx priors
-        #     lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
-        #     lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
-
-        #     lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
-        #     lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
-
-        #     lik_sigma_Beta_logsigma_current  = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
-        #     lik_sigma_Beta_logsigma_proposal = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
-
-        #     lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
-        #     lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
-
-        #     # Beta_mu_xx at current/proposal prior
-        #     lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
-        #     lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
-
-        #     lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
-        #     lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
-
-        #     lik_Beta_logsigma_prior_current  = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
-        #     lik_Beta_logsigma_prior_proposal = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
-            
-        #     lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
-        #     lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
-
-        #     # Beta_xx not changed, so no need to calculate the data likelihood
-        #     lik_current = lik_sigma_Beta_mu0_current + \
-        #                   lik_sigma_Beta_mu1_current + \
-        #                   lik_sigma_Beta_logsigma_current + \
-        #                   lik_sigma_Beta_ksi_current + \
-        #                   sum(lik_Beta_mu0_prior_current) + \
-        #                   sum(lik_Beta_mu1_prior_current) + \
-        #                   sum(lik_Beta_logsigma_prior_current) + \
-        #                   sum(lik_Beta_ksi_prior_current)
-        #     lik_proposal = lik_sigma_Beta_mu0_proposal + \
-        #                    lik_sigma_Beta_mu1_proposal + \
-        #                    lik_sigma_Beta_logsigma_proposal + \
-        #                    lik_sigma_Beta_ksi_proposal + \
-        #                    sum(lik_Beta_mu0_prior_proposal) + \
-        #                    sum(lik_Beta_mu1_prior_proposal) + \
-        #                    sum(lik_Beta_logsigma_prior_proposal) + \
-        #                    sum(lik_Beta_ksi_prior_proposal)
-
-        #     # Accept or Reject
-        #     u = random_generator.uniform()
-        #     ratio = np.exp(lik_proposal - lik_current)
-        #     if not np.isfinite(ratio):
-        #         ratio = 0
-        #     if u > ratio: # Reject
-        #         sigma_Beta_mu0_accepted      = False
-        #         sigma_Beta_mu0_update        = sigma_Beta_mu0_current
-
-        #         sigma_Beta_mu1_accepted      = False
-        #         sigma_Beta_mu1_update        = sigma_Beta_mu1_current
-
-        #         sigma_Beta_logsigma_accepted = False
-        #         sigma_Beta_logsigma_update   = sigma_Beta_logsigma_current
-
-        #         sigma_Beta_ksi_accepted      = False
-        #         sigma_Beta_ksi_update        = sigma_Beta_ksi_current
-        #     else: # Accept
-        #         sigma_Beta_mu0_accepted             = True
-        #         sigma_Beta_mu0_update               = sigma_Beta_mu0_proposal
-        #         num_accepted['sigma_Beta_mu0']      += 1
-
-        #         sigma_Beta_mu1_accepted             = True
-        #         sigma_Beta_mu1_update               = sigma_Beta_mu1_proposal
-        #         num_accepted['sigma_Beta_mu1']      += 1
-
-        #         sigma_Beta_logsigma_accepted        = True
-        #         sigma_Beta_logsigma_update          = sigma_Beta_logsigma_proposal
-        #         num_accepted['sigma_Beta_logsigma'] += 1
-
-        #         sigma_Beta_ksi_accepted             = True
-        #         sigma_Beta_ksi_update               = sigma_Beta_ksi_proposal
-        #         num_accepted['sigma_Beta_ksi']      += 1
-
-        #     # Store the result
-        #     sigma_Beta_mu0_trace[iter,:]      = sigma_Beta_mu0_update
-        #     sigma_Beta_mu1_trace[iter,:]      = sigma_Beta_mu1_update
-        #     sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
-        #     sigma_Beta_ksi_trace[iter,:]      = sigma_Beta_ksi_update
-
-        #     # Update the current value
-        #     sigma_Beta_mu0_current      = sigma_Beta_mu0_update
-        #     sigma_Beta_mu1_current      = sigma_Beta_mu1_update
-        #     sigma_Beta_logsigma_current = sigma_Beta_logsigma_update
-        #     sigma_Beta_ksi_current      = sigma_Beta_ksi_update
-        
-        # # Boradcast the updated values (actually no need because only involves worker0)
-        # sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
-        # sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
-        # sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
-        # sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
-
-        # comm.Barrier() # for updating prior variance for Beta_xx
 
         # Update sigma_Beta_xx separately -- poor mixing in combined update
         if rank == 0:
