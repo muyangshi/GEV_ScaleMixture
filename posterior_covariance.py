@@ -52,7 +52,10 @@ Beta_mu0_cov      = np.cov(Beta_mu0_trace.T)
 Beta_mu1_cov      = np.cov(Beta_mu1_trace.T)
 Beta_logsigma_cov = np.cov(Beta_logsigma_trace.T)
 Beta_ksi_cov      = np.cov(Beta_ksi_trace.T)
-
+sigma_Beta_mu0_cov = np.cov(sigma_Beta_mu0_trace.T)
+sigma_Beta_mu1_cov = np.cov(sigma_Beta_mu1_trace.T)
+sigma_Beta_logsigma_cov = np.cov(sigma_Beta_logsigma_trace.T)
+sigma_Beta_ksi_cov = np.cov(sigma_Beta_ksi_trace.T)
 
 #######################################
 ##### Posterior Median            #####
