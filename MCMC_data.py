@@ -1,7 +1,9 @@
 """
 Feb 11, 2024
-
 MCMC Sampler that takes in real data
+
+Feb 17, 2024
+Takes proposal matrix/variances from a t32_s125 trial run [1500:5000]
 
 Jan 23 2024, theta(s) = Beta_0 + Beta_1 * Elev(s) + splines(s) @ Beta_splines
 More specifically,
