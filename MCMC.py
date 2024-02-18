@@ -2,14 +2,22 @@
 This is a MCMC sampler that constantly gets updated
 Scratch work and modifications are done in this file
 
-Dec 6 2023, adding covariate for theta GEVs to the model
-
 Notes on (installation of) Rpy2
 Work around of conda+rpy2: conda install rpy2 also installs an r-base
 use the conda installed R, don't use the default R on misspiggy to avoid issue (i.e. change the default R path to the end the $PATH)
 Alternatively, split the MCMC into three pieces: Python generate data --> R generate X design --> Python run MCMC
 
-Jan 23 2024, theta(s) = Beta_0 + Beta_1 * Elev(s) + splines(s) @ Beta_splines
+Note on heatmap:
+plotgrid_xy is meshgrid(order='xy') fills horizontally (x changes first, then y changes), so no need tranpose in imshow
+gs_xy is meshgrid(order='ij') fills vertically (y changes first, then x changes), so NEED tranpose in imshow
+
+Note on mgcv
+- It appears the basis matrix produced by smoothCon is slightly (~ 3 to 4 decimal places) different between machines
+- Note that in the splines constructed by mgcv, the 3rd to last column is a flat plane (which duplicate the intercept term) 
+    so remember to remove it!
+
+Jan 23 2024 
+theta(s) = Beta_0 + Beta_1 * Elev(s) + splines(s) @ Beta_splines
 More specifically,
     mu(s,t) = mu_0(s) + mu_1(s) * t 
     logsigma(s,t) = logsigma(s)
@@ -23,15 +31,15 @@ where
 so we have
     Beta_mu0    = (Beta_mu0_0, Beta_mu0_1, Beta_mu0_splines)
     C_mu0(s)    = (1, Elev(s), splines(s))
+(Feb 14, for the real data, use:)
+    logsigma(s) = Beta_logsigma_0 + Beta_logsimga_1 * elev(s)
+    ksi(s)      = Beta_ksi_0      + Beta_ksi_1      * elev(s)
 
-Note on heatmap:
-plotgrid_xy is meshgrid(order='xy') fills horizontally (x changes first, then y changes), so no need tranpose in imshow
-gs_xy is meshgrid(order='ij') fills vertically (y changes first, then x changes), so NEED tranpose in imshow
+Feb 11, 2024
+MCMC Sampler that takes in real data
 
-Note on mgcv
-- It appears the basis matrix produced by smoothCon is slightly (~ 3 to 4 decimal places) different between machines
-- Note that in the splines constructed by mgcv, the 3rd to last column is a flat plane (which duplicate the intercept term) 
-    so remember to remove it!
+Feb 17, 2024
+Takes proposal matrix/variances from a t32_s125 trial run [1500:5000]
 """
 # Require:
 #   - utilities.py
@@ -43,15 +51,14 @@ if __name__ == "__main__":
     import sys
     data_seed = int(sys.argv[1]) if len(sys.argv) == 2 else 2345
 
-    # %% Imports
-    # Imports
+    # %% imports
+    # imports
     import os
     os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
     os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
     os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
     os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
     os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
-
     import numpy as np
     import matplotlib.pyplot as plt
     import scipy
@@ -59,7 +66,6 @@ if __name__ == "__main__":
     from mpi4py import MPI
     from time import strftime, localtime
     from utilities import *
-
     import gstools as gs
     import rpy2.robjects as robjects
     from rpy2.robjects import r 
@@ -78,145 +84,1058 @@ if __name__ == "__main__":
         data_seed = 2345
     finally:
         if rank == 0: print('data_seed: ', data_seed)
-
-    #####################################################################################################################
-    # Generating Dataset ################################################################################################
-    #####################################################################################################################
-    # %% 0. Parameter Settings and Generate Knots 
-    # 0. Parameter Settings and Generate Knots --------------------------------------
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # Numbers - Ns, Nt, n_iters
-    
     np.random.seed(data_seed)
-    Nt = 16 # number of time replicates
-    Ns = 50 # number of sites/stations
-    n_iters = 5000
-    Time = np.linspace(-Nt/2, Nt/2-1, Nt)
+
+    # %% Generate Dataset
+    # Generate Dataset
+    # #####################################################################################################################
+    # # Generating Dataset ################################################################################################
+    # #####################################################################################################################
+    # # %% 0. Parameter Settings and Generate Knots 
+    # # 0. Parameter Settings and Generate Knots --------------------------------------
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Numbers - Ns, Nt, n_iters
+    
+    # np.random.seed(data_seed)
+    # Nt = 16 # number of time replicates
+    # Ns = 50 # number of sites/stations
+    # n_iters = 5000
+    # Time = np.linspace(-Nt/2, Nt/2-1, Nt)
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Sites - random uniformly (x,y) generate site locations
+    
+    # sites_xy = np.random.random((Ns, 2)) * 10
+    # sites_x = sites_xy[:,0]
+    # sites_y = sites_xy[:,1]
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Elevation Function - 
+    # # Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
+    # #       this might cause identifiability issue
+    # # def elevation_func(x,y):
+    #     # return(np.abs(x-5)/5 + np.abs(y-5)/5)
+    # elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Knots - uniform grid of 9 knots, should do this programatically...
+
+    # k = 9 # number of knots
+    # x_pos = np.linspace(0,10,5,True)[1:-1]
+    # y_pos = np.linspace(0,10,5,True)[1:-1]
+    # X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
+    # knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
+    # knots_x = knots_xy[:,0]
+    # knots_y = knots_xy[:,1]
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Basis Parameters - for the Gaussian and Wendland Basis
+
+    # bandwidth = 4 # range for the gaussian kernel
+    # radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    # radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
+    # assert k == len(knots_xy)
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Data Model Parameters - X_star = R^phi * g(Z)
+
+    # ## Stable S_t --> R_t
+    # gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
+    # delta = 0.0 # this is the delta in levy, stays 0
+
+    # ## g(Z)
+    # nu = 0.5 # exponential kernel for matern with nu = 1/2
+    # sigsq = 1.0 # sill for Z
+    # range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
+
+    # ### scenario 1
+    # # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
+    # ### scenario 2
+    # phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
+    # ### scenario 3
+    # # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+    # #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Extreme Value Parameters - GEV(mu, sigma, ksi)
+    # # Constant parameters
+    # mu = 0.0 # GEV location
+    # sigma = 1.0 # GEV scale
+    # ksi = 0.2 # GEV shape
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Extreme Value Parameters - GEV(mu, sigma, ksi)
+    # # Linear surfaces -- Specify X and Beta here
+
+    # ## Scale sigma - logscale ##
+    # # simple case of logsigma(s) = Beta_logsigma_0 + Beta_logsigma_1 * x(s) + Beta_logsigma_2 * y(s)
+    # Beta_logsigma_dict = {
+    #     'Beta_logsigma_0' : np.log(sigma), # intercept for logsimga
+    #     'Beta_logsigma_1' : 0.01, # slope of beta 1 for logsigma
+    #     'Beta_logsigma_2' : 0.03, # slope of beta 2 for logsigma
+    # }
+    # Beta_logsigma_m = len(Beta_logsigma_dict)
+    # C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan) # log(sigma) design matrix
+    # C_logsigma[0,:,:] = 1.0
+    # C_logsigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    # C_logsigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+    # ## coefficients
+    # Beta_logsigma = np.array(list(Beta_logsigma_dict.values()))
+    # ## actual surface for sigma(s)
+    # sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+
+    # ## Shape ksi ##
+    # # simple case of ksi(s) = Beta_ksi_0 + Beta_ksi_1 * x(s) + Beta_ksi_2 * y(s)
+    # Beta_ksi_dict = {
+    #     'Beta_ksi_0' : ksi, # intercept for ksi
+    #     'Beta_ksi_1' : 0.02, # slope of beta 1 for ksi
+    #     'Beta_ksi_2' : -0.02, # slope of beta 2 for ksi
+    # }
+    # Beta_ksi_m = len(Beta_ksi_dict)
+    # C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+    # C_ksi[0,:,:] = 1.0
+    # C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
+    # C_ksi[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
+    # ## coefficients
+    # Beta_ksi = np.array(list(Beta_ksi_dict.values()))
+    # ## actual surface for ksi(s)
+    # ksi_matrix = (C_ksi.T @ Beta_ksi).T
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Extreme Value Parameters - GEV(mu, sigma, ksi)
+    # # mu_0(s)     = Beta_mu0_0 + Beta_mu0_1 * Elev(s) + splines(s) @ Beta_mu0_splines
+
+    # # "knots" and prediction sites for splines -----------------------------------------------------------------------
+    # gs_x        = np.linspace(0, 10, 41)
+    # gs_y        = np.linspace(0, 10, 41)
+    # gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
+
+    # gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+    # gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+    # gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+    # sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+
+    # r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+    # r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+    # r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+    # r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+
+    # mgcv = importr('mgcv')
+    # r('''
+    #     gs_xy_df <- as.data.frame(gs_xy_ro)
+    #     colnames(gs_xy_df) <- c('x','y')
+    #     sites_xy_df <- as.data.frame(sites_xy_ro)
+    #     colnames(sites_xy_df) <- c('x','y')
+    #     ''')
+
+    # # Location mu_0(s) ----------------------------------------------------------------------------------------------
+    # ## coefficients
+    # Beta_mu0_0              = 0
+    # Beta_mu0_1              = 0.05
+    # Beta_mu0_splines_m      = 12 - 1 # dropped the 3rd to last column of constant
+    # Beta_mu0_splines        = np.array([0.05]*Beta_mu0_splines_m)
+    # Beta_mu0                = np.concatenate(([Beta_mu0_0], [Beta_mu0_1], Beta_mu0_splines))
+    # Beta_mu0_m              = len(Beta_mu0)
+    # Beta_mu0_block_idx_size = 4
+    # ## covariates
+    # C_mu0_splines = np.array(r('''
+    #                             basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+    #                             basis_site <- PredictMat(basis, data = sites_xy_df)
+    #                             # basis_site
+    #                             basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+    #                         '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+    # # C_mu0_1t      = np.column_stack((np.ones(Ns),
+    # #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
+    # #                                 C_mu0_splines))
+    # C_mu0_1t      = np.column_stack((np.ones(Ns),
+    #                                  elev_surf_generator((sites_x, sites_y)),
+    #                                  C_mu0_splines))
+    # C_mu0         = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+    # ## mu0(s,t)
+    # mu0_matrix = (C_mu0.T @ Beta_mu0).T      
+
+    # # Location mu_1(s) ----------------------------------------------------------------------------------------------
+    # ## coefficients
+    # Beta_mu1_0              = 0.0
+    # Beta_mu1_1              = 0.01
+    # Beta_mu1_splines_m      = 12 - 1 # drop the 3rd to last column of constant
+    # Beta_mu1_splines        = np.array([0.01] * Beta_mu1_splines_m)
+    # Beta_mu1                = np.concatenate(([Beta_mu1_0], [Beta_mu1_1], Beta_mu1_splines))
+    # Beta_mu1_m              = len(Beta_mu1)
+    # Beta_mu1_block_idx_size = 4
+    # ## covariates
+    # C_mu1_splines = np.array(r('''
+    #                             basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+    #                             basis_site <- PredictMat(basis, data = sites_xy_df)
+    #                             # basis_site
+    #                             basis_site[,c(-(ncol(basis_site)-2))] # drop the 4rd to last column of constant
+    #                         '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+    # # C_mu1_1t      = np.column_stack((np.ones(Ns),
+    # #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
+    # #                                 C_mu1_splines))
+    # C_mu1_1t      = np.column_stack((np.ones(Ns),
+    #                                  elev_surf_generator((sites_x, sites_y)),
+    #                                  C_mu1_splines))
+    # C_mu1         = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+    # ## mu1(s,t)
+    # mu1_matrix = (C_mu1.T @ Beta_mu1).T
+
+    # # Location mu(s,t) -----------------------------------------------------------------------------------------------
+    # mu_matrix = mu0_matrix + mu1_matrix * Time
+
+    # # C_mu0_ro     = numpy2rpy(C_mu0)
+    # # C_mu1_ro     = numpy2rpy(C_mu1)
+    # # mu_matrix_ro = numpy2rpy(mu_matrix)
+    # # Beta_mu0_ro  = numpy2rpy(Beta_mu0)
+    # # Beta_mu1_ro  = numpy2rpy(Beta_mu1)
+
+    # # r.assign('C_mu0_ro', C_mu0_ro)
+    # # r.assign('C_mu1_ro', C_mu1_ro)
+    # # r.assign('mu_matrix_ro',mu_matrix_ro)
+    # # r.assign('Beta_mu0_ro', Beta_mu0_ro)
+    # # r.assign('Beta_mu1_ro', Beta_mu1_ro)
+
+    # # r("save(C_mu0_ro, file='C_mu0_ro.gzip', compress=TRUE)")
+    # # r("save(C_mu1_ro, file='C_mu1_ro.gzip', compress=TRUE)")
+    # # r("save(mu_matrix_ro, file='mu_matrix_ro.gzip', compress=TRUE)")
+    # # r("save(Beta_mu0_ro, file='Beta_mu0_ro.gzip',compress=TRUE)")
+    # # r("save(Beta_mu1_ro, file='Beta_mu1_ro.gzip',compress=TRUE)")
+
+    # # Create Coefficient Blocks
+    # ## Beta_mu0
+    # Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in each block
+    # Beta_mu0_nblock         = int(Beta_mu0_m/Beta_mu0_block_idx_size)
+    # for i in range(Beta_mu0_nblock):
+    #     start_index = Beta_mu0_block_idx_size*i
+    #     end_index   = start_index + Beta_mu0_block_idx_size
+    #     if i+1 < Beta_mu0_nblock:
+    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else: # last block
+    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
+
+    # ## Beta_mu1
+    # Beta_mu1_block_idx_dict = {} # dictionary that stores the index of Beta_mu1 in each block
+    # Beta_mu1_nblock         = int(Beta_mu1_m/Beta_mu1_block_idx_size)
+    # for i in range(Beta_mu1_nblock):
+    #     start_index = Beta_mu1_block_idx_size*i
+    #     end_index   = start_index + Beta_mu1_block_idx_size
+    #     if i + 1 < Beta_mu1_nblock:
+    #         Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else:
+    #         Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu1_m)]
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
+
+    # ## just initial values, right? Theses are not "truth"
+    # sigma_Beta_mu0      = 0.2
+    # sigma_Beta_mu1      = 0.2
+    # sigma_Beta_logsigma = 0.2
+    # sigma_Beta_ksi      = 0.2
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Adaptive Update: tuning constants
+
+    # c_0 = 1
+    # c_1 = 0.8
+    # offset = 3 # the iteration offset: trick the updater thinking chain is longer
+    # # r_opt_1d = .41
+    # # r_opt_2d = .35
+    # # r_opt = 0.234 # asymptotically
+    # r_opt = .35
+    # adapt_size = 10
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Adaptive Update: TRIAL RUN Posterior Covariance Matrix
+
+    # # trial run posterior variance matrix for phi
+    # phi_post_cov = np.array([
+    #    [ 1.71595567e-03, -1.62351108e-03,  5.40782727e-04,
+    #     -7.39783709e-04,  5.18647363e-04, -3.04089297e-04,
+    #     -5.71744286e-05,  3.09075985e-04,  4.29528231e-06],
+    #    [-1.62351108e-03,  3.83498399e-03, -1.64905040e-03,
+    #      2.81541085e-06, -1.48305211e-03,  7.70876687e-04,
+    #      5.05809724e-04, -2.42279339e-04,  5.47733425e-05],
+    #    [ 5.40782727e-04, -1.64905040e-03,  2.42768982e-03,
+    #      7.89354829e-05,  3.38706927e-04, -1.33417236e-03,
+    #     -5.88460771e-06, -4.15771322e-05,  3.26340045e-04],
+    #    [-7.39783709e-04,  2.81541085e-06,  7.89354829e-05,
+    #      3.10731257e-03, -1.33483891e-03,  3.93067423e-04,
+    #     -1.40512231e-03,  3.86608462e-04,  8.15222055e-05],
+    #    [ 5.18647363e-04, -1.48305211e-03,  3.38706927e-04,
+    #     -1.33483891e-03,  5.82846826e-03, -2.28460694e-03,
+    #      1.89505396e-04, -1.45725699e-03,  2.19050158e-04],
+    #    [-3.04089297e-04,  7.70876687e-04, -1.33417236e-03,
+    #      3.93067423e-04, -2.28460694e-03,  3.15293790e-03,
+    #     -4.05295100e-05,  3.98273559e-04, -8.95240062e-04],
+    #    [-5.71744286e-05,  5.05809724e-04, -5.88460771e-06,
+    #     -1.40512231e-03,  1.89505396e-04, -4.05295100e-05,
+    #      1.88765845e-03, -1.29365986e-03,  2.86677573e-04],
+    #    [ 3.09075985e-04, -2.42279339e-04, -4.15771322e-05,
+    #      3.86608462e-04, -1.45725699e-03,  3.98273559e-04,
+    #     -1.29365986e-03,  3.79140159e-03, -1.17335363e-03],
+    #    [ 4.29528231e-06,  5.47733425e-05,  3.26340045e-04,
+    #      8.15222055e-05,  2.19050158e-04, -8.95240062e-04,
+    #      2.86677573e-04, -1.17335363e-03,  1.74786663e-03]])
+    # # phi_post_cov = 1e-3 * np.identity(k)
+    # assert k == phi_post_cov.shape[0]
+
+    # # trial run posterior variance matrix for range rho
+    # range_post_cov = np.array([
+    #    [ 0.00888606, -0.00964968,  0.00331823, -0.01147588,  0.01378476,
+    #     -0.00456044,  0.00455141, -0.00561015,  0.0020646 ],
+    #    [-0.00964968,  0.02704678, -0.01138214,  0.01338328, -0.04013097,
+    #      0.01380413, -0.00591529,  0.01721602, -0.00600377],
+    #    [ 0.00331823, -0.01138214,  0.01723129, -0.0043743 ,  0.01134919,
+    #     -0.01592546,  0.00158623, -0.00530012,  0.00580562],
+    #    [-0.01147588,  0.01338328, -0.0043743 ,  0.03540402, -0.04741295,
+    #      0.01675298, -0.01613912,  0.02149959, -0.00803375],
+    #    [ 0.01378476, -0.04013097,  0.01134919, -0.04741295,  0.14918746,
+    #     -0.05188579,  0.02373275, -0.06965559,  0.0241972 ],
+    #    [-0.00456044,  0.01380413, -0.01592546,  0.01675298, -0.05188579,
+    #      0.04733445, -0.00731039,  0.02407662, -0.01946985],
+    #    [ 0.00455141, -0.00591529,  0.00158623, -0.01613912,  0.02373275,
+    #     -0.00731039,  0.01686881, -0.02343455,  0.00816378],
+    #    [-0.00561015,  0.01721602, -0.00530012,  0.02149959, -0.06965559,
+    #      0.02407662, -0.02343455,  0.06691174, -0.02429487],
+    #    [ 0.0020646 , -0.00600377,  0.00580562, -0.00803375,  0.0241972 ,
+    #     -0.01946985,  0.00816378, -0.02429487,  0.01848764]])
+    # # range_post_cov = 1e-2 * np.identity(k)
+    # assert k == range_post_cov.shape[0]
+
+    # # posterior/proposal variance matrix for linear surface logsigma
+    # Beta_logsigma_post_cov = np.array([
+    #     [ 1.09295029e-03, -5.57350333e-05, -1.26948891e-04],
+    #     [-5.57350333e-05,  5.67940538e-05, -3.05545811e-05],
+    #     [-1.26948891e-04, -3.05545811e-05,  7.49504590e-05]])
+    # # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
+    # assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
+
+    # # posterior/proposal variance matrix for linear surface ksi
+    # Beta_ksi_post_cov = np.array([
+    #     [ 1.68899920e-03, -1.35994062e-04, -1.24227290e-04],
+    #     [-1.35994062e-04,  2.85659453e-05, -2.05585256e-06],
+    #     [-1.24227290e-04, -2.05585256e-06,  2.60318359e-05]])
+    # # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
+    # assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
+
+    # # trial run posterior variance matrix for Beta_mu0
+    # # Beta_mu0_all_post_cov = 1e-5 * np.identity(Beta_mu0_m)
+    # Beta_mu0_all_post_cov = np.array([
+    #    [ 1.02232222e-04,  1.07641454e-04, -4.29876345e-05,
+    #      9.00767758e-07,  4.67001634e-05, -2.84196291e-05,
+    #     -3.20859509e-05, -4.91600192e-05,  7.19819875e-05,
+    #     -4.50499061e-06,  8.36549211e-05,  1.92750622e-05,
+    #     -3.93172442e-05],
+    #    [ 1.07641454e-04,  1.24411320e-04, -4.31773189e-05,
+    #      1.57526306e-06,  4.83747795e-05, -3.20217976e-05,
+    #     -3.65094225e-05, -5.32585671e-05,  7.78256402e-05,
+    #     -4.21859117e-06,  9.24903467e-05,  2.28529293e-05,
+    #     -4.39507987e-05],
+    #    [-4.29876345e-05, -4.31773189e-05,  8.37881251e-05,
+    #     -8.62484011e-06, -4.47266430e-05,  3.12661782e-05,
+    #      3.39707700e-06,  2.32120292e-05, -4.17616700e-05,
+    #      1.78052064e-06, -2.01913941e-05, -1.21579716e-05,
+    #      2.98268649e-05],
+    #    [ 9.00767758e-07,  1.57526306e-06, -8.62484011e-06,
+    #      8.04740168e-06,  1.64092574e-06, -6.55288462e-06,
+    #      4.44219622e-07,  1.18293779e-07,  1.37817837e-06,
+    #      3.20019329e-06,  1.59833568e-06,  3.02065081e-06,
+    #     -2.85990578e-06],
+    #    [ 4.67001634e-05,  4.83747795e-05, -4.47266430e-05,
+    #      1.64092574e-06,  3.94692898e-05, -1.53410340e-05,
+    #     -9.13160577e-06, -1.73550502e-05,  3.75305690e-05,
+    #      1.94367238e-06,  2.52713329e-05,  9.28637998e-06,
+    #     -2.20509256e-05],
+    #    [-2.84196291e-05, -3.20217976e-05,  3.12661782e-05,
+    #     -6.55288462e-06, -1.53410340e-05,  3.61929749e-05,
+    #      1.13013896e-05,  2.37015107e-05, -2.57149573e-05,
+    #     -2.40125221e-06, -3.30162278e-05, -1.42479939e-05,
+    #      1.72322886e-05],
+    #    [-3.20859509e-05, -3.65094225e-05,  3.39707700e-06,
+    #      4.44219622e-07, -9.13160577e-06,  1.13013896e-05,
+    #      2.06335302e-05,  2.00357625e-05, -2.38750193e-05,
+    #      6.88097112e-06, -3.57177457e-05, -7.63591844e-06,
+    #      1.32712141e-05],
+    #    [-4.91600192e-05, -5.32585671e-05,  2.32120292e-05,
+    #      1.18293779e-07, -1.73550502e-05,  2.37015107e-05,
+    #      2.00357625e-05,  3.61525794e-05, -3.70352246e-05,
+    #      9.65842432e-06, -5.16818137e-05, -1.24040718e-05,
+    #      2.17139646e-05],
+    #    [ 7.19819875e-05,  7.78256402e-05, -4.17616700e-05,
+    #      1.37817837e-06,  3.75305690e-05, -2.57149573e-05,
+    #     -2.38750193e-05, -3.70352246e-05,  5.71290663e-05,
+    #     -4.10599178e-06,  5.77689889e-05,  1.53890194e-05,
+    #     -3.15206285e-05],
+    #    [-4.50499061e-06, -4.21859117e-06,  1.78052064e-06,
+    #      3.20019329e-06,  1.94367238e-06, -2.40125221e-06,
+    #      6.88097112e-06,  9.65842432e-06, -4.10599178e-06,
+    #      1.91346945e-05, -1.58093402e-05,  1.30736989e-06,
+    #      5.50567410e-06],
+    #    [ 8.36549211e-05,  9.24903467e-05, -2.01913941e-05,
+    #      1.59833568e-06,  2.52713329e-05, -3.30162278e-05,
+    #     -3.57177457e-05, -5.16818137e-05,  5.77689889e-05,
+    #     -1.58093402e-05,  9.79773576e-05,  1.86605207e-05,
+    #     -3.42240506e-05],
+    #    [ 1.92750622e-05,  2.28529293e-05, -1.21579716e-05,
+    #      3.02065081e-06,  9.28637998e-06, -1.42479939e-05,
+    #     -7.63591844e-06, -1.24040718e-05,  1.53890194e-05,
+    #      1.30736989e-06,  1.86605207e-05,  1.15313136e-05,
+    #     -1.28937194e-05],
+    #    [-3.93172442e-05, -4.39507987e-05,  2.98268649e-05,
+    #     -2.85990578e-06, -2.20509256e-05,  1.72322886e-05,
+    #      1.32712141e-05,  2.17139646e-05, -3.15206285e-05,
+    #      5.50567410e-06, -3.42240506e-05, -1.28937194e-05,
+    #      2.46844772e-05]])
+    # assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
+    # Beta_mu0_block_post_cov_dict = {}
+    # for key in Beta_mu0_block_idx_dict.keys():
+    #     start_idx                         = Beta_mu0_block_idx_dict[key][0]
+    #     end_idx                           = Beta_mu0_block_idx_dict[key][-1]+1
+    #     Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
+
+    # # trial run posterior variance matrix for Beta_mu1
+    # # Beta_mu1_all_post_cov = 1e-5 * np.identity(Beta_mu1_m)
+    # Beta_mu1_all_post_cov = np.array([
+    #    [ 1.77436933e-04,  3.97334628e-05, -6.83467198e-05,
+    #     -5.47414781e-05, -7.59612246e-05, -2.11679916e-04,
+    #     -2.74663425e-06,  8.36306791e-05, -1.63793391e-05,
+    #      1.41232328e-04,  4.84748052e-05, -1.15715307e-04,
+    #      1.04476279e-04],
+    #    [ 3.97334628e-05,  3.89035229e-05, -7.04014176e-06,
+    #      3.47420767e-06, -7.37841325e-07, -4.48268998e-05,
+    #      5.48122033e-06,  2.24780104e-05, -1.51493693e-05,
+    #      3.38653813e-05,  1.96975965e-05, -1.53058261e-05,
+    #      3.32919375e-05],
+    #    [-6.83467198e-05, -7.04014176e-06,  1.00644434e-04,
+    #      4.56001633e-05,  7.48294818e-05,  1.38640077e-04,
+    #      3.20719664e-05, -4.71386600e-06, -2.52764470e-05,
+    #     -6.65582865e-05,  1.68891606e-05,  2.85096379e-05,
+    #     -6.66526424e-05],
+    #    [-5.47414781e-05,  3.47420767e-06,  4.56001633e-05,
+    #      4.64095740e-05,  5.11405706e-05,  8.70910257e-05,
+    #      3.51532723e-06, -3.02454553e-05, -2.36543908e-06,
+    #     -6.03726186e-05, -3.31380317e-06,  5.61148691e-05,
+    #     -3.05285633e-05],
+    #    [-7.59612246e-05, -7.37841325e-07,  7.48294818e-05,
+    #      5.11405706e-05,  8.65771027e-05,  1.28272475e-04,
+    #      2.13742522e-05, -2.03801580e-05, -1.89717499e-05,
+    #     -7.49923575e-05,  8.87033984e-06,  4.95877781e-05,
+    #     -5.28452535e-05],
+    #    [-2.11679916e-04, -4.48268998e-05,  1.38640077e-04,
+    #      8.70910257e-05,  1.28272475e-04,  3.06782001e-04,
+    #      2.23662057e-05, -8.75344441e-05,  6.59776057e-07,
+    #     -1.82938507e-04, -3.31538873e-05,  1.32964183e-04,
+    #     -1.53235470e-04],
+    #    [-2.74663425e-06,  5.48122033e-06,  3.20719664e-05,
+    #      3.51532723e-06,  2.13742522e-05,  2.23662057e-05,
+    #      3.70923955e-05,  2.33136942e-05, -2.58724656e-05,
+    #      8.48837685e-06,  1.57779636e-05, -2.04252412e-05,
+    #     -1.68472149e-05],
+    #    [ 8.36306791e-05,  2.24780104e-05, -4.71386600e-06,
+    #     -3.02454553e-05, -2.03801580e-05, -8.75344441e-05,
+    #      2.33136942e-05,  7.96128900e-05, -3.36383685e-05,
+    #      8.07819040e-05,  5.15841063e-05, -9.61420093e-05,
+    #      4.95021891e-05],
+    #    [-1.63793391e-05, -1.51493693e-05, -2.52764470e-05,
+    #     -2.36543908e-06, -1.89717499e-05,  6.59776057e-07,
+    #     -2.58724656e-05, -3.36383685e-05,  3.62375793e-05,
+    #     -1.90622060e-05, -2.89752790e-05,  3.18656997e-05,
+    #     -3.49673518e-06],
+    #    [ 1.41232328e-04,  3.38653813e-05, -6.65582865e-05,
+    #     -6.03726186e-05, -7.49923575e-05, -1.82938507e-04,
+    #      8.48837685e-06,  8.07819040e-05, -1.90622060e-05,
+    #      1.45695957e-04,  3.65970598e-05, -1.15925787e-04,
+    #      8.32049968e-05],
+    #    [ 4.84748052e-05,  1.96975965e-05,  1.68891606e-05,
+    #     -3.31380317e-06,  8.87033984e-06, -3.31538873e-05,
+    #      1.57779636e-05,  5.15841063e-05, -2.89752790e-05,
+    #      3.65970598e-05,  5.65538739e-05, -5.77637075e-05,
+    #      3.71403850e-05],
+    #    [-1.15715307e-04, -1.53058261e-05,  2.85096379e-05,
+    #      5.61148691e-05,  4.95877781e-05,  1.32964183e-04,
+    #     -2.04252412e-05, -9.61420093e-05,  3.18656997e-05,
+    #     -1.15925787e-04, -5.77637075e-05,  1.40953571e-04,
+    #     -6.21985399e-05],
+    #    [ 1.04476279e-04,  3.32919375e-05, -6.66526424e-05,
+    #     -3.05285633e-05, -5.28452535e-05, -1.53235470e-04,
+    #     -1.68472149e-05,  4.95021891e-05, -3.49673518e-06,
+    #      8.32049968e-05,  3.71403850e-05, -6.21985399e-05,
+    #      1.11985305e-04]])
+    # assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
+    # Beta_mu1_block_post_cov_dict          = {}
+    # for key in Beta_mu1_block_idx_dict.keys():
+    #     start_idx                         = Beta_mu1_block_idx_dict[key][0]
+    #     end_idx                           = Beta_mu1_block_idx_dict[key][-1]+1
+    #     Beta_mu1_block_post_cov_dict[key] = Beta_mu1_all_post_cov[start_idx:end_idx, start_idx:end_idx]
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Adaptive Update: Proposal Variance Scalar, Covariance Matrix, and Counter
+    # if rank == 0: # Handle phi, range, GEV on Worker 0
+    #     # proposal variance scalar
+    #     sigma_m_sq = {
+    #         'phi_block1'          : (2.4**2)/3,
+    #         'phi_block2'          : (2.4**2)/3,
+    #         'phi_block3'          : (2.4**2)/3,
+    #         'range_block1'        : (2.4**2)/3,
+    #         'range_block2'        : (2.4**2)/3,
+    #         'range_block3'        : (2.4**2)/3,
+    #         # 'GEV'                 : (2.4**2)/3
+    #         # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
+    #         'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
+    #         'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
+    #         'sigma_Beta_mu0'      : 0.03749589, # from trial run
+    #         'sigma_Beta_mu1'      : 0.01,
+    #         'sigma_Beta_logsigma' : 0.24878523, # from trial run
+    #         'sigma_Beta_ksi'      : 0.44929566  # from trial run
+    #     }
+    #     for key in Beta_mu0_block_idx_dict.keys():
+    #         sigma_m_sq[key] = (2.4**2)/len(Beta_mu0_block_idx_dict[key])
+    #     for key in Beta_mu1_block_idx_dict.keys():
+    #         sigma_m_sq[key] = (2.4**2)/len(Beta_mu1_block_idx_dict[key])
+
+    #     # proposal covariance matrix
+    #     Sigma_0 = {
+    #         'phi_block1'    : phi_post_cov[0:3,0:3],
+    #         'phi_block2'    : phi_post_cov[3:6,3:6],
+    #         'phi_block3'    : phi_post_cov[6:9,6:9],
+    #         'range_block1'  : range_post_cov[0:3,0:3],
+    #         'range_block2'  : range_post_cov[3:6,3:6],
+    #         'range_block3'  : range_post_cov[6:9,6:9],
+    #         # 'GEV'           : GEV_post_cov,
+    #         # 'Beta_mu0'      : Beta_mu0_post_cov,
+    #         'Beta_logsigma' : Beta_logsigma_post_cov,
+    #         'Beta_ksi'      : Beta_ksi_post_cov
+    #     }
+    #     Sigma_0.update(Beta_mu0_block_post_cov_dict)
+    #     Sigma_0.update(Beta_mu1_block_post_cov_dict)
+
+    #     num_accepted = { # acceptance counter
+    #         'phi'                 : 0,
+    #         'range'               : 0,
+    #         'phi_block1'          : 0,
+    #         'phi_block2'          : 0,
+    #         'phi_block3'          : 0,
+    #         'range_block1'        : 0,
+    #         'range_block2'        : 0,
+    #         'range_block3'        : 0,
+    #         # 'GEV'                 : 0,
+    #         # 'Beta_mu0'            : 0,
+    #         'Beta_logsigma'       : 0,
+    #         'Beta_ksi'            : 0,
+    #         'sigma_Beta_mu0'      : 0,
+    #         'sigma_Beta_mu1'      : 0,
+    #         'sigma_Beta_logsigma' : 0,
+    #         'sigma_Beta_ksi'      : 0
+    #     }
+    #     for key in Beta_mu0_block_idx_dict.keys():
+    #         num_accepted[key] = 0
+    #     for key in Beta_mu1_block_idx_dict.keys():
+    #         num_accepted[key] = 0
+
+    # # Rt: each Worker_t propose k-R(t)s at time t
+    # if rank == 0:
+    #     sigma_m_sq_Rt_list = [(2.4**2)/k]*size # comm scatter and gather preserves order
+    #     num_accepted_Rt_list = [0]*size # [0, 0, ... 0]
+    # else:
+    #     sigma_m_sq_Rt_list = None
+    #     num_accepted_Rt_list = None
+    # sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
+    # num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
+
+    # # %% 1. Plot Spatial Domain 
+    # # 1. Plot Space -------------------------------------------------------------------------------------
+    
+    # if rank == 0: # Plot the space
+    #     plotgrid_x = np.linspace(0.1,10,25)
+    #     plotgrid_y = np.linspace(0.1,10,25)
+    #     plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
+    #     plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
+    #     radius_from_knots = np.repeat(radius, k)
+    #     fig, ax = plt.subplots()
+    #     ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
+    #     ax.plot(knots_x, knots_y, 'r+')
+    #     space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
+    #                                     fill = False, color = 'black')
+    #     for i in range(k):
+    #         circle_i = plt.Circle((knots_xy[i,0],knots_xy[i,1]), radius_from_knots[0], 
+    #                         color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
+    #         ax.add_patch(circle_i)
+    #     ax.add_patch(space_rectangle)
+    #     plt.xlim([-2,12])
+    #     plt.ylim([-2,12])
+    #     # plt.show()
+    #     plt.savefig('point_space.pdf')
+    #     plt.close()
+    
+    # if rank == 0: # Plot the elevation
+    #     # plotgrid_elevations = elevation_func(plotgrid_xy[:,0], plotgrid_xy[:,1])
+    #     plotgrid_elevations = elev_surf_generator((plotgrid_xy[:,0], plotgrid_xy[:,1]))
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(plotgrid_elevations.reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     plt.title('elevation heatplot')
+    #     # plt.show()
+    #     plt.savefig('elevation.pdf')
+    #     plt.close()        
+
+    # # %% 2. Generate the Weight Matrices
+    # # 2. Generate the weight matrices -------------------------------------------------------------------------------------
+
+    # # Weight matrix generated using Gaussian Smoothing Kernel
+    # gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # for site_id in np.arange(Ns):
+    #     # Compute distance between each pair of the two collections of inputs
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    #                                     XB = knots_xy)
+    #     # influence coming from each of the knots
+    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    #     gaussian_weight_matrix[site_id, :] = weight_from_knots
+
+    # # Weight matrix generated using wendland basis
+    # wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+    # for site_id in np.arange(Ns):
+    #     # Compute distance between each pair of the two collections of inputs
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    #                                     XB = knots_xy)
+    #     # influence coming from each of the knots
+    #     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    #     wendland_weight_matrix[site_id, :] = weight_from_knots
+    
+    # # # constant weight matrix
+    # # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # # for site_id in np.arange(Ns):
+    # #     # Compute distance between each pair of the two collections of inputs
+    # #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    # #                                     XB = knots_xy)
+    # #     # influence coming from each of the knots
+    # #     weight_from_knots = np.repeat(1, k)/k
+    # #     constant_weight_matrix[site_id, :] = weight_from_knots
+
+    # if rank == 0: # weight matrices for plotting
+    #     gaussian_weight_matrix_for_plot = np.full(shape = (625, k), fill_value = np.nan)
+    #     for site_id in np.arange(625):
+    #         # Compute distance between each pair of the two collections of inputs
+    #         d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+    #                                         XB = knots_xy)
+    #         # influence coming from each of the knots
+    #         weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    #         gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+    #     wendland_weight_matrix_for_plot = np.full(shape = (625,k), fill_value = np.nan)
+    #     for site_id in np.arange(625):
+    #         # Compute distance between each pair of the two collections of inputs
+    #         d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+    #                                         XB = knots_xy)
+    #         # influence coming from each of the knots
+    #         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    #         wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+
+    # # %% 3. Generate K then Z, and W = g(Z)
+    # # 3. Generate covariance matrix, Z, and W ------------------------------------------------------------------------------
+
+    # ## range_vec
+    # range_vec = gaussian_weight_matrix @ range_at_knots
+    # # range_vec = one_weight_matrix @ range_at_knots
+
+    # ## Covariance matrix K
+    # ## sigsq_vec
+    # sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
+    # K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
+    #         coords = sites_xy, kappa = nu, cov_model = "matern")
+    # Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
+    # W = norm_to_Pareto(Z) 
+
+    # if rank == 0: # plotting the range surface
+    #     # heatplot of range surface
+    #     range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(range_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest')
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     # plt.show()
+    #     plt.savefig('heatmap range surface.pdf')
+    #     plt.close()
+
+    #     # # 3d range surface plot
+    #     # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+    #     # fig2 = plt.figure()
+    #     # ax2 = fig2.add_subplot(projection='3d')
+    #     # ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
+    #     # ax2.set_xlabel('X')
+    #     # ax2.set_ylabel('Y')
+    #     # ax2.set_zlabel('phi(s)')
+    #     # ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
+    #     # plt.show()
+    #     # plt.savefig('3d range surface.pdf')
+    #     # plt.close()
+
+
+    # # %% 4. Generate R^phi Scaling Factor
+    # # 4. Generate R^phi Scaling Factor -------------------------------------------------------------------------------------
+
+    # ## phi_vec
+    # phi_vec = gaussian_weight_matrix @ phi_at_knots
+    # # phi_vec = one_weight_matrix @ phi_at_knots
+
+    # ## R
+    # ## Generate them at the knots
+    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+    #     # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
+    #     # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
+    #     # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
+
+    # ## Matrix Multiply to the sites
+    # R_at_sites = wendland_weight_matrix @ R_at_knots
+    # # R_at_sites = constant_weight_matrix @ R_at_knots
+
+    # ## R^phi
+    # R_phi = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
+
+    # if rank == 0: # plotting the phi surface
+    #     # heatplot of phi surface
+    #     phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(phi_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest', extent = [0, 10, 10, 0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     # plt.show()
+    #     plt.savefig('heatmap phi surface.pdf')
+    #     plt.close()
+
+    #     # # 3d phi surface
+    #     # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+    #     # fig = plt.figure()
+    #     # ax = fig.add_subplot(projection='3d')
+    #     # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(phi_vec_for_plot).reshape(25,25))
+    #     # ax.set_xlabel('X')
+    #     # ax.set_ylabel('Y')
+    #     # ax.set_zlabel('phi(s)')
+    #     # ax.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
+    #     # fig2 = plt.figure()
+    #     # ax2 = fig2.add_subplot(projection='3d')
+    #     # ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], phi_vec_for_plot, linewidth=0.2, antialiased=True)
+    #     # ax2.set_xlabel('X')
+    #     # ax2.set_ylabel('Y')
+    #     # ax2.set_zlabel('phi(s)')
+    #     # ax2.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
+    #     # plt.show()
+    #     # plt.savefig('3d phi surface.pdf')
+    #     # plt.close()
+
+    # # %% 5. Plot GEV Surfaces
+    # # 5. Plot GEV Surfaces -------------------------------------------------------------------------------------
+
+    # if rank == 0:
+    #     # Location #
+    #     # mu0(s) plot
+    #     C_mu0_plot        = np.full(shape = (Beta_mu0_m, len(gs_xy), Nt), fill_value = np.nan)
+    #     C_mu0_plot[0,:,:] = 1.0
+    #     # C_mu0_plot[1,:,:] = np.tile(elevation_func(gs_xy[:,0], gs_xy[:,1])[:,None], reps=(1,Nt))
+    #     C_mu0_plot[1,:,:] = np.tile(elev_surf_generator((gs_xy[:,0], gs_xy[:,1]))[:,None], reps = (1,Nt))
+    #     # C_mu0_plot[1,:,:] = 0.0
+    #     C_mu0_plot[2:Beta_mu0_m,:,:] = np.tile(np.array(r('''
+    #                                                 basis <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+    #                                                 basis$X
+    #                                             '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m))).T[:,:,None],
+    #                                             reps=(1,1,Nt))
+    #     mu0_surface_plot = (C_mu0_plot.T @ Beta_mu0).T
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(mu0_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     ax.set_title('mu0 surface plot')
+    #     # plt.show()
+    #     # print(mu0_surface_plot[:,0])
+    #     plt.savefig('heatmap mu0 surface.pdf')
+    #     plt.close()
+
+    #     # # mu(s,t) = mu0(s) + mu1(s) * Time 
+    #     # import matplotlib.animation as animation
+    #     # plt.rcParams['animation.ffmpeg_path'] = '/opt/homebrew/bin/ffmpeg'
+    #     # C_mu1_plot = C_mu0_plot.copy() # as we use same number of splines, basis are exact same
+    #     # mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T + (C_mu1_plot.T @ Beta_mu1).T * Time
+    #     # graph, ax = plt.subplots()
+    #     # heatmap = ax.imshow(mu_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, 
+    #     #                     cmap='hot',interpolation='nearest',extent=[0,10,10,0],
+    #     #                     vmin = np.min(mu_surface_plot), vmax = np.max(mu_surface_plot))
+    #     # ax.invert_yaxis()
+    #     # graph.colorbar(heatmap)
+    #     # title = ax.set_title('mu(s,t) surface plot')
+    #     # def animate(i):
+    #     #     heatmap.set_array(mu_surface_plot[:,i].reshape(len(gs_x),len(gs_y)).T)
+    #     #     title.set_text('Time {0}'.format(i))
+    #     #     return [graph]
+    #     # anim = animation.FuncAnimation(graph,animate,frames = Nt, interval = 200)
+    #     # anim.save('muSurfaceOverTime.mp4', fps=1)
+    #     # # plt.show()
+    #     # plt.close()
+    
+    #     # Scale #
+    #     # heatplot of sigma(s) surface
+    #     C_logsigma_plot = np.full(shape = (Beta_logsigma_m, len(plotgrid_xy), Nt), fill_value = np.nan)
+    #     C_logsigma_plot[0, :, :] = 1.0
+    #     C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    #     C_logsigma_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+    #     sigma_surface_plot = np.exp((C_logsigma_plot.T @ Beta_logsigma).T)
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     plt.title('sigma surface heatplot')
+    #     # plt.show()
+    #     plt.savefig('heatmap sigma surface.pdf')
+    #     plt.close()
+
+    #     # Shape #
+    #     # heatplot of ksi(s) surface
+    #     C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
+    #     C_ksi_plot[0, :, :] = 1.0
+    #     C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
+    #     C_ksi_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
+    #     ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
+    #     graph, ax = plt.subplots()
+    #     heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
+    #     ax.invert_yaxis()
+    #     graph.colorbar(heatmap)
+    #     # plt.show()
+    #     plt.savefig('heatmap ksi surface.pdf')
+    #     plt.close()
+
+    # # %% 6. Generate X_star and Y
+    # # 6. Generate X and Y -------------------------------------------------------------------------------------
+    # X_star = R_phi * W
+
+    # alpha = 0.5
+    # gamma_at_knots = np.repeat(gamma, k)
+    # gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+    #                    axis = 1)**(1/alpha) # axis = 1 to sum over K knots
+    # # gamma_vec is the gamma bar in the overleaf document
+
+    # # Calculation of Y can(?) be parallelized by time(?)
+    # Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
+    #     Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+
+    # # %% 7. Checking Data Generation
+    # # 7. Checking Data Generation -------------------------------------------------------------------------------------
+
+    # # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma_vec)
+    # # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
+    # # plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
+
+    # # checking stable variables S
+
+    # # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
+    # # for i in range(k):
+    # #     scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
+    # #     plt.axline((0,0), slope = 1, color = 'black')
+    # #     plt.show()
+
+    # # R_at_knots**(-1/2) should look halfnormal(0, 1/sqrt(scale))
+    # # for i in range(k):
+    # #     scipy.stats.probplot((gamma**(1/2))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
+    # #     plt.axline((0,0),slope=1,color='black')
+    # #     plt.show()
+
+    # # checking Pareto distribution
+
+    # # # shifted pareto.cdf(W[i,:] + 1, b = 1, loc = 0, scale = 1) shoud look uniform
+    # # for i in range(Ns):
+    # #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:]+1, b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+    # #     plt.axline((0,0), slope = 1, color = 'black')
+    # #     plt.show()
+
+    # # # standard pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1) shoud look uniform
+    # # for i in range(Ns):
+    # #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+    # #     plt.axline((0,0), slope = 1, color = 'black')
+    # #     plt.show()
+
+    # # # log(W + 1) should look exponential (at each time t with num_site spatial points?)
+    # # for i in range(Nt):
+    # #     expo = np.log(W[:,i] + 1)
+    # #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    # #     plt.axline((0,0), slope=1, color='black')
+    # #     plt.show()
+
+    # # # log(W + 1) should look exponential (at each site with Nt time replicates?)
+    # # # for shifted Pareto
+    # # for i in range(Ns):
+    # #     expo = np.log(W[i,:] + 1)
+    # #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    # #     plt.axline((0,0), slope=1, color='black')
+    # #     plt.show()
+
+    # # # log(W) should look exponential (at each site with Nt time replicates?)
+    # # # for standard Pareto
+    # # for i in range(Ns):
+    # #     expo = np.log(W[i,:])
+    # #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
+    # #     plt.axline((0,0), slope=1, color='black')
+    # #     plt.show()
+
+    # # checking model cdf
+
+    # # # pRW(X_star) should look uniform (at each time t?)
+    # # for i in range(Nt):
+    # #     # fig, ax = plt.subplots()
+    # #     unif = pRW(X_star[:,i], phi_vec, gamma_vec[i])
+    # #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
+    # #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    # #     plt.axline((0,0), slope=1, color='black')
+    # #     plt.show()
+
+    # # # pRW(X_star) should look uniform (at each site with Nt time replicates?)
+    # # for i in range(Ns):
+    # #     # fig, ax = plt.subplots()
+    # #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec[i])
+    # #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
+    # #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
+    # #     plt.axline((0,0), slope=1, color='black')
+    # #     plt.show()
+
+    # # unifs = scipy.stats.uniform.rvs(0,1,size=10000)
+    # # Y_from_unifs = qgev(unifs, 0, 1, 0.2)
+    # # scipy.stats.genextreme.fit(Y_from_unifs) # this is unbiased
+
+    # # a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
+
+    # # myfits = [scipy.stats.genextreme.fit(Y[site,:]) for site in range(500)]
+    # # plt.hist([fit[1] for fit in myfits]) # loc
+    # # plt.hist([fit[2] for fit in myfits]) # scale
+    # # plt.hist([fit[0] for fit in myfits]) # -shape
+
+    # %% Load Dataset
+    # Load Dataset
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Sites - random uniformly (x,y) generate site locations
+    # data
     
-    sites_xy = np.random.random((Ns, 2)) * 10
+    mgcv = importr('mgcv')
+    r('''load('JJA_precip_maxima.RData')''')
+    GEV_estimates      = np.array(r('GEV_estimates')).T
+    mu0_estimates      = GEV_estimates[:,0]
+    mu1_estimates      = GEV_estimates[:,1]
+    logsigma_estimates = GEV_estimates[:,2]
+    ksi_estimates      = GEV_estimates[:,3]
+    JJA_maxima         = np.array(r('JJA_maxima')).T
+    stations           = np.array(r('stations')).T
+    elevations         = np.array(r('elev')).T
+
+    # truncate for easier run on misspiggy
+    Nt                 = 32
+    Ns                 = 125
+    times_subset       = np.arange(Nt)
+    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    GEV_estimates      = GEV_estimates[sites_subset,:]
+    mu0_estimates      = GEV_estimates[:,0]
+    mu1_estimates      = GEV_estimates[:,1]
+    logsigma_estimates = GEV_estimates[:,2]
+    ksi_estimates      = GEV_estimates[:,3]
+    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    stations           = stations[sites_subset]
+    elevations         = elevations[sites_subset]
+
+    Y = JJA_maxima
+    
+    # ----------------------------------------------------------------------------------------------------------------
+    # Ns, Nt
+    
+    Nt = JJA_maxima.shape[1] # number of time replicates
+    Ns = JJA_maxima.shape[0] # number of sites/stations
+    start_year = 1950
+    end_year   = 2017
+    all_years  = np.linspace(start_year, end_year, Nt)
+    # Note, to use the mu1 estimates from Likun, the `Time`` must be standardized the same way
+    # Time = np.linspace(-Nt/2, Nt/2-1, Nt)
+    Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1) # delta degress of freedom, to match the n-1 in R
+    Time       = Time[0:Nt] # if there is any truncation
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Sites
+    
+    sites_xy = stations
     sites_x = sites_xy[:,0]
     sites_y = sites_xy[:,1]
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Elevation Function - 
-    # Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
-    #       this might cause identifiability issue
-    # def elevation_func(x,y):
-        # return(np.abs(x-5)/5 + np.abs(y-5)/5)
-    elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
+    # define the lower and upper limits for x and y
+    minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
+    minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Knots - uniform grid of 9 knots, should do this programatically...
+    # Knots
 
-    k = 9 # number of knots
-    x_pos = np.linspace(0,10,5,True)[1:-1]
-    y_pos = np.linspace(0,10,5,True)[1:-1]
+    res_x = 3
+    res_y = 3
+    k = res_x * res_y # number of knots
+    # create one-dimensional arrays for x and y
+    x_pos = np.linspace(minX, maxX, res_x+2)[1:-1]
+    y_pos = np.linspace(minY, maxY, res_y+2)[1:-1]
+    # create the mesh based on these arrays
     X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
     knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
     knots_x = knots_xy[:,0]
-    knots_y = knots_xy[:,1]
+    knots_y = knots_xy[:,1]    
 
     # ----------------------------------------------------------------------------------------------------------------
+    # Copula Splines
+    
     # Basis Parameters - for the Gaussian and Wendland Basis
+    bandwidth = 4.2 # range for the gaussian kernel
+    radius = 4.2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
-    bandwidth = 4 # range for the gaussian kernel
-    radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-    radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
-    assert k == len(knots_xy)
+    # Generate the weight matrices
+    # Weight matrix generated using Gaussian Smoothing Kernel
+    gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+        gaussian_weight_matrix[site_id, :] = weight_from_knots
 
+    # Weight matrix generated using wendland basis
+    wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+        wendland_weight_matrix[site_id, :] = weight_from_knots
+    
+    # # constant weight matrix
+    # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # for site_id in np.arange(Ns):
+    #     # Compute distance between each pair of the two collections of inputs
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    #                                     XB = knots_xy)
+    #     # influence coming from each of the knots
+    #     weight_from_knots = np.repeat(1, k)/k
+    #     constant_weight_matrix[site_id, :] = weight_from_knots
+
+
+    # %% Setup (Covariates and Constants)
+    # Setup (Covariates and Constants)
+    
     # ----------------------------------------------------------------------------------------------------------------
-    # Data Model Parameters - X_star = R^phi * g(Z)
+    # Setup For the Marginal Model - GEV(mu, sigma, ksi)
 
-    ## Stable S_t --> R_t
-    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
-    delta = 0.0 # this is the delta in levy, stays 0
-
-    ## g(Z)
-    nu = 0.5 # exponential kernel for matern with nu = 1/2
-    sigsq = 1.0 # sill for Z
-    range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
-
-    ### scenario 1
-    # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
-    ### scenario 2
-    phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
-    ### scenario 3
-    # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
-    #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # Extreme Value Parameters - GEV(mu, sigma, ksi)
-    # Constant parameters
-    mu = 0.0 # GEV location
-    sigma = 1.0 # GEV scale
-    ksi = 0.2 # GEV shape
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # Extreme Value Parameters - GEV(mu, sigma, ksi)
-    # Linear surfaces -- Specify X and Beta here
-
-    ## Location mu0 ##
-    # # simple case of mu0(s) = Beta_mu0_0 + Beta_mu0_1*x(s) + Beta_mu0_2*y(s)
-    # Beta_mu0_dict = {
-    #     'Beta_mu0_0' : 0.0, # intercept for mu0
-    #     'Beta_mu0_1' : 0.1, # slope of beta 1 for mu0
-    #     'Beta_mu0_2' : 0.1  # slope of beta 2 for mu0
-    # }
-    # Beta_mu0_m = len(Beta_mu0_dict)
-    # C_mu0          = np.full(shape=(Beta_mu0_m, Ns, Nt), fill_value = np.nan) # mu0 design matrix
-    # C_mu0[0, :, :] = 1.0 # column of 1 for the intercept
-    # C_mu0[1, :, :] = np.tile(sites_x, reps = (Nt, 1)).T # column of x for beta 1
-    # C_mu0[2, :, :] = np.tile(sites_y, reps = (Nt, 1)).T # column of y for beta 2
-    # Beta_mu0 = np.array(list(Beta_mu0_dict.values())) # extract the coefficient values
-    # ## actual surface for mu0(s)
-    # mu0_matrix = (C_mu0.T @ Beta_mu0).T
-
-
-    ## Scale sigma - logscale ##
-    # simple case of logsigma(s) = Beta_logsigma_0 + Beta_logsigma_1 * x(s) + Beta_logsigma_2 * y(s)
-    Beta_logsigma_dict = {
-        'Beta_logsigma_0' : np.log(sigma), # intercept for logsimga
-        'Beta_logsigma_1' : 0.01, # slope of beta 1 for logsigma
-        'Beta_logsigma_2' : 0.03, # slope of beta 2 for logsigma
-    }
-    Beta_logsigma_m = len(Beta_logsigma_dict)
-    C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan) # log(sigma) design matrix
-    C_logsigma[0,:,:] = 1.0
-    C_logsigma[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
-    C_logsigma[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
-    ## coefficients
-    Beta_logsigma = np.array(list(Beta_logsigma_dict.values()))
-    ## actual surface for sigma(s)
-    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-
-    ## Shape ksi ##
-    # simple case of ksi(s) = Beta_ksi_0 + Beta_ksi_1 * x(s) + Beta_ksi_2 * y(s)
-    Beta_ksi_dict = {
-        'Beta_ksi_0' : ksi, # intercept for ksi
-        'Beta_ksi_1' : 0.02, # slope of beta 1 for ksi
-        'Beta_ksi_2' : -0.02, # slope of beta 2 for ksi
-    }
-    Beta_ksi_m = len(Beta_ksi_dict)
-    C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
-    C_ksi[0,:,:] = 1.0
-    C_ksi[1,:,:] = np.tile(sites_x, reps = (Nt, 1)).T
-    C_ksi[2,:,:] = np.tile(sites_y, reps = (Nt, 1)).T
-    ## coefficients
-    Beta_ksi = np.array(list(Beta_ksi_dict.values()))
-    ## actual surface for ksi(s)
-    ksi_matrix = (C_ksi.T @ Beta_ksi).T
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # Extreme Value Parameters - GEV(mu, sigma, ksi)
-    # mu_0(s)     = Beta_mu0_0 + Beta_mu0_1 * Elev(s) + splines(s) @ Beta_mu0_splines
-
-    # "knots" and prediction sites for splines -----------------------------------------------------------------------
-    gs_x        = np.linspace(0, 10, 41)
-    gs_y        = np.linspace(0, 10, 41)
+    # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
+    # "knots" and prediction sites for splines 
+    gs_x        = np.linspace(minX, maxX, 50)
+    gs_y        = np.linspace(minY, maxY, 50)
     gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
 
     gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
@@ -229,7 +1148,6 @@ if __name__ == "__main__":
     r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
     r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
 
-    mgcv = importr('mgcv')
     r('''
         gs_xy_df <- as.data.frame(gs_xy_ro)
         colnames(gs_xy_df) <- c('x','y')
@@ -238,85 +1156,441 @@ if __name__ == "__main__":
         ''')
 
     # Location mu_0(s) ----------------------------------------------------------------------------------------------
-    ## coefficients
-    Beta_mu0_0              = 0
-    Beta_mu0_1              = 0.05
-    Beta_mu0_splines_m      = 12 - 1 # dropped the 3rd to last column of constant
-    Beta_mu0_splines        = np.array([0.05]*Beta_mu0_splines_m)
-    Beta_mu0                = np.concatenate(([Beta_mu0_0], [Beta_mu0_1], Beta_mu0_splines))
-    Beta_mu0_m              = len(Beta_mu0)
-    Beta_mu0_block_idx_size = 4
-    ## covariates
-    C_mu0_splines = np.array(r('''
-                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                basis_site <- PredictMat(basis, data = sites_xy_df)
-                                # basis_site
-                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
-                            '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
-    # C_mu0_1t      = np.column_stack((np.ones(Ns),
-    #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
-    #                                 C_mu0_splines))
-    C_mu0_1t      = np.column_stack((np.ones(Ns),
-                                     elev_surf_generator((sites_x, sites_y)),
-                                     C_mu0_splines))
-    C_mu0         = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
-    ## mu0(s,t)
-    mu0_matrix = (C_mu0.T @ Beta_mu0).T      
-
+    
+    Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+    Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
+    C_mu0_splines      = np.array(r('''
+                                    basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                    basis_site <- PredictMat(basis, data = sites_xy_df)
+                                    # basis_site
+                                    basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                    '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+    C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                        elevations,     # elevation
+                                        C_mu0_splines)) # splines (excluding intercept)
+    C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+    
     # Location mu_1(s) ----------------------------------------------------------------------------------------------
-    ## coefficients
-    Beta_mu1_0              = 0.0
-    Beta_mu1_1              = 0.01
-    Beta_mu1_splines_m      = 12 - 1 # drop the 3rd to last column of constant
-    Beta_mu1_splines        = np.array([0.01] * Beta_mu1_splines_m)
-    Beta_mu1                = np.concatenate(([Beta_mu1_0], [Beta_mu1_1], Beta_mu1_splines))
-    Beta_mu1_m              = len(Beta_mu1)
+    
+    Beta_mu1_splines_m = 18 - 1 # drop the 3rd to last column of constant
+    Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+    C_mu1_splines      = np.array(r('''
+                                    basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                    basis_site <- PredictMat(basis, data = sites_xy_df)
+                                    # basis_site
+                                    basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                    '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+    C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                        elevations,     # elevation
+                                        C_mu1_splines)) # splines (excluding intercept)
+    C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+    # Scale logsigma(s) ----------------------------------------------------------------------------------------------
+    
+    Beta_logsigma_m   = 2 # just intercept and elevation
+    C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+    C_logsigma[0,:,:] = 1.0 
+    C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+
+    # Shape ksi(s) ----------------------------------------------------------------------------------------------
+    
+    Beta_ksi_m   = 2 # just intercept and elevation
+    C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+    C_ksi[0,:,:] = 1.0
+    C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Setup For the Copula/Data Model - X_star = R^phi * g(Z)
+
+    # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
+    nu = 0.5 # exponential kernel for matern with nu = 1/2
+    sigsq = 1.0 # sill for Z
+    sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
+
+    # Scale Mixture R^phi --------------------------------------------------------------------------------------------
+    ## phi and gamma
+    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
+    delta = 0.0 # this is the delta in levy, stays 0
+    alpha = 0.5
+    gamma_at_knots = np.repeat(gamma, k)
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                       axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
+
+    # %% Estimate Parameter
+    # Estimate Parameter
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Marginal Parameters - GEV(mu, sigma, ksi)
+
+    Beta_mu0 = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+    Beta_mu1 = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+    Beta_logsigma = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+    Beta_ksi = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+    sigma_Beta_mu0      = 1
+    sigma_Beta_mu1      = 1
+    sigma_Beta_logsigma = 1
+    sigma_Beta_ksi      = 1
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Data Model Parameters - X_star = R^phi * g(Z)
+
+    # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------------------------
+
+    range_at_knots = np.array([]) # Estimate range: using sites within the radius of each knot
+    distance_matrix = np.full(shape=(Ns, k), fill_value=np.nan)
+    for site_id in np.arange(Ns): # distance from knots
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), XB = knots_xy)
+        distance_matrix[site_id,:] = d_from_knots
+    sites_within_knots = {} # each knot's "own" sites
+    for knot_id in np.arange(k):
+        knot_name = 'knot_' + str(knot_id)
+        sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= radius_from_knots[knot_id])[0]
+    for key in sites_within_knots.keys(): # empirical variogram estimates
+        selected_sites = sites_within_knots[key]
+        demeaned_Y     = JJA_maxima - ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)
+        bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
+                                            np.mean(demeaned_Y[selected_sites], axis=1))
+        fit_model = gs.Exponential(dim=2)
+        fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
+        # ax = fit_model.plot(x_max = 4)
+        # ax.scatter(bin_center, gamma_variog)
+        range_at_knots = np.append(range_at_knots, fit_model.len_scale)
+    if rank == 0:
+        print('estimated range:',range_at_knots)
+    
+
+    # Scale Mixture R^phi --------------------------------------------------------------------------------------------
+
+    phi_at_knots = np.array([0.5] * k)
+    phi_vec = gaussian_weight_matrix @ phi_at_knots
+
+    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        R_at_knots[:,t] = np.median(qRW(pgev(Y[:,t], 
+                                             ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)[:,t], 
+                                             np.exp((C_logsigma.T @ Beta_logsigma).T)[:,t], 
+                                             ((C_ksi.T @ Beta_ksi).T)[:,t]), 
+                                        phi_vec, gamma_vec))**2
+
+    # %% Load Copula Parameter
+    # Load Copula Parameter
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Marginal Parameters - GEV(mu, sigma, ksi)
+        
+    # Beta_mu0            = np.array([ 4.08205821e+01,  9.36103337e-03, -9.23861988e+00, -1.34159177e+00,
+    #                                 -2.36156787e-02,  1.94801477e+00,  1.91740509e+00,  6.19714857e-02,
+    #                                 -1.09744627e+00, -1.09819892e+00,  6.42493076e-01,  2.55915315e+00,
+    #                                 2.21968675e+00])
+    # Beta_mu1            = np.array([-0.03563326, -0.00067859,  0.00039511, -0.05205269, -0.06598879,
+    #                                 0.00828854, -0.0258282 ,  0.07638217,  0.02972159,  0.00268447,
+    #                                 0.00480196,  0.08632567,  0.07072005,  0.1153287 ,  0.02732415,
+    #                                 -0.01753503, -0.00446298,  0.00356159, -0.02291168])
+    # Beta_logsigma       = np.array([3.04064352e+00, 1.08355897e-04])
+    # Beta_ksi            = np.array([0.09464893, 0.00034565])
+    # sigma_Beta_mu0      = 9.62944645
+    # sigma_Beta_mu1      = 0.22947093
+    # sigma_Beta_logsigma = 1.79421561
+    # sigma_Beta_ksi      = 0.13111096
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Data Model Parameters - X_star = R^phi * g(Z)
+
+    # range_at_knots      = np.array([1.65307445, 1.39232541, 1.4681875 , 1.87987903, 1.76398995,
+    #                         1.89409614, 2.17136573, 2.9180074 , 1.95218012])
+    # phi_at_knots        = np.array([0.29687906, 0.28087445, 0.2281692 , 0.2907345 , 0.25957508,
+                            # 0.21345036, 0.46410585, 0.21582571, 0.12667254])
+    # R_at_knots          = np.exp(np.array([
+    # [-8.98617185e-02,  2.74798892e-01,  2.45333243e-02,
+    # -4.25861643e-01, -3.74519275e-01,  3.96693387e-01,
+    # -2.37895268e-01, -3.41247665e-01,  1.04323936e-02,
+    # -3.17885284e-01,  9.02222126e-01,  4.16273455e-01,
+    #     4.41121700e-02, -9.93926519e-02, -2.51844686e-01,
+    #     5.13938840e-01, -2.63634102e-01,  6.41403880e-01,
+    #     4.31156487e-01, -2.94307086e-01, -8.28258803e-01,
+    # -7.02203770e-01,  5.91889034e-01, -7.05082181e-01,
+    # -2.77652918e-01,  6.49475164e-01,  5.47973067e-01,
+    #     4.22059546e-01, -5.25013994e-01,  7.95146327e-01,
+    # -9.08815606e-01,  2.93980229e-05],
+    # [ 1.84856692e+00,  1.78770658e+00, -2.12489859e-01,
+    #     3.29664835e+00, -3.16873383e-01,  4.53688056e-01,
+    # -4.53836647e-01, -1.74274272e-01,  7.26905218e-01,
+    #     7.51334662e-01,  8.50930859e-01,  1.00941102e-02,
+    #     2.69277973e-01, -9.13504088e-02,  1.59933032e-01,
+    # -5.15114118e-01,  9.36174200e-01,  1.32522604e-01,
+    #     1.16892088e+00, -3.64491079e-01, -2.97315552e-01,
+    #     4.55919527e-01, -2.84776987e-01,  1.14092057e-01,
+    #     1.66000965e+00,  1.29943402e+00,  3.02194055e-02,
+    # -2.21530992e-01, -2.84275124e-01,  2.99978327e+00,
+    # -7.36372490e-01,  1.18361178e+00],
+    # [ 2.14689539e+00,  3.34363301e-01,  6.70015339e-02,
+    # -3.05277615e-01, -4.49059635e-01,  2.64252123e+00,
+    # -2.61980139e-01,  1.73884519e+00,  2.11096768e+00,
+    #     2.06304525e-01,  7.02254275e-01,  1.21341633e+00,
+    # -4.34823188e-01, -1.19359568e-01,  8.59479917e-01,
+    # -3.50986678e-01,  1.24949157e+00,  4.44301147e-01,
+    #     3.73704620e-01,  4.61082970e-02,  4.16425866e+00,
+    #     8.58385512e-01,  1.71837996e+00,  1.43424335e+00,
+    #     3.29844753e+00,  1.50585771e-01,  4.31259928e-01,
+    #     1.68167937e+00,  1.26762972e+00,  4.82021644e-01,
+    # -2.17305372e-01,  1.83087211e+00],
+    # [ 1.57374636e-01,  4.62000270e-01, -6.58063638e-01,
+    #     1.43055551e-01,  6.37202479e-03, -2.16595292e-02,
+    # -4.70988055e-01,  1.85989201e+00,  7.43519954e-01,
+    # -4.46988448e-01,  1.08021166e-01, -4.29457735e-02,
+    #     4.31221103e-01,  4.74059740e-01, -1.41970554e-01,
+    #     8.47749434e-01,  1.99443377e-01, -2.11107202e-01,
+    #     1.50323997e+00, -4.65113987e-01,  5.84662031e-01,
+    # -5.90356742e-01, -2.63012232e-02,  1.06744693e-01,
+    #     1.10963143e-01,  5.12940860e-01, -4.64838212e-01,
+    # -3.64355300e-01, -2.58514824e-01,  1.36842527e-01,
+    #     2.32583446e-01,  2.37580363e-02],
+    # [ 1.03714331e+00,  2.06201940e+00,  1.52862483e-01,
+    # -2.65457062e-01,  3.26858149e-01,  3.47308171e-01,
+    # -5.74055466e-01,  1.26009140e+00, -3.28576060e-01,
+    #     1.69247725e+00, -1.11062607e-01,  2.87776324e-01,
+    #     7.69344960e-01,  2.79935070e-01,  4.39664613e-01,
+    # -3.12491673e-01, -1.92366466e-01,  1.58480758e-01,
+    #     4.02447921e-01,  1.89143084e-01,  3.35419758e-01,
+    #     6.04920105e-01,  2.53896892e-01,  4.14429402e-01,
+    #     1.23613853e-01,  1.32160223e+00,  6.06089776e-03,
+    #     8.38906816e-01, -1.70137872e-01,  5.20823837e-02,
+    #     1.40615834e+00,  5.80531281e-01],
+    # [ 1.85829376e+00,  7.61224974e-01, -6.43714748e-02,
+    # -5.60485046e-01, -1.53565638e-01,  4.10966254e-01,
+    # -2.53132357e-01,  5.62677789e-02, -5.91246972e-02,
+    # -2.75543251e-01, -5.34815572e-01, -7.21435330e-02,
+    # -5.91485175e-01, -1.14863183e-01,  6.05700475e-01,
+    # -1.63273585e-01, -3.58608762e-01,  3.18983478e-01,
+    # -2.92829647e-01, -3.10147075e-01,  1.63537808e+00,
+    # -3.81126461e-01,  7.38154327e-01,  4.76339144e-02,
+    #     2.42802719e-01,  1.32403088e-01, -2.12439864e-01,
+    #     2.44254272e-01,  5.47991348e-01,  2.32275405e-01,
+    #     1.67978018e-01,  7.45686051e-01],
+    # [-2.90797517e-01, -8.59252059e-02, -6.26915012e-01,
+    # -3.06029969e-01, -1.38763183e-01, -5.92517823e-01,
+    # -4.47956460e-01, -1.84183291e-01, -1.87277071e-01,
+    # -6.66244567e-01, -9.35573730e-02,  1.03411465e+00,
+    # -8.43468654e-01, -6.60891375e-01, -4.57307699e-01,
+    # -1.81108096e-02,  3.30540695e-01, -3.51097673e-01,
+    #     4.19583154e-01, -5.89675652e-01, -6.57911538e-01,
+    # -6.83848624e-01, -3.84753424e-01, -6.36091770e-01,
+    #     1.18343590e+00, -8.55915640e-01, -8.55928972e-01,
+    # -4.42188978e-01,  2.43996060e-01,  2.55806794e-01,
+    # -7.40360746e-01,  7.57338151e-03],
+    # [-2.76832905e-01,  2.89970919e-01, -2.97050994e-01,
+    # -1.09144269e-01,  2.90974300e-01, -4.25563559e-01,
+    #     3.01897237e-02, -1.56967033e-01, -4.65889842e-01,
+    # -2.55225049e-01,  3.95212572e-01,  1.26793348e-01,
+    #     4.33192220e-01,  2.25228787e+00,  3.34693627e-02,
+    # -2.44454739e-01,  1.20812217e-01,  7.00548323e-01,
+    #     2.48639974e-01,  2.01825962e-01, -1.44348371e-01,
+    #     3.73549612e-01,  4.79701137e-01, -2.19732037e-01,
+    #     6.20558376e-02, -2.23612125e-01, -1.18218449e-01,
+    #     2.39425233e+00,  4.30716124e-01, -8.10145388e-02,
+    # -2.58603866e-01,  2.96930853e-01],
+    # [ 2.06649673e-01,  7.18883976e-01,  1.57776036e+00,
+    # -4.12535886e-01,  9.67010370e-01,  3.26887785e-01,
+    #     9.11246471e-01,  1.29993760e+00, -8.07388575e-01,
+    # -2.79960501e-01,  3.82874918e-01, -4.66318805e-01,
+    #     2.78913405e-01, -2.96688988e-01, -3.05699030e-02,
+    #     3.94488984e-02,  6.21956787e-01,  9.24004597e-01,
+    #     1.35493500e-01, -5.41996883e-03, -1.24036382e-01,
+    # -2.59075909e-01, -3.16789635e-01,  7.91146634e-01,
+    #     5.49020058e-02,  3.10107671e-01, -4.45218932e-01,
+    # -1.70244999e-01, -7.34325941e-03,  3.00294557e-01,
+    #     5.39677868e-01,  7.97229067e-01]]))
+
+
+    # %% Plot Parameter Surface
+    # Plot Parameter Surface
+    
+    # 0. Grids for plots
+    if rank == 0:
+        plotgrid_res_x = 50
+        plotgrid_res_y = 75
+        plotgrid_res_xy = plotgrid_res_x * plotgrid_res_y
+        plotgrid_x = np.linspace(minX,maxX,plotgrid_res_x)
+        plotgrid_y = np.linspace(minY,maxY,plotgrid_res_y)
+        plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
+        plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
+
+        gaussian_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy, k), fill_value = np.nan)
+        for site_id in np.arange(plotgrid_res_xy):
+            # Compute distance between each pair of the two collections of inputs
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                            XB = knots_xy)
+            # influence coming from each of the knots
+            weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+            gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+        wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k), fill_value = np.nan)
+        for site_id in np.arange(plotgrid_res_xy):
+            # Compute distance between each pair of the two collections of inputs
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                            XB = knots_xy)
+            # influence coming from each of the knots
+            weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+            wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+    
+    # 1. Station, Knots 
+    if rank == 0:
+        fig, ax = plt.subplots()
+        ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
+        ax.plot(knots_x, knots_y, 'r+')
+        space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+                                        fill = False, color = 'black')
+        for i in range(k):
+            circle_i = plt.Circle((knots_xy[i,0], knots_xy[i,1]), radius_from_knots[0],
+                                    color='r', fill=True, fc='grey', ec='red', alpha = 0.2)
+            ax.add_patch(circle_i)
+        ax.add_patch(space_rectangle)
+        ax.set_aspect('equal', 'box')
+        # plt.show()
+        plt.savefig('stations.pdf')
+        plt.close()
+    
+    # 2. Elevation
+    if rank == 0:
+        fig, ax = plt.subplots()
+        elev_scatter = ax.scatter(sites_x, sites_y, s=10, alpha = 0.7, c = elevations)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(elev_scatter)
+        # plt.show()
+        plt.savefig('station_elevation.pdf')
+        plt.close()       
+    
+    # 3. phi surface
+    if rank == 0:
+        # heatplot of phi surface
+        phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+        graph, ax = plt.subplots()
+        heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+                            cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+        ax.invert_yaxis()
+        graph.colorbar(heatmap)
+        # plt.show()
+        plt.savefig('heatmap phi surface.pdf')
+        plt.close()
+
+    # 4. Plot range surface
+    if rank == 0:
+        # heatplot of range surface
+        range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+        graph, ax = plt.subplots()
+        heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+                            cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+        ax.invert_yaxis()
+        graph.colorbar(heatmap)
+        # plt.show()
+        plt.savefig('heatmap range surface.pdf')
+        plt.close()
+    
+    # 5. GEV Surfaces
+    if rank == 0:
+
+        mu0_matrix      = (C_mu0.T @ Beta_mu0).T  
+        mu1_matrix      = (C_mu1.T @ Beta_mu1).T
+        mu_matrix       = mu0_matrix + mu1_matrix * Time
+        logsigma_matrix = (C_logsigma.T @ Beta_logsigma).T
+        sigma_matrix    = np.exp(logsigma_matrix)
+        ksi_matrix      = (C_ksi.T @ Beta_ksi).T
+
+        # Location # -------------------------------------------------------------------------------------
+        ## mu0(s) plot stations
+        fig, ax     = plt.subplots()
+        mu0_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu0_scatter)
+        plt.title('data: mu0_estimates')
+        # plt.show()
+        plt.savefig('data_mu0_estimates.pdf')
+        plt.close()
+
+        fig, ax     = plt.subplots()
+        mu0_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_matrix[:,0])
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu0_scatter)
+        plt.title('fitted: mu0 splines')
+        # plt.show()
+        plt.savefig('fitted_mu0_splines.pdf')
+        plt.close()
+
+        ## mu1(s) plot stations
+        fig, ax     = plt.subplots()
+        mu1_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu1_scatter)
+        plt.title('data: mu1_estimates')
+        # plt.show()
+        plt.savefig('data_mu1_estimates.pdf')
+        plt.close()
+
+        fig, ax     = plt.subplots()
+        mu1_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_matrix[:,0])
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu1_scatter)
+        plt.title('fitted: mu1 splines')
+        # plt.show()
+        plt.savefig('fitted_mu1_splines.pdf')
+        plt.close()
+
+        # Scale # -------------------------------------------------------------------------------------
+        ## logsigma(s) plot stations
+        fig, ax     = plt.subplots()
+        logsigma_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(logsigma_scatter)
+        plt.title('data: logsigma_estimates')
+        # plt.show()
+        plt.savefig('data_logsigma_estimates.pdf')
+        plt.close()
+
+        fig, ax     = plt.subplots()
+        logsigma_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_matrix[:,0])
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(logsigma_scatter)
+        plt.title('fitted: logsigma')
+        # plt.show()
+        plt.savefig('fitted_logsigma.pdf')
+        plt.close()
+
+        # Shape # -------------------------------------------------------------------------------------
+        # ksi(s) plot stations
+        fig, ax     = plt.subplots()
+        ksi_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(ksi_scatter)
+        plt.title('data: ksi_estimates')
+        # plt.show()
+        plt.savefig('data_ksi_estimates.pdf')
+        plt.close()
+
+        fig, ax     = plt.subplots()
+        ksi_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_matrix[:,0])
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(ksi_scatter)
+        plt.title('fitted: ksi')
+        # plt.show()
+        plt.savefig('fitted_ksi.pdf')
+        plt.close()
+
+    # %% MCMC Parameters
+    # MCMC Parameters
+    ##########################################################################################################
+    ########### MCMC Parameters ##############################################################################
+    ##########################################################################################################
+    
+    n_iters = 5000
+
+    # ----------------------------------------------------------------------------------------------------------------
+    # Block Update Specification
+    
+    Beta_mu0_block_idx_size = 4
     Beta_mu1_block_idx_size = 4
-    ## covariates
-    C_mu1_splines = np.array(r('''
-                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                basis_site <- PredictMat(basis, data = sites_xy_df)
-                                # basis_site
-                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 4rd to last column of constant
-                            '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
-    # C_mu1_1t      = np.column_stack((np.ones(Ns),
-    #                                 elevation_func(sites_xy[:,0], sites_xy[:,1]),
-    #                                 C_mu1_splines))
-    C_mu1_1t      = np.column_stack((np.ones(Ns),
-                                     elev_surf_generator((sites_x, sites_y)),
-                                     C_mu1_splines))
-    C_mu1         = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
-    ## mu1(s,t)
-    mu1_matrix = (C_mu1.T @ Beta_mu1).T
 
-    # Location mu(s,t) -----------------------------------------------------------------------------------------------
-    mu_matrix = mu0_matrix + mu1_matrix * Time
+    # Create Coefficient Index Blocks  -----------------------------------------------------------
 
-    # C_mu0_ro     = numpy2rpy(C_mu0)
-    # C_mu1_ro     = numpy2rpy(C_mu1)
-    # mu_matrix_ro = numpy2rpy(mu_matrix)
-    # Beta_mu0_ro  = numpy2rpy(Beta_mu0)
-    # Beta_mu1_ro  = numpy2rpy(Beta_mu1)
-
-    # r.assign('C_mu0_ro', C_mu0_ro)
-    # r.assign('C_mu1_ro', C_mu1_ro)
-    # r.assign('mu_matrix_ro',mu_matrix_ro)
-    # r.assign('Beta_mu0_ro', Beta_mu0_ro)
-    # r.assign('Beta_mu1_ro', Beta_mu1_ro)
-
-    # r("save(C_mu0_ro, file='C_mu0_ro.gzip', compress=TRUE)")
-    # r("save(C_mu1_ro, file='C_mu1_ro.gzip', compress=TRUE)")
-    # r("save(mu_matrix_ro, file='mu_matrix_ro.gzip', compress=TRUE)")
-    # r("save(Beta_mu0_ro, file='Beta_mu0_ro.gzip',compress=TRUE)")
-    # r("save(Beta_mu1_ro, file='Beta_mu1_ro.gzip',compress=TRUE)")
-
-    # logsigma
-    pass
-
-    # ksi
-    pass
-
-    # Create Coefficient Blocks
     ## Beta_mu0
     Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in each block
     Beta_mu0_nblock         = int(Beta_mu0_m/Beta_mu0_block_idx_size)
@@ -340,15 +1614,6 @@ if __name__ == "__main__":
             Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu1_m)]
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Beta Coefficient Prior Parameter - sigma_Beta_xx ~ Halt-t(4)
-
-    ## just initial values, right? Theses are not "truth"
-    sigma_Beta_mu0      = 0.2
-    sigma_Beta_mu1      = 0.2
-    sigma_Beta_logsigma = 0.2
-    sigma_Beta_ksi      = 0.2
-
-    # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: tuning constants
 
     c_0 = 1
@@ -363,159 +1628,138 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: TRIAL RUN Posterior Covariance Matrix
 
-    # trial run posterior variance matrix for phi
-    phi_post_cov = np.array([
-       [ 1.71595567e-03, -1.62351108e-03,  5.40782727e-04,
-        -7.39783709e-04,  5.18647363e-04, -3.04089297e-04,
-        -5.71744286e-05,  3.09075985e-04,  4.29528231e-06],
-       [-1.62351108e-03,  3.83498399e-03, -1.64905040e-03,
-         2.81541085e-06, -1.48305211e-03,  7.70876687e-04,
-         5.05809724e-04, -2.42279339e-04,  5.47733425e-05],
-       [ 5.40782727e-04, -1.64905040e-03,  2.42768982e-03,
-         7.89354829e-05,  3.38706927e-04, -1.33417236e-03,
-        -5.88460771e-06, -4.15771322e-05,  3.26340045e-04],
-       [-7.39783709e-04,  2.81541085e-06,  7.89354829e-05,
-         3.10731257e-03, -1.33483891e-03,  3.93067423e-04,
-        -1.40512231e-03,  3.86608462e-04,  8.15222055e-05],
-       [ 5.18647363e-04, -1.48305211e-03,  3.38706927e-04,
-        -1.33483891e-03,  5.82846826e-03, -2.28460694e-03,
-         1.89505396e-04, -1.45725699e-03,  2.19050158e-04],
-       [-3.04089297e-04,  7.70876687e-04, -1.33417236e-03,
-         3.93067423e-04, -2.28460694e-03,  3.15293790e-03,
-        -4.05295100e-05,  3.98273559e-04, -8.95240062e-04],
-       [-5.71744286e-05,  5.05809724e-04, -5.88460771e-06,
-        -1.40512231e-03,  1.89505396e-04, -4.05295100e-05,
-         1.88765845e-03, -1.29365986e-03,  2.86677573e-04],
-       [ 3.09075985e-04, -2.42279339e-04, -4.15771322e-05,
-         3.86608462e-04, -1.45725699e-03,  3.98273559e-04,
-        -1.29365986e-03,  3.79140159e-03, -1.17335363e-03],
-       [ 4.29528231e-06,  5.47733425e-05,  3.26340045e-04,
-         8.15222055e-05,  2.19050158e-04, -8.95240062e-04,
-         2.86677573e-04, -1.17335363e-03,  1.74786663e-03]])
+    ## phi
     # phi_post_cov = 1e-3 * np.identity(k)
+    phi_post_cov = np.array([[ 1.41690873e-02, -1.31819338e-03,  1.63997142e-04,
+        -2.48314064e-03, -4.95886959e-04, -9.44143581e-04,
+        -2.52207672e-03,  6.40746616e-04,  7.43450537e-04],
+       [-1.31819338e-03,  1.40019599e-02,  1.15478212e-04,
+         3.15778650e-04,  1.59044810e-04,  1.30045845e-04,
+         1.17284012e-03, -5.20264351e-05, -5.57884982e-04],
+       [ 1.63997142e-04,  1.15478212e-04,  7.47419023e-03,
+         7.14508153e-04,  4.05478853e-04, -2.87942578e-04,
+         9.82250430e-04, -3.04825334e-05, -1.90911690e-04],
+       [-2.48314064e-03,  3.15778650e-04,  7.14508153e-04,
+         1.45482329e-02,  2.43552213e-04,  3.16162445e-06,
+         5.14824407e-04, -6.47864542e-04, -1.53729562e-04],
+       [-4.95886959e-04,  1.59044810e-04,  4.05478853e-04,
+         2.43552213e-04,  1.22281408e-02, -3.05131594e-04,
+         1.03419483e-03, -6.96799196e-04, -5.92767620e-04],
+       [-9.44143581e-04,  1.30045845e-04, -2.87942578e-04,
+         3.16162445e-06, -3.05131594e-04,  6.64674049e-03,
+         1.02963337e-03, -4.00574033e-04, -6.40316673e-04],
+       [-2.52207672e-03,  1.17284012e-03,  9.82250430e-04,
+         5.14824407e-04,  1.03419483e-03,  1.02963337e-03,
+         2.09523492e-02, -2.69168790e-03, -6.43099675e-04],
+       [ 6.40746616e-04, -5.20264351e-05, -3.04825334e-05,
+        -6.47864542e-04, -6.96799196e-04, -4.00574033e-04,
+        -2.69168790e-03,  7.10708450e-03, -3.35433446e-04],
+       [ 7.43450537e-04, -5.57884982e-04, -1.90911690e-04,
+        -1.53729562e-04, -5.92767620e-04, -6.40316673e-04,
+        -6.43099675e-04, -3.35433446e-04,  2.54071817e-03]])
     assert k == phi_post_cov.shape[0]
 
-    # trial run posterior variance matrix for range rho
-    range_post_cov = np.array([
-       [ 0.00888606, -0.00964968,  0.00331823, -0.01147588,  0.01378476,
-        -0.00456044,  0.00455141, -0.00561015,  0.0020646 ],
-       [-0.00964968,  0.02704678, -0.01138214,  0.01338328, -0.04013097,
-         0.01380413, -0.00591529,  0.01721602, -0.00600377],
-       [ 0.00331823, -0.01138214,  0.01723129, -0.0043743 ,  0.01134919,
-        -0.01592546,  0.00158623, -0.00530012,  0.00580562],
-       [-0.01147588,  0.01338328, -0.0043743 ,  0.03540402, -0.04741295,
-         0.01675298, -0.01613912,  0.02149959, -0.00803375],
-       [ 0.01378476, -0.04013097,  0.01134919, -0.04741295,  0.14918746,
-        -0.05188579,  0.02373275, -0.06965559,  0.0241972 ],
-       [-0.00456044,  0.01380413, -0.01592546,  0.01675298, -0.05188579,
-         0.04733445, -0.00731039,  0.02407662, -0.01946985],
-       [ 0.00455141, -0.00591529,  0.00158623, -0.01613912,  0.02373275,
-        -0.00731039,  0.01686881, -0.02343455,  0.00816378],
-       [-0.00561015,  0.01721602, -0.00530012,  0.02149959, -0.06965559,
-         0.02407662, -0.02343455,  0.06691174, -0.02429487],
-       [ 0.0020646 , -0.00600377,  0.00580562, -0.00803375,  0.0241972 ,
-        -0.01946985,  0.00816378, -0.02429487,  0.01848764]])
+    ## range rho
     # range_post_cov = 1e-2 * np.identity(k)
+    range_post_cov = np.array([[ 1.93807319, -0.07644008, -0.03407754, -0.40038668, -0.24505633,
+        -0.06625558, -0.36210336, -0.23939581,  0.32598898],
+       [-0.07644008,  1.77806829, -0.02607283,  0.29610079,  0.05388925,
+        -0.15240615,  0.73889057, -0.17755841,  0.14268497],
+       [-0.03407754, -0.02607283,  1.85314501,  0.2896667 ,  0.04498687,
+        -0.16359608, -0.44325312, -0.13674137, -0.13175086],
+       [-0.40038668,  0.29610079,  0.2896667 ,  3.026816  , -0.07222645,
+         0.0769115 ,  0.07879683,  0.08891145, -0.26438665],
+       [-0.24505633,  0.05388925,  0.04498687, -0.07222645,  3.1630466 ,
+        -0.10708449,  0.19186879,  0.14325512, -0.36378894],
+       [-0.06625558, -0.15240615, -0.16359608,  0.0769115 , -0.10708449,
+         2.76726599, -0.05907889,  0.4238949 , -0.58826069],
+       [-0.36210336,  0.73889057, -0.44325312,  0.07879683,  0.19186879,
+        -0.05907889,  6.67146167, -1.03610212,  1.6628879 ],
+       [-0.23939581, -0.17755841, -0.13674137,  0.08891145,  0.14325512,
+         0.4238949 , -1.03610212,  1.34760372, -1.23250264],
+       [ 0.32598898,  0.14268497, -0.13175086, -0.26438665, -0.36378894,
+        -0.58826069,  1.6628879 , -1.23250264,  2.49512129]])
     assert k == range_post_cov.shape[0]
 
-    # # trial run posterior variance matrix for constant GEV
-    # GEV_post_cov = np.array([[2.88511464e-04, 1.13560517e-04, 0],
-    #                         [1.13560517e-04, 6.40933053e-05,  0],
-    #                         [0         , 0         , 1e-4]])
-    # # GEV_post_cov = 1e-4 * np.identity(3)
-
-    # # posterior/proposal variance matrix for linear surface mu
-    # Beta_mu0_post_cov = np.array([
-    #     [ 7.48055192e-03, -6.21600956e-04, -6.51251126e-04],
-    #     [-6.21600956e-04,  2.19025810e-04, -4.88013752e-05],
-    #     [-6.51251126e-04, -4.88013752e-05,  2.97374368e-04]])
-    # # Beta_mu0_post_cov = 1e-4 * np.identity(Beta_mu0_m)
-    # assert Beta_mu0_m == Beta_mu0_post_cov.shape[0]
-
-    # posterior/proposal variance matrix for linear surface logsigma
-    Beta_logsigma_post_cov = np.array([
-        [ 1.09295029e-03, -5.57350333e-05, -1.26948891e-04],
-        [-5.57350333e-05,  5.67940538e-05, -3.05545811e-05],
-        [-1.26948891e-04, -3.05545811e-05,  7.49504590e-05]])
+    ## Beta_logsigma
     # Beta_logsigma_post_cov = 1e-4 * np.identity(Beta_logsigma_m)
+    Beta_logsigma_post_cov = np.array([[3.09634164e-06, 4.98342613e-08],
+       [4.98342613e-08, 7.93744821e-09]])
     assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
 
-    # posterior/proposal variance matrix for linear surface ksi
-    Beta_ksi_post_cov = np.array([
-        [ 1.68899920e-03, -1.35994062e-04, -1.24227290e-04],
-        [-1.35994062e-04,  2.85659453e-05, -2.05585256e-06],
-        [-1.24227290e-04, -2.05585256e-06,  2.60318359e-05]])
+    ## Beta_ksi
     # Beta_ksi_post_cov = 1e-4 * np.identity(Beta_ksi_m)
+    Beta_ksi_post_cov = np.array([[ 6.30686383e-07, -1.32493121e-09],
+       [-1.32493121e-09,  1.41460410e-09]])
     assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
 
-    # trial run posterior variance matrix for Beta_mu0
+    ## Beta_mu0
     # Beta_mu0_all_post_cov = 1e-5 * np.identity(Beta_mu0_m)
-    Beta_mu0_all_post_cov = np.array([
-       [ 1.02232222e-04,  1.07641454e-04, -4.29876345e-05,
-         9.00767758e-07,  4.67001634e-05, -2.84196291e-05,
-        -3.20859509e-05, -4.91600192e-05,  7.19819875e-05,
-        -4.50499061e-06,  8.36549211e-05,  1.92750622e-05,
-        -3.93172442e-05],
-       [ 1.07641454e-04,  1.24411320e-04, -4.31773189e-05,
-         1.57526306e-06,  4.83747795e-05, -3.20217976e-05,
-        -3.65094225e-05, -5.32585671e-05,  7.78256402e-05,
-        -4.21859117e-06,  9.24903467e-05,  2.28529293e-05,
-        -4.39507987e-05],
-       [-4.29876345e-05, -4.31773189e-05,  8.37881251e-05,
-        -8.62484011e-06, -4.47266430e-05,  3.12661782e-05,
-         3.39707700e-06,  2.32120292e-05, -4.17616700e-05,
-         1.78052064e-06, -2.01913941e-05, -1.21579716e-05,
-         2.98268649e-05],
-       [ 9.00767758e-07,  1.57526306e-06, -8.62484011e-06,
-         8.04740168e-06,  1.64092574e-06, -6.55288462e-06,
-         4.44219622e-07,  1.18293779e-07,  1.37817837e-06,
-         3.20019329e-06,  1.59833568e-06,  3.02065081e-06,
-        -2.85990578e-06],
-       [ 4.67001634e-05,  4.83747795e-05, -4.47266430e-05,
-         1.64092574e-06,  3.94692898e-05, -1.53410340e-05,
-        -9.13160577e-06, -1.73550502e-05,  3.75305690e-05,
-         1.94367238e-06,  2.52713329e-05,  9.28637998e-06,
-        -2.20509256e-05],
-       [-2.84196291e-05, -3.20217976e-05,  3.12661782e-05,
-        -6.55288462e-06, -1.53410340e-05,  3.61929749e-05,
-         1.13013896e-05,  2.37015107e-05, -2.57149573e-05,
-        -2.40125221e-06, -3.30162278e-05, -1.42479939e-05,
-         1.72322886e-05],
-       [-3.20859509e-05, -3.65094225e-05,  3.39707700e-06,
-         4.44219622e-07, -9.13160577e-06,  1.13013896e-05,
-         2.06335302e-05,  2.00357625e-05, -2.38750193e-05,
-         6.88097112e-06, -3.57177457e-05, -7.63591844e-06,
-         1.32712141e-05],
-       [-4.91600192e-05, -5.32585671e-05,  2.32120292e-05,
-         1.18293779e-07, -1.73550502e-05,  2.37015107e-05,
-         2.00357625e-05,  3.61525794e-05, -3.70352246e-05,
-         9.65842432e-06, -5.16818137e-05, -1.24040718e-05,
-         2.17139646e-05],
-       [ 7.19819875e-05,  7.78256402e-05, -4.17616700e-05,
-         1.37817837e-06,  3.75305690e-05, -2.57149573e-05,
-        -2.38750193e-05, -3.70352246e-05,  5.71290663e-05,
-        -4.10599178e-06,  5.77689889e-05,  1.53890194e-05,
-        -3.15206285e-05],
-       [-4.50499061e-06, -4.21859117e-06,  1.78052064e-06,
-         3.20019329e-06,  1.94367238e-06, -2.40125221e-06,
-         6.88097112e-06,  9.65842432e-06, -4.10599178e-06,
-         1.91346945e-05, -1.58093402e-05,  1.30736989e-06,
-         5.50567410e-06],
-       [ 8.36549211e-05,  9.24903467e-05, -2.01913941e-05,
-         1.59833568e-06,  2.52713329e-05, -3.30162278e-05,
-        -3.57177457e-05, -5.16818137e-05,  5.77689889e-05,
-        -1.58093402e-05,  9.79773576e-05,  1.86605207e-05,
-        -3.42240506e-05],
-       [ 1.92750622e-05,  2.28529293e-05, -1.21579716e-05,
-         3.02065081e-06,  9.28637998e-06, -1.42479939e-05,
-        -7.63591844e-06, -1.24040718e-05,  1.53890194e-05,
-         1.30736989e-06,  1.86605207e-05,  1.15313136e-05,
-        -1.28937194e-05],
-       [-3.93172442e-05, -4.39507987e-05,  2.98268649e-05,
-        -2.85990578e-06, -2.20509256e-05,  1.72322886e-05,
-         1.32712141e-05,  2.17139646e-05, -3.15206285e-05,
-         5.50567410e-06, -3.42240506e-05, -1.28937194e-05,
-         2.46844772e-05]])
+    Beta_mu0_all_post_cov = np.array([[ 5.30210632e+00, -7.84717796e-03,  2.13257980e+00,
+         7.38101671e-01,  1.29452077e+00,  8.64955764e-01,
+        -2.46478110e-01,  7.86289248e-01,  5.04449279e-01,
+         1.12715801e+00, -2.01152201e-01, -1.39248945e+00,
+        -3.19733850e-01],
+       [-7.84717796e-03,  2.24488991e-05, -3.13160681e-03,
+        -1.12069113e-03, -2.28364768e-03, -1.25128445e-03,
+         1.45748657e-03, -1.30964970e-03,  2.11014303e-03,
+        -1.25915696e-03,  6.13410195e-04,  3.11686129e-03,
+         1.09767889e-03],
+       [ 2.13257980e+00, -3.13160681e-03,  8.82635910e-01,
+         2.88291399e-01,  5.13818327e-01,  3.58465420e-01,
+        -1.25246755e-01,  2.96813924e-01,  2.03630110e-01,
+         4.65104719e-01, -6.98142136e-02, -5.03713096e-01,
+        -7.08280903e-02],
+       [ 7.38101671e-01, -1.12069113e-03,  2.88291399e-01,
+         1.11795504e-01,  1.86329350e-01,  4.61676755e-02,
+        -1.07460256e-02,  1.09336104e-01,  6.93387081e-02,
+         1.56871255e-01, -3.70373120e-02, -2.41043963e-01,
+        -9.85216122e-02],
+       [ 1.29452077e+00, -2.28364768e-03,  5.13818327e-01,
+         1.86329350e-01,  1.40367524e+00,  4.02143690e-01,
+         6.03260511e-02,  3.45384480e-01, -3.33547796e-01,
+         5.15406050e-01,  1.78306256e-02, -6.78583913e-01,
+         2.38906079e-01],
+       [ 8.64955764e-01, -1.25128445e-03,  3.58465420e-01,
+         4.61676755e-02,  4.02143690e-01,  4.64968967e+00,
+         7.15437065e-01,  4.02608505e-01, -9.75031072e-01,
+         5.27349625e-01, -3.44561308e-02, -7.68661061e-01,
+         2.83815626e+00],
+       [-2.46478110e-01,  1.45748657e-03, -1.25246755e-01,
+        -1.07460256e-02,  6.03260511e-02,  7.15437065e-01,
+         2.57292483e+00, -5.53104673e-02, -2.96648120e-01,
+         5.64517947e-01, -2.13938468e-02, -1.76520186e+00,
+         9.44368732e-01],
+       [ 7.86289248e-01, -1.30964970e-03,  2.96813924e-01,
+         1.09336104e-01,  3.45384480e-01,  4.02608505e-01,
+        -5.53104673e-02,  6.24524654e-01,  4.24884048e-02,
+         1.98835689e-01, -2.96807467e-02, -3.60506535e-01,
+         1.94601469e-02],
+       [ 5.04449279e-01,  2.11014303e-03,  2.03630110e-01,
+         6.93387081e-02, -3.33547796e-01, -9.75031072e-01,
+        -2.96648120e-01,  4.24884048e-02,  2.36498428e+00,
+        -5.35135401e-01,  8.59493095e-02,  8.30284470e-01,
+        -3.81235122e-01],
+       [ 1.12715801e+00, -1.25915696e-03,  4.65104719e-01,
+         1.56871255e-01,  5.15406050e-01,  5.27349625e-01,
+         5.64517947e-01,  1.98835689e-01, -5.35135401e-01,
+         2.25806602e+00, -4.49335135e-02, -2.07052081e+00,
+         4.56214576e-01],
+       [-2.01152201e-01,  6.13410195e-04, -6.98142136e-02,
+        -3.70373120e-02,  1.78306256e-02, -3.44561308e-02,
+        -2.13938468e-02, -2.96807467e-02,  8.59493095e-02,
+        -4.49335135e-02,  3.70657910e-01,  5.74238197e-02,
+         7.86344443e-02],
+       [-1.39248945e+00,  3.11686129e-03, -5.03713096e-01,
+        -2.41043963e-01, -6.78583913e-01, -7.68661061e-01,
+        -1.76520186e+00, -3.60506535e-01,  8.30284470e-01,
+        -2.07052081e+00,  5.74238197e-02,  4.15279456e+00,
+        -9.37888696e-01],
+       [-3.19733850e-01,  1.09767889e-03, -7.08280903e-02,
+        -9.85216122e-02,  2.38906079e-01,  2.83815626e+00,
+         9.44368732e-01,  1.94601469e-02, -3.81235122e-01,
+         4.56214576e-01,  7.86344443e-02, -9.37888696e-01,
+         3.57984262e+00]])
     assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
     Beta_mu0_block_post_cov_dict = {}
     for key in Beta_mu0_block_idx_dict.keys():
@@ -523,74 +1767,141 @@ if __name__ == "__main__":
         end_idx                           = Beta_mu0_block_idx_dict[key][-1]+1
         Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
 
-    # trial run posterior variance matrix for Beta_mu1
+    ## Beta_mu1
     # Beta_mu1_all_post_cov = 1e-5 * np.identity(Beta_mu1_m)
-    Beta_mu1_all_post_cov = np.array([
-       [ 1.77436933e-04,  3.97334628e-05, -6.83467198e-05,
-        -5.47414781e-05, -7.59612246e-05, -2.11679916e-04,
-        -2.74663425e-06,  8.36306791e-05, -1.63793391e-05,
-         1.41232328e-04,  4.84748052e-05, -1.15715307e-04,
-         1.04476279e-04],
-       [ 3.97334628e-05,  3.89035229e-05, -7.04014176e-06,
-         3.47420767e-06, -7.37841325e-07, -4.48268998e-05,
-         5.48122033e-06,  2.24780104e-05, -1.51493693e-05,
-         3.38653813e-05,  1.96975965e-05, -1.53058261e-05,
-         3.32919375e-05],
-       [-6.83467198e-05, -7.04014176e-06,  1.00644434e-04,
-         4.56001633e-05,  7.48294818e-05,  1.38640077e-04,
-         3.20719664e-05, -4.71386600e-06, -2.52764470e-05,
-        -6.65582865e-05,  1.68891606e-05,  2.85096379e-05,
-        -6.66526424e-05],
-       [-5.47414781e-05,  3.47420767e-06,  4.56001633e-05,
-         4.64095740e-05,  5.11405706e-05,  8.70910257e-05,
-         3.51532723e-06, -3.02454553e-05, -2.36543908e-06,
-        -6.03726186e-05, -3.31380317e-06,  5.61148691e-05,
-        -3.05285633e-05],
-       [-7.59612246e-05, -7.37841325e-07,  7.48294818e-05,
-         5.11405706e-05,  8.65771027e-05,  1.28272475e-04,
-         2.13742522e-05, -2.03801580e-05, -1.89717499e-05,
-        -7.49923575e-05,  8.87033984e-06,  4.95877781e-05,
-        -5.28452535e-05],
-       [-2.11679916e-04, -4.48268998e-05,  1.38640077e-04,
-         8.70910257e-05,  1.28272475e-04,  3.06782001e-04,
-         2.23662057e-05, -8.75344441e-05,  6.59776057e-07,
-        -1.82938507e-04, -3.31538873e-05,  1.32964183e-04,
-        -1.53235470e-04],
-       [-2.74663425e-06,  5.48122033e-06,  3.20719664e-05,
-         3.51532723e-06,  2.13742522e-05,  2.23662057e-05,
-         3.70923955e-05,  2.33136942e-05, -2.58724656e-05,
-         8.48837685e-06,  1.57779636e-05, -2.04252412e-05,
-        -1.68472149e-05],
-       [ 8.36306791e-05,  2.24780104e-05, -4.71386600e-06,
-        -3.02454553e-05, -2.03801580e-05, -8.75344441e-05,
-         2.33136942e-05,  7.96128900e-05, -3.36383685e-05,
-         8.07819040e-05,  5.15841063e-05, -9.61420093e-05,
-         4.95021891e-05],
-       [-1.63793391e-05, -1.51493693e-05, -2.52764470e-05,
-        -2.36543908e-06, -1.89717499e-05,  6.59776057e-07,
-        -2.58724656e-05, -3.36383685e-05,  3.62375793e-05,
-        -1.90622060e-05, -2.89752790e-05,  3.18656997e-05,
-        -3.49673518e-06],
-       [ 1.41232328e-04,  3.38653813e-05, -6.65582865e-05,
-        -6.03726186e-05, -7.49923575e-05, -1.82938507e-04,
-         8.48837685e-06,  8.07819040e-05, -1.90622060e-05,
-         1.45695957e-04,  3.65970598e-05, -1.15925787e-04,
-         8.32049968e-05],
-       [ 4.84748052e-05,  1.96975965e-05,  1.68891606e-05,
-        -3.31380317e-06,  8.87033984e-06, -3.31538873e-05,
-         1.57779636e-05,  5.15841063e-05, -2.89752790e-05,
-         3.65970598e-05,  5.65538739e-05, -5.77637075e-05,
-         3.71403850e-05],
-       [-1.15715307e-04, -1.53058261e-05,  2.85096379e-05,
-         5.61148691e-05,  4.95877781e-05,  1.32964183e-04,
-        -2.04252412e-05, -9.61420093e-05,  3.18656997e-05,
-        -1.15925787e-04, -5.77637075e-05,  1.40953571e-04,
-        -6.21985399e-05],
-       [ 1.04476279e-04,  3.32919375e-05, -6.66526424e-05,
-        -3.05285633e-05, -5.28452535e-05, -1.53235470e-04,
-        -1.68472149e-05,  4.95021891e-05, -3.49673518e-06,
-         8.32049968e-05,  3.71403850e-05, -6.21985399e-05,
-         1.11985305e-04]])
+    Beta_mu1_all_post_cov = np.array([[ 3.32782340e+00,  2.02263211e-03, -4.15218788e+00,
+        -4.06599101e-02, -1.25327217e-01,  4.76165537e-01,
+         6.12962591e-01, -1.54789621e-01, -4.04755108e-01,
+        -1.88349223e-01, -3.29377777e-03, -2.61769431e-01,
+        -1.01762166e-01, -5.94067372e-01, -3.77626195e-01,
+         9.42125206e-02, -4.22270498e-01,  1.29107523e-01,
+         8.75601636e-01],
+       [ 2.02263211e-03,  4.55248039e-06, -3.40035024e-03,
+         6.03152726e-06, -1.33347738e-04,  4.45843781e-04,
+         7.37672016e-04, -1.44343103e-04, -1.36231107e-04,
+        -1.63444659e-04, -3.00823508e-05, -2.18331115e-04,
+        -1.11356895e-04, -6.60039070e-04, -3.65296206e-04,
+         2.07844204e-04, -4.00573595e-04,  3.22501280e-04,
+         8.48247680e-04],
+       [-4.15218788e+00, -3.40035024e-03,  5.64842185e+00,
+         6.33801811e-02,  2.32817225e-01, -6.47965587e-01,
+        -8.64676079e-01,  2.04014354e-01,  4.94730701e-01,
+         2.50735783e-01,  1.35854027e-02,  3.12010327e-01,
+         1.15470029e-01,  7.99216317e-01,  4.91076359e-01,
+        -1.11368882e-01,  5.98000751e-01, -2.77357175e-01,
+        -1.19818157e+00],
+       [-4.06599101e-02,  6.03152726e-06,  6.33801811e-02,
+         7.51096935e-02,  1.44035740e-02, -2.94341758e-02,
+         1.54757239e-02,  2.30873838e-03, -1.06228131e-02,
+        -8.87116618e-03,  1.15674539e-03, -1.08341694e-02,
+        -1.18406211e-02, -2.88282960e-02, -6.36151411e-03,
+         8.64296205e-03,  4.48715643e-03, -2.19447270e-02,
+        -1.22919940e-02],
+       [-1.25327217e-01, -1.33347738e-04,  2.32817225e-01,
+         1.44035740e-02,  9.76180267e-02, -9.28726109e-03,
+        -3.19918249e-02,  7.98330399e-03, -5.19233230e-03,
+         1.82020922e-02,  2.50068584e-03, -2.87254191e-03,
+        -5.77599205e-03,  2.29912862e-02,  1.61830481e-02,
+        -1.31631174e-02,  3.02763393e-02, -2.80835469e-02,
+        -4.18854760e-02],
+       [ 4.76165537e-01,  4.45843781e-04, -6.47965587e-01,
+        -2.94341758e-02, -9.28726109e-03,  2.32933806e-01,
+         7.57853638e-02, -3.70146572e-03, -6.15757465e-02,
+        -2.51165713e-02,  1.32782620e-02, -2.82632097e-02,
+        -7.07149494e-03, -4.09241108e-02, -6.39049922e-02,
+         2.34409296e-02, -6.29308769e-02,  5.30800973e-02,
+         1.91179061e-01],
+       [ 6.12962591e-01,  7.37672016e-04, -8.64676079e-01,
+         1.54757239e-02, -3.19918249e-02,  7.57853638e-02,
+         2.69100805e-01, -4.97409716e-02, -6.06991244e-02,
+        -8.66015897e-02,  5.12476962e-03, -7.35102146e-02,
+        -4.42802635e-02, -1.81661777e-01, -9.90957752e-02,
+         6.07175489e-02, -1.06780438e-01,  2.75420952e-02,
+         2.18064601e-01],
+       [-1.54789621e-01, -1.44343103e-04,  2.04014354e-01,
+         2.30873838e-03,  7.98330399e-03, -3.70146572e-03,
+        -4.97409716e-02,  6.80566503e-02,  4.11712980e-03,
+         1.59059231e-02,  4.86235568e-03,  1.11686633e-02,
+         1.50875731e-02,  4.19674595e-02,  1.88459336e-02,
+        -2.97095011e-03,  1.72153905e-02, -7.79086219e-04,
+        -4.49271171e-02],
+       [-4.04755108e-01, -1.36231107e-04,  4.94730701e-01,
+        -1.06228131e-02, -5.19233230e-03, -6.15757465e-02,
+        -6.06991244e-02,  4.11712980e-03,  1.64481429e-01,
+         5.98546104e-03,  2.14896968e-03,  4.39226286e-02,
+         9.62205211e-03,  7.17620528e-02,  3.60232546e-02,
+        -2.87995065e-02,  4.56667884e-02,  8.67182250e-03,
+        -1.03510442e-01],
+       [-1.88349223e-01, -1.63444659e-04,  2.50735783e-01,
+        -8.87116618e-03,  1.82020922e-02, -2.51165713e-02,
+        -8.66015897e-02,  1.59059231e-02,  5.98546104e-03,
+         1.08489128e-01, -3.59999179e-03,  1.59196956e-02,
+         1.26391690e-02,  6.49759662e-02,  5.05262239e-02,
+        -2.39540830e-02,  2.42947297e-02, -2.75199543e-02,
+        -8.40703132e-02],
+       [-3.29377777e-03, -3.00823508e-05,  1.35854027e-02,
+         1.15674539e-03,  2.50068584e-03,  1.32782620e-02,
+         5.12476962e-03,  4.86235568e-03,  2.14896968e-03,
+        -3.59999179e-03,  6.25146459e-02, -6.31512687e-03,
+        -2.46103454e-03,  1.05551202e-03,  2.83604540e-03,
+         9.11673513e-03, -5.37229279e-04, -5.90682561e-03,
+         4.43861488e-03],
+       [-2.61769431e-01, -2.18331115e-04,  3.12010327e-01,
+        -1.08341694e-02, -2.87254191e-03, -2.82632097e-02,
+        -7.35102146e-02,  1.11686633e-02,  4.39226286e-02,
+         1.59196956e-02, -6.31512687e-03,  9.85252769e-02,
+         2.62498405e-02,  8.46292395e-02,  3.42012594e-02,
+        -9.12395656e-03,  4.74203969e-02,  4.68358746e-03,
+        -7.64297743e-02],
+       [-1.01762166e-01, -1.11356895e-04,  1.15470029e-01,
+        -1.18406211e-02, -5.77599205e-03, -7.07149494e-03,
+        -4.42802635e-02,  1.50875731e-02,  9.62205211e-03,
+         1.26391690e-02, -2.46103454e-03,  2.62498405e-02,
+         6.15496436e-02,  3.82369692e-02,  1.80721638e-02,
+        -1.57272936e-02,  1.33862066e-02,  1.61406979e-02,
+        -4.37815038e-02],
+       [-5.94067372e-01, -6.60039070e-04,  7.99216317e-01,
+        -2.88282960e-02,  2.29912862e-02, -4.09241108e-02,
+        -1.81661777e-01,  4.19674595e-02,  7.17620528e-02,
+         6.49759662e-02,  1.05551202e-03,  8.46292395e-02,
+         3.82369692e-02,  2.79055476e-01,  8.78158888e-02,
+        -3.86640089e-02,  1.29705667e-01, -5.57613553e-02,
+        -2.18495318e-01],
+       [-3.77626195e-01, -3.65296206e-04,  4.91076359e-01,
+        -6.36151411e-03,  1.61830481e-02, -6.39049922e-02,
+        -9.90957752e-02,  1.88459336e-02,  3.60232546e-02,
+         5.05262239e-02,  2.83604540e-03,  3.42012594e-02,
+         1.80721638e-02,  8.78158888e-02,  1.50862191e-01,
+        -3.53316909e-02,  4.97262572e-02,  2.76808851e-02,
+        -1.36862549e-01],
+       [ 9.42125206e-02,  2.07844204e-04, -1.11368882e-01,
+         8.64296205e-03, -1.31631174e-02,  2.34409296e-02,
+         6.07175489e-02, -2.97095011e-03, -2.87995065e-02,
+        -2.39540830e-02,  9.11673513e-03, -9.12395656e-03,
+        -1.57272936e-02, -3.86640089e-02, -3.53316909e-02,
+         1.31650860e-01, -3.53787918e-02, -7.65169055e-03,
+         6.13900085e-02],
+       [-4.22270498e-01, -4.00573595e-04,  5.98000751e-01,
+         4.48715643e-03,  3.02763393e-02, -6.29308769e-02,
+        -1.06780438e-01,  1.72153905e-02,  4.56667884e-02,
+         2.42947297e-02, -5.37229279e-04,  4.74203969e-02,
+         1.33862066e-02,  1.29705667e-01,  4.97262572e-02,
+        -3.53787918e-02,  1.52081218e-01, -5.78386383e-02,
+        -1.66396622e-01],
+       [ 1.29107523e-01,  3.22501280e-04, -2.77357175e-01,
+        -2.19447270e-02, -2.80835469e-02,  5.30800973e-02,
+         2.75420952e-02, -7.79086219e-04,  8.67182250e-03,
+        -2.75199543e-02, -5.90682561e-03,  4.68358746e-03,
+         1.61406979e-02, -5.57613553e-02,  2.76808851e-02,
+        -7.65169055e-03, -5.78386383e-02,  1.64848467e-01,
+         7.62491107e-02],
+       [ 8.75601636e-01,  8.48247680e-04, -1.19818157e+00,
+        -1.22919940e-02, -4.18854760e-02,  1.91179061e-01,
+         2.18064601e-01, -4.49271171e-02, -1.03510442e-01,
+        -8.40703132e-02,  4.43861488e-03, -7.64297743e-02,
+        -4.37815038e-02, -2.18495318e-01, -1.36862549e-01,
+         6.13900085e-02, -1.66396622e-01,  7.62491107e-02,
+         3.85905308e-01]])
     assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
     Beta_mu1_block_post_cov_dict          = {}
     for key in Beta_mu1_block_idx_dict.keys():
@@ -613,10 +1924,10 @@ if __name__ == "__main__":
             # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
-            'sigma_Beta_mu0'      : 0.03749589, # from trial run
-            'sigma_Beta_mu1'      : 0.01,
-            'sigma_Beta_logsigma' : 0.24878523, # from trial run
-            'sigma_Beta_ksi'      : 0.44929566  # from trial run
+            'sigma_Beta_mu0'      : 1.87655405, # from trial run
+            'sigma_Beta_mu1'      : 0.42904163, # from trial run
+            'sigma_Beta_logsigma' : 0.41164912, # from trial run
+            'sigma_Beta_ksi'      : 0.04358157  # from trial run
         }
         for key in Beta_mu0_block_idx_dict.keys():
             sigma_m_sq[key] = (2.4**2)/len(Beta_mu0_block_idx_dict[key])
@@ -672,380 +1983,11 @@ if __name__ == "__main__":
     sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
     num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
-    # %% 1. Plot Spatial Domain 
-    # 1. Plot Space -------------------------------------------------------------------------------------
-    
-    if rank == 0: # Plot the space
-        plotgrid_x = np.linspace(0.1,10,25)
-        plotgrid_y = np.linspace(0.1,10,25)
-        plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
-        plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
-        radius_from_knots = np.repeat(radius, k)
-        fig, ax = plt.subplots()
-        ax.plot(sites_x, sites_y, 'b.', alpha = 0.4)
-        ax.plot(knots_x, knots_y, 'r+')
-        space_rectangle = plt.Rectangle(xy = (0,0), width = 10, height = 10,
-                                        fill = False, color = 'black')
-        for i in range(k):
-            circle_i = plt.Circle((knots_xy[i,0],knots_xy[i,1]), radius_from_knots[0], 
-                            color='r', fill=True, fc='grey', ec = 'red', alpha = 0.2)
-            ax.add_patch(circle_i)
-        ax.add_patch(space_rectangle)
-        plt.xlim([-2,12])
-        plt.ylim([-2,12])
-        # plt.show()
-        plt.savefig('point_space.pdf')
-        plt.close()
-    
-    if rank == 0: # Plot the elevation
-        # plotgrid_elevations = elevation_func(plotgrid_xy[:,0], plotgrid_xy[:,1])
-        plotgrid_elevations = elev_surf_generator((plotgrid_xy[:,0], plotgrid_xy[:,1]))
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(plotgrid_elevations.reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        plt.title('elevation heatplot')
-        # plt.show()
-        plt.savefig('elevation.pdf')
-        plt.close()        
-
-    # %% 2. Generate the Weight Matrices
-    # 2. Generate the weight matrices -------------------------------------------------------------------------------------
-
-    # Weight matrix generated using Gaussian Smoothing Kernel
-    gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
-    for site_id in np.arange(Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                        XB = knots_xy)
-        # influence coming from each of the knots
-        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-        gaussian_weight_matrix[site_id, :] = weight_from_knots
-
-    # Weight matrix generated using wendland basis
-    wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
-    for site_id in np.arange(Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                        XB = knots_xy)
-        # influence coming from each of the knots
-        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-        wendland_weight_matrix[site_id, :] = weight_from_knots
-    
-    # # constant weight matrix
-    # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
-    # for site_id in np.arange(Ns):
-    #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-    #                                     XB = knots_xy)
-    #     # influence coming from each of the knots
-    #     weight_from_knots = np.repeat(1, k)/k
-    #     constant_weight_matrix[site_id, :] = weight_from_knots
-
-    if rank == 0: # weight matrices for plotting
-        gaussian_weight_matrix_for_plot = np.full(shape = (625, k), fill_value = np.nan)
-        for site_id in np.arange(625):
-            # Compute distance between each pair of the two collections of inputs
-            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                            XB = knots_xy)
-            # influence coming from each of the knots
-            weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-            gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
-
-        wendland_weight_matrix_for_plot = np.full(shape = (625,k), fill_value = np.nan)
-        for site_id in np.arange(625):
-            # Compute distance between each pair of the two collections of inputs
-            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                            XB = knots_xy)
-            # influence coming from each of the knots
-            weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-            wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
-
-
-    # %% 3. Generate K then Z, and W = g(Z)
-    # 3. Generate covariance matrix, Z, and W ------------------------------------------------------------------------------
-
-    ## range_vec
-    range_vec = gaussian_weight_matrix @ range_at_knots
-    # range_vec = one_weight_matrix @ range_at_knots
-
-    ## Covariance matrix K
-    ## sigsq_vec
-    sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
-    K = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
-            coords = sites_xy, kappa = nu, cov_model = "matern")
-    Z = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
-    W = norm_to_Pareto(Z) 
-
-    if rank == 0: # plotting the range surface
-        # heatplot of range surface
-        range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(range_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest')
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        # plt.show()
-        plt.savefig('heatmap range surface.pdf')
-        plt.close()
-
-        # # 3d range surface plot
-        # range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
-        # fig2 = plt.figure()
-        # ax2 = fig2.add_subplot(projection='3d')
-        # ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], range_vec_for_plot, linewidth=0.2, antialiased=True)
-        # ax2.set_xlabel('X')
-        # ax2.set_ylabel('Y')
-        # ax2.set_zlabel('phi(s)')
-        # ax2.scatter(knots_x, knots_y, range_at_knots, c='red', marker='o', s=100)
-        # plt.show()
-        # plt.savefig('3d range surface.pdf')
-        # plt.close()
-
-
-    # %% 4. Generate R^phi Scaling Factor
-    # 4. Generate R^phi Scaling Factor -------------------------------------------------------------------------------------
-
-    ## phi_vec
-    phi_vec = gaussian_weight_matrix @ phi_at_knots
-    # phi_vec = one_weight_matrix @ phi_at_knots
-
-    ## R
-    ## Generate them at the knots
-    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
-        # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
-        # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
-        # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
-
-    ## Matrix Multiply to the sites
-    R_at_sites = wendland_weight_matrix @ R_at_knots
-    # R_at_sites = constant_weight_matrix @ R_at_knots
-
-    ## R^phi
-    R_phi = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
-
-    if rank == 0: # plotting the phi surface
-        # heatplot of phi surface
-        phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(phi_vec_for_plot.reshape(25,25), cmap ='hot', interpolation='nearest', extent = [0, 10, 10, 0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        # plt.show()
-        plt.savefig('heatmap phi surface.pdf')
-        plt.close()
-
-        # # 3d phi surface
-        # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
-        # fig = plt.figure()
-        # ax = fig.add_subplot(projection='3d')
-        # ax.plot_surface(plotgrid_X, plotgrid_Y, np.matrix(phi_vec_for_plot).reshape(25,25))
-        # ax.set_xlabel('X')
-        # ax.set_ylabel('Y')
-        # ax.set_zlabel('phi(s)')
-        # ax.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
-        # fig2 = plt.figure()
-        # ax2 = fig2.add_subplot(projection='3d')
-        # ax2.plot_trisurf(plotgrid_xy[:,0], plotgrid_xy[:,1], phi_vec_for_plot, linewidth=0.2, antialiased=True)
-        # ax2.set_xlabel('X')
-        # ax2.set_ylabel('Y')
-        # ax2.set_zlabel('phi(s)')
-        # ax2.scatter(knots_x, knots_y, phi_at_knots, c='red', marker='o', s=100)
-        # plt.show()
-        # plt.savefig('3d phi surface.pdf')
-        # plt.close()
-
-    # %% 5. Plot GEV Surfaces
-    # 5. Plot GEV Surfaces -------------------------------------------------------------------------------------
-
-    if rank == 0:
-        # Location #
-        # mu0(s) plot
-        C_mu0_plot        = np.full(shape = (Beta_mu0_m, len(gs_xy), Nt), fill_value = np.nan)
-        C_mu0_plot[0,:,:] = 1.0
-        # C_mu0_plot[1,:,:] = np.tile(elevation_func(gs_xy[:,0], gs_xy[:,1])[:,None], reps=(1,Nt))
-        C_mu0_plot[1,:,:] = np.tile(elev_surf_generator((gs_xy[:,0], gs_xy[:,1]))[:,None], reps = (1,Nt))
-        # C_mu0_plot[1,:,:] = 0.0
-        C_mu0_plot[2:Beta_mu0_m,:,:] = np.tile(np.array(r('''
-                                                    basis <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                                    basis$X
-                                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m))).T[:,:,None],
-                                                reps=(1,1,Nt))
-        mu0_surface_plot = (C_mu0_plot.T @ Beta_mu0).T
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(mu0_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        ax.set_title('mu0 surface plot')
-        # plt.show()
-        # print(mu0_surface_plot[:,0])
-        plt.savefig('heatmap mu0 surface.pdf')
-        plt.close()
-
-        # # mu(s,t) = mu0(s) + mu1(s) * Time 
-        # import matplotlib.animation as animation
-        # plt.rcParams['animation.ffmpeg_path'] = '/opt/homebrew/bin/ffmpeg'
-        # C_mu1_plot = C_mu0_plot.copy() # as we use same number of splines, basis are exact same
-        # mu_surface_plot = (C_mu0_plot.T @ Beta_mu0).T + (C_mu1_plot.T @ Beta_mu1).T * Time
-        # graph, ax = plt.subplots()
-        # heatmap = ax.imshow(mu_surface_plot[:,0].reshape(len(gs_x),len(gs_y)).T, 
-        #                     cmap='hot',interpolation='nearest',extent=[0,10,10,0],
-        #                     vmin = np.min(mu_surface_plot), vmax = np.max(mu_surface_plot))
-        # ax.invert_yaxis()
-        # graph.colorbar(heatmap)
-        # title = ax.set_title('mu(s,t) surface plot')
-        # def animate(i):
-        #     heatmap.set_array(mu_surface_plot[:,i].reshape(len(gs_x),len(gs_y)).T)
-        #     title.set_text('Time {0}'.format(i))
-        #     return [graph]
-        # anim = animation.FuncAnimation(graph,animate,frames = Nt, interval = 200)
-        # anim.save('muSurfaceOverTime.mp4', fps=1)
-        # # plt.show()
-        # plt.close()
-    
-        # Scale #
-        # heatplot of sigma(s) surface
-        C_logsigma_plot = np.full(shape = (Beta_logsigma_m, len(plotgrid_xy), Nt), fill_value = np.nan)
-        C_logsigma_plot[0, :, :] = 1.0
-        C_logsigma_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-        C_logsigma_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-        sigma_surface_plot = np.exp((C_logsigma_plot.T @ Beta_logsigma).T)
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(sigma_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        plt.title('sigma surface heatplot')
-        # plt.show()
-        plt.savefig('heatmap sigma surface.pdf')
-        plt.close()
-
-        # Shape #
-        # heatplot of ksi(s) surface
-        C_ksi_plot = np.full(shape = (Beta_ksi_m, len(plotgrid_xy), Nt), fill_value = np.nan) # 
-        C_ksi_plot[0, :, :] = 1.0
-        C_ksi_plot[1, :, :] = np.tile(plotgrid_xy[:,0], reps=(Nt,1)).T
-        C_ksi_plot[2, :, :] = np.tile(plotgrid_xy[:,1], reps=(Nt,1)).T
-        ksi_surface_plot = (C_ksi_plot.T @ Beta_ksi).T
-        graph, ax = plt.subplots()
-        heatmap = ax.imshow(ksi_surface_plot[:,0].reshape(25,25), cmap='hot',interpolation='nearest',extent=[0,10,10,0])
-        ax.invert_yaxis()
-        graph.colorbar(heatmap)
-        # plt.show()
-        plt.savefig('heatmap ksi surface.pdf')
-        plt.close()
-
-    # %% 6. Generate X_star and Y
-    # 6. Generate X and Y -------------------------------------------------------------------------------------
-    X_star = R_phi * W
-
-    alpha = 0.5
-    gamma_at_knots = np.repeat(gamma, k)
-    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
-                       axis = 1)**(1/alpha) # axis = 1 to sum over K knots
-    # gamma_vec is the gamma bar in the overleaf document
-
-    # Calculation of Y can(?) be parallelized by time(?)
-    Y = np.full(shape=(Ns, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        # Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu, sigma, ksi)
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
-
-    # %% 7. Checking Data Generation
-    # 7. Checking Data Generation -------------------------------------------------------------------------------------
-
-    # theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma_vec)
-    # plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
-    # plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
-
-    # checking stable variables S
-
-    # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
-    # for i in range(k):
-    #     scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
-    #     plt.axline((0,0), slope = 1, color = 'black')
-    #     plt.show()
-
-    # R_at_knots**(-1/2) should look halfnormal(0, 1/sqrt(scale))
-    # for i in range(k):
-    #     scipy.stats.probplot((gamma**(1/2))*R_at_knots[i,:]**(-1/2), dist=scipy.stats.halfnorm, fit = False, plot=plt)
-    #     plt.axline((0,0),slope=1,color='black')
-    #     plt.show()
-
-    # checking Pareto distribution
-
-    # # shifted pareto.cdf(W[i,:] + 1, b = 1, loc = 0, scale = 1) shoud look uniform
-    # for i in range(Ns):
-    #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:]+1, b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
-    #     plt.axline((0,0), slope = 1, color = 'black')
-    #     plt.show()
-
-    # # standard pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1) shoud look uniform
-    # for i in range(Ns):
-    #     scipy.stats.probplot(scipy.stats.pareto.cdf(W[i,:], b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
-    #     plt.axline((0,0), slope = 1, color = 'black')
-    #     plt.show()
-
-    # # log(W + 1) should look exponential (at each time t with num_site spatial points?)
-    # for i in range(Nt):
-    #     expo = np.log(W[:,i] + 1)
-    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
-    #     plt.axline((0,0), slope=1, color='black')
-    #     plt.show()
-
-    # # log(W + 1) should look exponential (at each site with Nt time replicates?)
-    # # for shifted Pareto
-    # for i in range(Ns):
-    #     expo = np.log(W[i,:] + 1)
-    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
-    #     plt.axline((0,0), slope=1, color='black')
-    #     plt.show()
-
-    # # log(W) should look exponential (at each site with Nt time replicates?)
-    # # for standard Pareto
-    # for i in range(Ns):
-    #     expo = np.log(W[i,:])
-    #     scipy.stats.probplot(expo, dist="expon", fit = False, plot=plt)
-    #     plt.axline((0,0), slope=1, color='black')
-    #     plt.show()
-
-    # checking model cdf
-
-    # # pRW(X_star) should look uniform (at each time t?)
-    # for i in range(Nt):
-    #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[:,i], phi_vec, gamma_vec[i])
-    #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
-    #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
-    #     plt.axline((0,0), slope=1, color='black')
-    #     plt.show()
-
-    # # pRW(X_star) should look uniform (at each site with Nt time replicates?)
-    # for i in range(Ns):
-    #     # fig, ax = plt.subplots()
-    #     unif = pRW(X_star[i,:], phi_vec[i], gamma_vec[i])
-    #     scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
-    #     # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
-    #     plt.axline((0,0), slope=1, color='black')
-    #     plt.show()
-
-    # unifs = scipy.stats.uniform.rvs(0,1,size=10000)
-    # Y_from_unifs = qgev(unifs, 0, 1, 0.2)
-    # scipy.stats.genextreme.fit(Y_from_unifs) # this is unbiased
-
-    # a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
-
-    # myfits = [scipy.stats.genextreme.fit(Y[site,:]) for site in range(500)]
-    # plt.hist([fit[1] for fit in myfits]) # loc
-    # plt.hist([fit[2] for fit in myfits]) # scale
-    # plt.hist([fit[0] for fit in myfits]) # -shape
 
     # %% Metropolis-Hasting Updates
-    
+    # Metropolis-Hasting Updates
     #####################################################################################################################
-    ###########                Metropolis-Hasting Updates                ################################################
+    ########### Metropolis-Hasting Updates ##############################################################################
     #####################################################################################################################
 
     comm.Barrier() # Blocking before the update starts
@@ -1111,9 +2053,6 @@ if __name__ == "__main__":
         sigma_Beta_ksi_trace[0,:]      = sigma_Beta_ksi_init
 
     # Set Current Values
-    ## ---- X_star --------------------------------------------------------------------------------------------
-    X_star_1t_current = X_star[:,rank]
-
     ## ---- log(R) --------------------------------------------------------------------------------------------
     # note: directly comm.scatter an numpy nd array along an axis is tricky,
     #       hence we first "redundantly" broadcast an entire R_matrix then split
@@ -1147,6 +2086,16 @@ if __name__ == "__main__":
     sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_init, root = 0)
     sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_init, root = 0)
     sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_init, root = 0)
+
+    ## ---- X_star --------------------------------------------------------------------------------------------
+    X_star = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    for t in np.arange(Nt):
+        X_star[:,t] = qRW(pgev(Y[:,t], Loc_matrix_current[:,t], Scale_matrix_current[:,t], Shape_matrix_current[:,t]),
+                          phi_vec_current, gamma_vec)
+    X_star_1t_current = X_star[:,rank]
+
+    # X_star_1t_current = qRW(pgev(Y[:,t], Loc_matrix_current[:,t], Scale_matrix_current[:,t], Shape_matrix_current[:,t]),
+    #                       phi_vec_current, gamma_vec)
 
     # %% 10. Metropolis Update Loops -------------------------------------------------------------------------------------
     # 10. Metropolis Update Loops
