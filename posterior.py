@@ -1,11 +1,16 @@
+"""
+Summary informaiton regarding the posterior draws
+- covariance
+- summary statistics
+- etc.
+"""
 # %%
 import numpy as np
-# k = 10
-k = 9
 
 # %%
 # load traceplots
-folder                    = './data/20240216_t32_s125_shifted/'
+# folder                    = './data/20240216_t32_s125_shifted/'
+folder                    = './data/20240218_testrun_full/'
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
@@ -18,8 +23,15 @@ sigma_Beta_mu1_trace      = np.load(folder + 'sigma_Beta_mu1_trace.npy')
 sigma_Beta_logsigma_trace = np.load(folder + 'sigma_Beta_logsigma_trace.npy')
 sigma_Beta_ksi_trace      = np.load(folder + 'sigma_Beta_ksi_trace.npy')
 
+k               = R_trace_log.shape[1]
+Nt              = R_trace_log.shape[2]
+Beta_mu0_m      = Beta_mu0_trace.shape[1]
+Beta_mu1_m      = Beta_mu1_trace.shape[1]
+Beta_logsigma_m = Beta_logsigma_trace.shape[1]
+Beta_ksi_m      = Beta_ksi_trace.shape[1]
+
 # %%
-# burnins or remove not finished iterations
+# burnins
 burnin = 1500
 
 phi_knots_trace           = phi_knots_trace[burnin:]
@@ -34,8 +46,21 @@ sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[burnin:]
 sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[burnin:]
 sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[burnin:]
 
-# Beta_mu0_trace = Beta_mu0_trace[~np.isnan(Beta_mu0_trace)].reshape((-1,14))
-# Beta_mu1_trace = Beta_mu1_trace[~np.isnan(Beta_mu1_trace)].reshape((-1,14))
+
+# %%
+# remove unfinished cells
+
+R_trace_log               = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k,Nt))
+phi_knots_trace           = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k))
+range_knots_trace         = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k))
+Beta_mu0_trace            = Beta_mu0_trace[~np.isnan(Beta_mu0_trace)].reshape((-1,Beta_mu0_m))
+Beta_mu1_trace            = Beta_mu1_trace[~np.isnan(Beta_mu1_trace)].reshape((-1,Beta_mu1_m))
+Beta_logsigma_trace       = Beta_logsigma_trace[~np.isnan(Beta_logsigma_trace)].reshape((-1,Beta_logsigma_m))
+Beta_ksi_trace            = Beta_ksi_trace[~np.isnan(Beta_ksi_trace)].reshape((-1,Beta_ksi_m))
+sigma_Beta_mu0_trace      = sigma_Beta_mu0_trace[~np.isnan(sigma_Beta_mu0_trace)].reshape((-1,1))
+sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[~np.isnan(sigma_Beta_mu1_trace)].reshape((-1,1))
+sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[~np.isnan(sigma_Beta_logsigma_trace)].reshape((-1,1))
+sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[~np.isnan(sigma_Beta_ksi_trace)].reshape((-1,1))
 
 
 #######################################
@@ -76,6 +101,24 @@ sigma_Beta_mu0_median      = np.median(sigma_Beta_mu0_trace, axis = 0)
 sigma_Beta_mu1_median      = np.median(sigma_Beta_mu1_trace, axis = 0)
 sigma_Beta_logsigma_median = np.median(sigma_Beta_logsigma_trace, axis = 0)
 sigma_Beta_ksi_median      = np.median(sigma_Beta_ksi_trace, axis = 0)
+
+
+#######################################
+##### Posterior Last Iteration    #####
+#######################################
+# %%
+# last iteration values
+phi_knots_last           = phi_knots_trace[-1]
+R_last_log               = R_trace_log[-1]
+range_knots_last         = range_knots_trace[-1]
+Beta_mu0_last            = Beta_mu0_trace[-1]
+Beta_mu1_last            = Beta_mu1_trace[-1]
+Beta_logsigma_last       = Beta_logsigma_trace[-1]
+Beta_ksi_last            = Beta_ksi_trace[-1]
+sigma_Beta_mu0_last      = sigma_Beta_mu0_trace[-1]
+sigma_Beta_mu1_last      = sigma_Beta_mu1_trace[-1]
+sigma_Beta_logsigma_last = sigma_Beta_logsigma_trace[-1]
+sigma_Beta_ksi_last      = sigma_Beta_ksi_trace[-1]
 
 
 # %%
