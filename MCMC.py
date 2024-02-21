@@ -1029,7 +1029,7 @@ if __name__ == "__main__":
     ksi_estimates      = GEV_estimates[:,3]
     JJA_maxima         = np.array(r('JJA_maxima')).T
     stations           = np.array(r('stations')).T
-    elevations         = np.array(r('elev')).T
+    elevations         = np.array(r('elev')).T/200
 
     # truncate for easier run on misspiggy
     Nt                 = 32
@@ -1292,17 +1292,26 @@ if __name__ == "__main__":
     #                                          ((C_ksi.T @ Beta_ksi).T)[:,t]), 
     #                                     phi_vec, gamma_vec))**2
 
-    # Calculate Rt in Parallel
     mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
     sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
     ksi_matrix   = (C_ksi.T @ Beta_ksi).T
-    comm.Barrier()
-    X_1t       = qRW(pgev(Y[:,rank], mu_matrix[:,rank], sigma_matrix[:,rank], ksi_matrix[:,rank]),
-                        phi_vec, gamma_vec)
-    R_1t       = np.array([np.median(X_1t)**2] * k)
-    R_gathered = comm.gather(R_1t, root = 0)
-    R_at_knots = np.array(R_gathered).T if rank == 0 else None
-    R_at_knots = comm.bcast(R_at_knots, root = 0)
+
+    if norm_pareto == 'standard':
+        R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+        for t in np.arange(Nt):
+            R_at_knots[:,t] = (np.min(qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]), 
+                                    phi_vec, gamma_vec))/1.5)**2
+    elif norm_pareto == 'shifted':
+        # Calculate Rt in Parallel
+        comm.Barrier()
+        X_1t       = qRW(pgev(Y[:,rank], mu_matrix[:,rank], sigma_matrix[:,rank], ksi_matrix[:,rank]),
+                            phi_vec, gamma_vec)
+        R_1t       = np.array([np.median(X_1t)**2] * k)
+        R_gathered = comm.gather(R_1t, root = 0)
+        R_at_knots = np.array(R_gathered).T if rank == 0 else None
+        R_at_knots = comm.bcast(R_at_knots, root = 0)
+    else:
+        sys.exit('Which g(Z)?')
 
     # %% Load Copula Parameter
     # Load Copula Parameter
@@ -2008,9 +2017,9 @@ if __name__ == "__main__":
         u = random_generator.uniform()
         if not all(np.isfinite([lik_1t_proposal,prior_1t_proposal, lik_1t_current, prior_1t_current])):
             ratio = 0
-            print('iter:', iter, 'updating Rt', 't:', rank)
-            print('lik_1t_proposal:', lik_1t_proposal, 'prior_1t_proposal:', prior_1t_proposal)
-            print('lik_1t_current:', lik_1t_current, 'prior_1t_current:', prior_1t_current)
+            # print('iter:', iter, 'updating Rt', 't:', rank)
+            # print('lik_1t_proposal:', lik_1t_proposal, 'prior_1t_proposal:', prior_1t_proposal)
+            # print('lik_1t_current:', lik_1t_current, 'prior_1t_current:', prior_1t_current)
         else:
             ratio = np.exp(lik_1t_proposal + prior_1t_proposal - lik_1t_current - prior_1t_current)
         if not np.isfinite(ratio):
@@ -2522,14 +2531,14 @@ if __name__ == "__main__":
             # Accept or Reject
             u = random_generator.uniform()
             if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
-                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu0')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu0')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             else: # the likelihood values are finite
                 ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio): # likelihood fine, but ratio not finite
-                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu0')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('np.exp overflow in iter', iter, 'updating sigma_beta_mu0')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu0_accepted = False
@@ -2563,14 +2572,14 @@ if __name__ == "__main__":
             # Accept or Reject
             u     = random_generator.uniform()
             if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
-                print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu1')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('likelihood values not finite in iter', iter, 'updating sigma_beta_mu1')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             else: # the likelihood values are finite
                 ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio): # likelihood fine, but ratio not finite
-                print('np.exp overflow in iter', iter, 'updating sigma_beta_mu1')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('np.exp overflow in iter', iter, 'updating sigma_beta_mu1')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_mu1_accepted = False
@@ -2604,14 +2613,14 @@ if __name__ == "__main__":
             # Accept or Reject
             u     = random_generator.uniform()
             if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
-                print('likelihood values not finite in iter', iter, 'updating sigma_beta_logsigma')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('likelihood values not finite in iter', iter, 'updating sigma_beta_logsigma')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             else: # the likelihood values are finite
                 ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio): # likelihood fine, but ratio not finite
-                print('np.exp overflow in iter', iter, 'updating sigma_beta_logsigma')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('np.exp overflow in iter', iter, 'updating sigma_beta_logsigma')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_logsigma_accepted = False
@@ -2645,14 +2654,14 @@ if __name__ == "__main__":
             # Accept or Reject
             u     = random_generator.uniform()
             if not all(np.isfinite([lik_proposal,lik_current])): # the likelihood values are not finite
-                print('likelihood values not finite in iter', iter, 'updating sigma_beta_ksi')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('likelihood values not finite in iter', iter, 'updating sigma_beta_ksi')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             else: # the likelihood values are finite
                 ratio = np.exp(lik_proposal - lik_current)
             if not np.isfinite(ratio): # likelihood fine, but ratio not finite
-                print('np.exp overflow in iter', iter, 'updating sigma_beta_ksi')
-                print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
+                # print('np.exp overflow in iter', iter, 'updating sigma_beta_ksi')
+                # print('lik_proposal:', lik_proposal, 'lik_current:', lik_current)
                 ratio = 0
             if u > ratio: # Reject
                 sigma_Beta_ksi_accepted = False
