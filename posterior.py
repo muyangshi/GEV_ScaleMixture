@@ -98,36 +98,36 @@ minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 # ----------------------------------------------------------------------------------------------------------------
 # Knots
 
-res_x = 3
-res_y = 3
-k = res_x * res_y # number of knots
-# create one-dimensional arrays for x and y
-x_pos = np.linspace(minX, maxX, res_x+2)[1:-1]
-y_pos = np.linspace(minY, maxY, res_y+2)[1:-1]
-# create the mesh based on these arrays
-X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
-knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
-knots_x = knots_xy[:,0]
-knots_y = knots_xy[:,1]    
+# res_x = 3
+# res_y = 3
+# k = res_x * res_y # number of knots
+# # create one-dimensional arrays for x and y
+# x_pos = np.linspace(minX, maxX, res_x+2)[1:-1]
+# y_pos = np.linspace(minY, maxY, res_y+2)[1:-1]
+# # create the mesh based on these arrays
+# X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
+# knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
+# knots_x = knots_xy[:,0]
+# knots_y = knots_xy[:,1]    
 
-# # isometric knot grid
-# N_outer_grid = 9
-# x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-# y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
-# x_outer_pos              = x_pos[0::2]
-# x_inner_pos              = x_pos[1::2]
-# y_outer_pos              = y_pos[0::2]
-# y_inner_pos              = y_pos[1::2]
-# X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-# X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-# knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-# knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-# knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-# knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-# knots_xy                 = knots_xy[knots_id_in_domain]
-# knots_x                  = knots_xy[:,0]
-# knots_y                  = knots_xy[:,1]
-# k                        = len(knots_id_in_domain)
+# isometric knot grid
+N_outer_grid = 9
+x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
+y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+x_outer_pos              = x_pos[0::2]
+x_inner_pos              = x_pos[1::2]
+y_outer_pos              = y_pos[0::2]
+y_inner_pos              = y_pos[1::2]
+X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+knots_xy                 = knots_xy[knots_id_in_domain]
+knots_x                  = knots_xy[:,0]
+knots_y                  = knots_xy[:,1]
+k                        = len(knots_id_in_domain)
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -258,8 +258,9 @@ gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
 
 # %%
 # load traceplots
-folder                    = './data/20240217_t32_s125/'
-# folder                    = './data/20240220_t32_s125_standard_isogrid_elev200/'
+# folder                    = './data/20240217_t32_s125/'
+# folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
+folder                    = './data/20240220_t32_s125_isogrid_elev200/'
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
@@ -281,7 +282,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 
 # %%
 # burnins
-burnin = 10000
+burnin = 1000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
@@ -496,8 +497,6 @@ cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(ksi_est_scatter, cax = cbar_ax)
 plt.show()
 
-# 3. phi surface
-
 plotgrid_res_x = 50
 plotgrid_res_y = 75
 plotgrid_res_xy = plotgrid_res_x * plotgrid_res_y
@@ -523,7 +522,8 @@ for site_id in np.arange(plotgrid_res_xy):
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
-    
+
+# 3. phi surface
 
 # heatplot of phi surface
 phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_mean
@@ -532,22 +532,19 @@ heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                     cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 graph.colorbar(heatmap)
-# plt.show()
-plt.savefig('heatmap phi surface.pdf')
-plt.close()
+plt.show()
 
-    # 4. Plot range surface
+# 4. Plot range surface
 
 # heatplot of range surface
-range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_mean
 graph, ax = plt.subplots()
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
                     cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 graph.colorbar(heatmap)
-# plt.show()
-plt.savefig('heatmap range surface.pdf')
-plt.close()
+plt.show()
+
 
 
 # %%
