@@ -9,6 +9,8 @@ import numpy as np
 import sys
 np.set_printoptions(threshold=sys.maxsize)
 import matplotlib.pyplot as plt
+import geopandas as gpd
+state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
 
 import os
 os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
@@ -534,6 +536,17 @@ ax.invert_yaxis()
 graph.colorbar(heatmap)
 plt.show()
 
+phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_mean
+fig, ax = plt.subplots()
+state_map.boundary.plot(ax=ax)
+heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+ax.invert_yaxis()
+fig.colorbar(heatmap)
+plt.xlim([-105,-90])
+plt.ylim([30,50])
+plt.show()
+
 # 4. Plot range surface
 
 # heatplot of range surface
@@ -543,6 +556,17 @@ heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                     cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 graph.colorbar(heatmap)
+plt.show()
+
+range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_mean
+fig, ax = plt.subplots()
+state_map.boundary.plot(ax=ax)
+heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+ax.invert_yaxis()
+fig.colorbar(heatmap)
+plt.xlim([-105,-90])
+plt.ylim([30,50])
 plt.show()
 
 
