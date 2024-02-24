@@ -30,10 +30,8 @@ import rpy2.robjects as robjects
 from rpy2.robjects import r 
 from rpy2.robjects.numpy2ri import numpy2rpy
 from rpy2.robjects.packages import importr
-try: # data_seed is defined when python MCMC.py
-    data_seed
-except: # when running on local machine interactively
-    data_seed = 2345
+
+data_seed = 2345
 np.random.seed(data_seed)
 
 
@@ -258,11 +256,265 @@ gamma_at_knots = np.repeat(gamma, k)
 gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
                     axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
-# %%
+# %% generate data & setup
+# generate data & setup
+
+# ----------------------------------------------------------------------------------------------------------------
+# Numbers - Ns, Nt, n_iters
+
+np.random.seed(data_seed)
+Nt = 32 # number of time replicates
+Ns = 125 # number of sites/stations
+Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
+
+# ----------------------------------------------------------------------------------------------------------------
+# Sites - random uniformly (x,y) generate site locations
+
+sites_xy = np.random.random((Ns, 2)) * 10
+sites_x = sites_xy[:,0]
+sites_y = sites_xy[:,1]
+
+# # define the lower and upper limits for x and y
+minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
+minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
+
+# ----------------------------------------------------------------------------------------------------------------
+# Elevation Function - 
+# Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
+#       this might cause identifiability issue
+# def elevation_func(x,y):
+    # return(np.abs(x-5)/5 + np.abs(y-5)/5)
+elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
+elevations = elev_surf_generator((sites_x, sites_y))
+
+# ----------------------------------------------------------------------------------------------------------------
+# Knots - uniform grid of 9 knots, should do this programatically...
+
+# k = 9 # number of knots
+# x_pos = np.linspace(0,10,5,True)[1:-1]
+# y_pos = np.linspace(0,10,5,True)[1:-1]
+# X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
+# knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
+# knots_x = knots_xy[:,0]
+# knots_y = knots_xy[:,1]
+
+# isometric knot grid
+N_outer_grid = 9
+x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
+y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+x_outer_pos              = x_pos[0::2]
+x_inner_pos              = x_pos[1::2]
+y_outer_pos              = y_pos[0::2]
+y_inner_pos              = y_pos[1::2]
+X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+knots_xy                 = knots_xy[knots_id_in_domain]
+knots_x                  = knots_xy[:,0]
+knots_y                  = knots_xy[:,1]
+k                        = len(knots_id_in_domain)
+
+# ----------------------------------------------------------------------------------------------------------------
+# Copula Splines
+
+bandwidth = 4 # range for the gaussian kernel
+radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
+assert k == len(knots_xy)
+
+# Weight matrix generated using Gaussian Smoothing Kernel
+gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+for site_id in np.arange(Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                    XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    gaussian_weight_matrix[site_id, :] = weight_from_knots
+
+# Weight matrix generated using wendland basis
+wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+for site_id in np.arange(Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                    XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    wendland_weight_matrix[site_id, :] = weight_from_knots
+
+# # constant weight matrix
+# constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+# for site_id in np.arange(Ns):
+#     # Compute distance between each pair of the two collections of inputs
+#     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+#                                     XB = knots_xy)
+#     # influence coming from each of the knots
+#     weight_from_knots = np.repeat(1, k)/k
+#     constant_weight_matrix[site_id, :] = weight_from_knots
+
+# ----------------------------------------------------------------------------------------------------------------
+# Setup For the Marginal Model - GEV(mu, sigma, ksi)
+
+# ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
+# "knots" and prediction sites for splines 
+gs_x        = np.linspace(minX, maxX, 50)
+gs_y        = np.linspace(minY, maxY, 50)
+gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
+
+gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+
+r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+
+mgcv = importr('mgcv')
+r('''
+    gs_xy_df <- as.data.frame(gs_xy_ro)
+    colnames(gs_xy_df) <- c('x','y')
+    sites_xy_df <- as.data.frame(sites_xy_ro)
+    colnames(sites_xy_df) <- c('x','y')
+    ''')
+
+# r("save(gs_x_ro, file='gs_x_ro.gzip', compress=TRUE)")
+# r("save(gs_y_ro, file='gs_y_ro.gzip', compress=TRUE)")
+# r("save(gs_xy_df, file='gs_xy_df.gzip', compress=TRUE)")
+# r("save(sites_xy_df, file='sites_xy_df.gzip',compress=TRUE)")
+
+# Location mu_0(s) ----------------------------------------------------------------------------------------------
+Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
+C_mu0_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations,     # elevation
+                                    C_mu0_splines)) # splines (excluding intercept)
+C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+
+# Location mu_1(s) ----------------------------------------------------------------------------------------------
+
+Beta_mu1_splines_m = 18 - 1 # drop the 3rd to last column of constant
+Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+C_mu1_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations,     # elevation
+                                    C_mu1_splines)) # splines (excluding intercept)
+C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+# Scale logsigma(s) ----------------------------------------------------------------------------------------------
+
+Beta_logsigma_m   = 2 # just intercept and elevation
+C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+C_logsigma[0,:,:] = 1.0 
+C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+
+# Shape ksi(s) ----------------------------------------------------------------------------------------------
+
+Beta_ksi_m   = 2 # just intercept and elevation
+C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi[0,:,:] = 1.0
+C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+
+# ----------------------------------------------------------------------------------------------------------------
+# Setup For the Copula/Data Model - X_star = R^phi * g(Z)
+
+# Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
+nu = 0.5 # exponential kernel for matern with nu = 1/2
+sigsq = 1.0 # sill for Z
+sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
+
+# Scale Mixture R^phi --------------------------------------------------------------------------------------------
+## phi and gamma
+gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
+delta = 0.0 # this is the delta in levy, stays 0
+alpha = 0.5
+gamma_at_knots = np.repeat(gamma, k)
+gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                    axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
+
+
+# ----------------------------------------------------------------------------------------------------------------
+# Marginal Parameters - GEV(mu, sigma, ksi)
+Beta_mu0            = np.concatenate(([0], [0.1], np.array([0.05]*Beta_mu0_splines_m)))
+Beta_mu1            = np.concatenate(([0], [0.01], np.array([0.01] * Beta_mu1_splines_m)))
+Beta_logsigma       = np.array([0.0, 0.01])
+Beta_ksi            = np.array([0.2, 0.05])
+sigma_Beta_mu0      = 1
+sigma_Beta_mu1      = 1
+sigma_Beta_logsigma = 1
+sigma_Beta_ksi      = 1
+
+# ----------------------------------------------------------------------------------------------------------------
+# Data Model Parameters - X_star = R^phi * g(Z)
+
+range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
+
+### scenario 1
+# phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
+### scenario 2
+phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
+### scenario 3
+# phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+#                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
+
+# ----------------------------------------------------------------------------------------------------------------
+# Generate Data
+
+# W = g(Z), Z ~ MVN(0, K)
+range_vec = gaussian_weight_matrix @ range_at_knots
+K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
+                    coords = sites_xy, kappa = nu, cov_model = "matern")
+Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
+W         = norm_to_Pareto(Z) 
+
+# R^phi Scaling Factor
+phi_vec    = gaussian_weight_matrix @ phi_at_knots
+R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+for t in np.arange(Nt):
+    R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+    # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
+    # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
+    # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
+R_at_sites = wendland_weight_matrix @ R_at_knots
+R_phi      = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in np.arange(Nt):
+    R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
+
+# F_Y(y) = F_Xstar(Xstar = R^phi * g(Z))
+mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+X_star       = R_phi * W
+Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in np.arange(Nt):
+    Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+
+mu0_estimates = None
+mu1_estimates = None
+logsigma_estimates = None
+ksi_estimates = None
+
+# %% load traceplot
 # load traceplots
 # folder                    = './data/20240217_t32_s125/'
 # folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
-folder                    = './data/20240220_t32_s125_isogrid_elev200/'
+# folder                    = './data/20240220_t32_s125_isogrid_elev200/'
+folder                    = './data/20240223_2345_t32_s300_standard/'
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
@@ -284,7 +536,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 
 # %%
 # burnins
-burnin = 1000
+burnin = 4000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
@@ -424,13 +676,15 @@ plt.ylabel('Beta_mu1')
 plt.legend()  
 
 # side by side mu0
+vmin = min(np.floor(min(mu0_estimates)), np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0])))
+vmax = max(np.ceil(max(mu0_estimates)), np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0])))
 fig, ax     = plt.subplots(1,2)
 mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates,
-                            vmin = 28, vmax = 55)
+                            vmin = vmin, vmax = vmax)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu0 data estimates')
 mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_mu0.T @ Beta_mu0_mean).T[:,0],
-                                vmin = 28, vmax = 55)
+                                vmin = vmin, vmax = vmax)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu0 post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -439,13 +693,15 @@ fig.colorbar(mu0_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side mu1
+vmin = min(np.floor(min(mu1_estimates)), np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0])))
+vmax = max(np.ceil(max(mu1_estimates)), np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0])))
 fig, ax     = plt.subplots(1,2)
 mu1_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_estimates,
-                            vmin = -3, vmax = 4)
+                            vmin = vmin, vmax = vmax)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu1 data estimates')
 mu1_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_mu1.T @ Beta_mu1_mean).T[:,0],
-                                vmin = -3, vmax = 4)
+                                vmin = vmin, vmax = vmax)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu1 post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -455,13 +711,17 @@ plt.show()
 
 # side by side for mu = mu0 + mu1
 this_year = 31
+vmin = min(np.floor(min(mu0_estimates + mu1_estimates * Time[this_year])), 
+           np.floor(min(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year])))
+vmax = max(np.ceil(max(mu0_estimates + mu1_estimates * Time[this_year])), 
+           np.ceil(max(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year])))
 fig, ax     = plt.subplots(1,2)
 mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates + mu1_estimates * Time[this_year],
-                            vmin = 13, vmax = 55)
+                            vmin = vmin, vmax = vmax)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu data year: ' + str(1950+this_year))
 mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year],
-                                vmin = 13, vmax = 55)
+                                vmin = vmin, vmax = vmax)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu post mean year: ' + str(1950+this_year))
 fig.subplots_adjust(right=0.8)
@@ -470,13 +730,15 @@ fig.colorbar(mu0_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side logsigma
+vmin = min(np.floor(min(logsigma_estimates)), np.floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0])))
+vmax = max(np.ceil(max(logsigma_estimates)), np.ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0])))
 fig, ax     = plt.subplots(1,2)
 logsigma_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_estimates,
-                            vmin = 2, vmax = 4)
+                            vmin = vmin, vmax = vmax)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('logsigma data estimates')
 logsigma_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_logsigma.T @ Beta_logsigma_mean).T[:,0],
-                                vmin = 2, vmax = 4)
+                                vmin = vmin, vmax = vmax)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('logsigma post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -485,13 +747,15 @@ fig.colorbar(logsigma_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side ksi
+vmin = min(np.floor(min(ksi_estimates)), np.floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0])))
+vmax = max(np.ceil(max(ksi_estimates)), np.ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0])))
 fig, ax     = plt.subplots(1,2)
 ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates,
-                            vmin = 0, vmax = 0.3)
+                            vmin = vmin, vmax = vmax)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('ksi data estimates')
 ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
-                                vmin = 0, vmax = 0.3)
+                                vmin = vmin, vmax = vmax)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('ksi post mean estimates')
 fig.subplots_adjust(right=0.8)

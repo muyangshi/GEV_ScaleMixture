@@ -338,6 +338,10 @@ if __name__ == "__main__":
     for t in np.arange(Nt):
         Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
+    mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
+    mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
+    logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
+    ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
     # %% Checking Data Generation
     # Checking Data Generation -------------------------------------------------------------------------------------
@@ -700,8 +704,8 @@ if __name__ == "__main__":
     # else:
     #     sys.exit('Which g(Z)?')
 
-    # %% Load Copula Parameter
-    # Load Copula Parameter
+    # %% Load Parameter
+    # Load Parameter
 
     # ----------------------------------------------------------------------------------------------------------------
     # Marginal Parameters - GEV(mu, sigma, ksi)
@@ -717,7 +721,7 @@ if __name__ == "__main__":
     #    -1.62533200e-01,  8.86602422e-02, -8.07930545e-01])
     # Beta_logsigma       = np.array([3.07567306e+00, 1.64081493e-05])
     # Beta_ksi            = np.array([0.0879018 , 0.00036929])
-    # sigma_Beta_mu0      = 9.68703611
+    # sigma_Beta_mu0      = 9.68703611 # these must be values, can't be arrays!
     # sigma_Beta_mu1      = 0.47164467
     # sigma_Beta_logsigma = 1.1662009
     # sigma_Beta_ksi      = 0.20657275
@@ -953,17 +957,14 @@ if __name__ == "__main__":
 
         # Location # -------------------------------------------------------------------------------------
         ## mu0(s) plot stations
-        try:
-            fig, ax     = plt.subplots()
-            mu0_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates)
-            ax.set_aspect('equal', 'box')
-            plt.colorbar(mu0_scatter)
-            plt.title('data: mu0_estimates')
-            # plt.show()
-            plt.savefig('data_mu0_estimates.pdf')
-            plt.close()
-        except Exception as e:
-            print(e)
+        fig, ax     = plt.subplots()
+        mu0_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu0_scatter)
+        plt.title('data: mu0_estimates')
+        # plt.show()
+        plt.savefig('data_mu0_estimates.pdf')
+        plt.close()
 
         fig, ax     = plt.subplots()
         mu0_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_matrix[:,0])
@@ -975,17 +976,14 @@ if __name__ == "__main__":
         plt.close()
 
         ## mu1(s) plot stations
-        try:
-            fig, ax     = plt.subplots()
-            mu1_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_estimates)
-            ax.set_aspect('equal', 'box')
-            plt.colorbar(mu1_scatter)
-            plt.title('data: mu1_estimates')
-            # plt.show()
-            plt.savefig('data_mu1_estimates.pdf')
-            plt.close()
-        except Exception as e:
-            print(e)
+        fig, ax     = plt.subplots()
+        mu1_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(mu1_scatter)
+        plt.title('data: mu1_estimates')
+        # plt.show()
+        plt.savefig('data_mu1_estimates.pdf')
+        plt.close()
 
         fig, ax     = plt.subplots()
         mu1_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_matrix[:,0])
@@ -998,17 +996,14 @@ if __name__ == "__main__":
 
         # Scale # -------------------------------------------------------------------------------------
         ## logsigma(s) plot stations
-        try:
-            fig, ax     = plt.subplots()
-            logsigma_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_estimates)
-            ax.set_aspect('equal', 'box')
-            plt.colorbar(logsigma_scatter)
-            plt.title('data: logsigma_estimates')
-            # plt.show()
-            plt.savefig('data_logsigma_estimates.pdf')
-            plt.close()
-        except Exception as e:
-            print(e)
+        fig, ax     = plt.subplots()
+        logsigma_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(logsigma_scatter)
+        plt.title('data: logsigma_estimates')
+        # plt.show()
+        plt.savefig('data_logsigma_estimates.pdf')
+        plt.close()
 
         fig, ax     = plt.subplots()
         logsigma_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_matrix[:,0])
@@ -1021,17 +1016,14 @@ if __name__ == "__main__":
 
         # Shape # -------------------------------------------------------------------------------------
         # ksi(s) plot stations
-        try:
-            fig, ax     = plt.subplots()
-            ksi_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates)
-            ax.set_aspect('equal', 'box')
-            plt.colorbar(ksi_scatter)
-            plt.title('data: ksi_estimates')
-            # plt.show()
-            plt.savefig('data_ksi_estimates.pdf')
-            plt.close()
-        except Exception as e:
-            print(e)
+        fig, ax     = plt.subplots()
+        ksi_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates)
+        ax.set_aspect('equal', 'box')
+        plt.colorbar(ksi_scatter)
+        plt.title('data: ksi_estimates')
+        # plt.show()
+        plt.savefig('data_ksi_estimates.pdf')
+        plt.close()
 
         fig, ax     = plt.subplots()
         ksi_scatter = ax.scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_matrix[:,0])
