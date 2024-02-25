@@ -43,6 +43,7 @@ Takes proposal matrix/variances from a t32_s125 trial run [1500:5000]
 """
 # Require:
 #   - utilities.py
+#   - proposal_cov.py
 # Example Usage:
 # mpirun -n 2 -output-filename folder_name python3 MCMC.py > pyout.txt &
 # mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
@@ -88,8 +89,8 @@ if __name__ == "__main__":
 
     if rank == 0: print(norm_pareto)
 
-    # %% Setup for Generate Data ----------------------------------------------------------------------------------
-    # Setup for Generate Data -------------------------------------------------------------------------------------
+    # %% Generate Data ----------------------------------------------------------------------------------
+    # Generate Data -------------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------------------------------------
     # Numbers - Ns, Nt, n_iters
@@ -278,9 +279,6 @@ if __name__ == "__main__":
     gamma_at_knots = np.repeat(gamma, k)
     gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
                        axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
-
-    # %% Define True Parameter and Generate Data ---------------------------------------------------------------------
-    # Define True Parameter and Generate Data   ----------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------------------------------------
     # Marginal Parameters - GEV(mu, sigma, ksi)
@@ -707,8 +705,8 @@ if __name__ == "__main__":
     # %% Load Parameter
     # Load Parameter
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Marginal Parameters - GEV(mu, sigma, ksi)
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Marginal Parameters - GEV(mu, sigma, ksi)
         
     # Beta_mu0            = np.array([ 3.33548229e+01, -5.15749144e-03, -1.35501856e+01, -2.79089002e+00,
     #     1.31831870e+00,  2.43392492e+00,  2.33852452e+00,  1.76254921e+00,
@@ -1112,71 +1110,83 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: TRIAL RUN Posterior Covariance Matrix
 
+    # with no trial run
+    phi_cov                 = 1e-3 * np.identity(k)
+    range_cov               = np.identity(k)
+    Beta_mu0_cov            = 1e-2 * np.identity(Beta_mu0_m)
+    Beta_mu1_cov            = 1e-2 * np.identity(Beta_mu1_m)
+    Beta_logsigma_cov       = 1e-6 * np.identity(Beta_logsigma_m)
+    Beta_ksi_cov            = 1e-7 * np.identity(Beta_ksi_m)
+    sigma_Beta_mu0_cov      = 1
+    sigma_Beta_mu1_cov      = 1
+    sigma_Beta_logsigma_cov = 1
+    sigma_Beta_ksi_cov      = 1
+    R_log_cov               = np.tile(((2.4**2)/k)*np.eye(k)[:,:,None], reps = (1,1,Nt))
+
+    # with trial run
+    import proposal_cov
+    if proposal_cov.phi_cov is not None:                 phi_cov                 = proposal_cov.phi_cov
+    if proposal_cov.range_cov is not None:               range_cov               = proposal_cov.range_cov
+    if proposal_cov.Beta_mu0_cov is not None:            Beta_mu0_cov            = proposal_cov.Beta_mu0_cov
+    if proposal_cov.Beta_mu1_cov is not None:            Beta_mu1_cov            = proposal_cov.Beta_mu1_cov
+    if proposal_cov.Beta_logsigma_cov is not None:       Beta_logsigma_cov       = proposal_cov.Beta_logsigma_cov
+    if proposal_cov.Beta_ksi_cov is not None:            Beta_ksi_cov            = proposal_cov.Beta_ksi_cov
+    if proposal_cov.sigma_Beta_mu0_cov is not None:      sigma_Beta_mu0_cov      = proposal_cov.sigma_Beta_mu0_cov
+    if proposal_cov.sigma_Beta_mu1_cov is not None:      sigma_Beta_mu1_cov      = proposal_cov.sigma_Beta_mu1_cov
+    if proposal_cov.sigma_Beta_logsigma_cov is not None: sigma_Beta_logsigma_cov = proposal_cov.sigma_Beta_logsigma_cov
+    if proposal_cov.sigma_Beta_ksi_cov is not None:      sigma_Beta_ksi_cov      = proposal_cov.sigma_Beta_ksi_cov
+    if proposal_cov.R_log_cov is not None:               R_log_cov               = proposal_cov.R_log_cov
+
+    assert k               == phi_cov.shape[0]
+    assert k               == range_cov.shape[0]
+    assert k               == R_log_cov.shape[0]
+    assert Nt              == R_log_cov.shape[2]
+    assert Beta_mu0_m      == Beta_mu0_cov.shape[0]
+    assert Beta_mu1_m      == Beta_mu1_cov.shape[0]
+    assert Beta_logsigma_m == Beta_logsigma_cov.shape[0]
+    assert Beta_ksi_m      == Beta_ksi_cov.shape[0]
+
+    # make parameter block (for block updates)
+
     ## phi
-    phi_post_cov = 1e-3 * np.identity(k)
-    assert k == phi_post_cov.shape[0]
-    phi_block_post_cov_dict = {}
+    phi_block_cov_dict = {}
     for key in phi_block_idx_dict.keys():
         start_idx                    = phi_block_idx_dict[key][0]
         end_idx                      = phi_block_idx_dict[key][-1]+1
-        phi_block_post_cov_dict[key] = phi_post_cov[start_idx:end_idx, start_idx:end_idx]
+        phi_block_cov_dict[key] = phi_cov[start_idx:end_idx, start_idx:end_idx]
 
     ## range rho
-    range_post_cov = np.identity(k)
-    assert k == range_post_cov.shape[0]
-    range_block_post_cov_dict = {}
+    range_block_cov_dict = {}
     for key in range_block_idx_dict.keys():
         start_idx                      = range_block_idx_dict[key][0]
         end_idx                        = range_block_idx_dict[key][-1]+1
-        range_block_post_cov_dict[key] = range_post_cov[start_idx:end_idx, start_idx:end_idx]
+        range_block_cov_dict[key] = range_cov[start_idx:end_idx, start_idx:end_idx]
 
     ## Beta_mu0
-    Beta_mu0_all_post_cov = 1e-2 * np.identity(Beta_mu0_m)
-    assert Beta_mu0_all_post_cov.shape[0] == Beta_mu0_m
-    Beta_mu0_block_post_cov_dict = {}
+    Beta_mu0_block_cov_dict = {}
     for key in Beta_mu0_block_idx_dict.keys():
         start_idx                         = Beta_mu0_block_idx_dict[key][0]
         end_idx                           = Beta_mu0_block_idx_dict[key][-1]+1
-        Beta_mu0_block_post_cov_dict[key] = Beta_mu0_all_post_cov[start_idx:end_idx, start_idx:end_idx]
+        Beta_mu0_block_cov_dict[key] = Beta_mu0_cov[start_idx:end_idx, start_idx:end_idx]
 
     ## Beta_mu1
-    Beta_mu1_all_post_cov = 1e-2 * np.identity(Beta_mu1_m)
-    assert Beta_mu1_all_post_cov.shape[0] == Beta_mu1_m
-    Beta_mu1_block_post_cov_dict          = {}
+    Beta_mu1_block_cov_dict          = {}
     for key in Beta_mu1_block_idx_dict.keys():
         start_idx                         = Beta_mu1_block_idx_dict[key][0]
         end_idx                           = Beta_mu1_block_idx_dict[key][-1]+1
-        Beta_mu1_block_post_cov_dict[key] = Beta_mu1_all_post_cov[start_idx:end_idx, start_idx:end_idx]
-
-    ## Beta_logsigma
-    Beta_logsigma_post_cov = 1e-6 * np.identity(Beta_logsigma_m)
-    assert Beta_logsigma_m == Beta_logsigma_post_cov.shape[0]
-
-    ## Beta_ksi
-    Beta_ksi_post_cov = 1e-7 * np.identity(Beta_ksi_m)
-    assert Beta_ksi_m == Beta_ksi_post_cov.shape[0]
-
-
+        Beta_mu1_block_cov_dict[key] = Beta_mu1_cov[start_idx:end_idx, start_idx:end_idx]
 
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: Proposal Variance Scalar, Covariance Matrix, and Counter
     if rank == 0: # Handle phi, range, GEV on Worker 0
         # proposal variance scalar
         sigma_m_sq = {
-            # 'phi_block1'          : (2.4**2)/3,
-            # 'phi_block2'          : (2.4**2)/3,
-            # 'phi_block3'          : (2.4**2)/3,
-            # 'range_block1'        : (2.4**2)/3,
-            # 'range_block2'        : (2.4**2)/3,
-            # 'range_block3'        : (2.4**2)/3,
-            # 'GEV'                 : (2.4**2)/3
-            # 'Beta_mu0'            : (2.4**2)/Beta_mu0_m,
             'Beta_logsigma'       : (2.4**2)/Beta_logsigma_m,
             'Beta_ksi'            : (2.4**2)/Beta_ksi_m,
-            'sigma_Beta_mu0'      : 1.87655405, # from trial run
-            'sigma_Beta_mu1'      : 0.42904163, # from trial run
-            'sigma_Beta_logsigma' : 0.41164912, # from trial run
-            'sigma_Beta_ksi'      : 0.04358157  # from trial run
+            'sigma_Beta_mu0'      : sigma_Beta_mu0_cov,
+            'sigma_Beta_mu1'      : sigma_Beta_mu1_cov,
+            'sigma_Beta_logsigma' : sigma_Beta_logsigma_cov,
+            'sigma_Beta_ksi'      : sigma_Beta_ksi_cov
         }
         for key in phi_block_idx_dict.keys():
             sigma_m_sq[key] = (2.4**2)/len(phi_block_idx_dict[key])
@@ -1189,33 +1199,15 @@ if __name__ == "__main__":
 
         # proposal covariance matrix
         Sigma_0 = {
-            # 'phi_block1'    : phi_post_cov[0:3,0:3],
-            # 'phi_block2'    : phi_post_cov[3:6,3:6],
-            # 'phi_block3'    : phi_post_cov[6:9,6:9],
-            # 'range_block1'  : range_post_cov[0:3,0:3],
-            # 'range_block2'  : range_post_cov[3:6,3:6],
-            # 'range_block3'  : range_post_cov[6:9,6:9],
-            # 'GEV'           : GEV_post_cov,
-            # 'Beta_mu0'      : Beta_mu0_post_cov,
-            'Beta_logsigma' : Beta_logsigma_post_cov,
-            'Beta_ksi'      : Beta_ksi_post_cov
+            'Beta_logsigma' : Beta_logsigma_cov,
+            'Beta_ksi'      : Beta_ksi_cov
         }
-        Sigma_0.update(phi_block_post_cov_dict)
-        Sigma_0.update(range_block_post_cov_dict)
-        Sigma_0.update(Beta_mu0_block_post_cov_dict)
-        Sigma_0.update(Beta_mu1_block_post_cov_dict)
+        Sigma_0.update(phi_block_cov_dict)
+        Sigma_0.update(range_block_cov_dict)
+        Sigma_0.update(Beta_mu0_block_cov_dict)
+        Sigma_0.update(Beta_mu1_block_cov_dict)
 
         num_accepted = { # acceptance counter
-            # 'phi'                 : 0,
-            # 'range'               : 0,
-            # 'phi_block1'          : 0,
-            # 'phi_block2'          : 0,
-            # 'phi_block3'          : 0,
-            # 'range_block1'        : 0,
-            # 'range_block2'        : 0,
-            # 'range_block3'        : 0,
-            # 'GEV'                 : 0,
-            # 'Beta_mu0'            : 0,
             'Beta_logsigma'       : 0,
             'Beta_ksi'            : 0,
             'sigma_Beta_mu0'      : 0,
@@ -1234,7 +1226,8 @@ if __name__ == "__main__":
 
     # Rt: each Worker_t propose k-R(t)s at time t
     if rank == 0:
-        sigma_m_sq_Rt_list = [(2.4**2)/k]*size # comm scatter and gather preserves order
+        # sigma_m_sq_Rt_list = [(2.4**2)/k]*size # comm scatter and gather preserves order
+        sigma_m_sq_Rt_list = [np.mean(np.diag(R_log_cov[:,:,t])) for t in range(Nt)]
         num_accepted_Rt_list = [0]*size # [0, 0, ... 0]
     else:
         sigma_m_sq_Rt_list = None
