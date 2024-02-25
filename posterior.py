@@ -512,9 +512,10 @@ ksi_estimates = None
 # %% load traceplot
 # load traceplots
 # folder                    = './data/20240217_t32_s125/'
-# folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
 # folder                    = './data/20240220_t32_s125_isogrid_elev200/'
-folder                    = './data/20240223_2345_t32_s300_standard/'
+# folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
+folder                    = './data/20240221_t32_s125_isogrid_elev200_postcov/'
+# folder                    = './data/20240223_2345_t32_s300_standard/'
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
@@ -751,11 +752,11 @@ vmin = min(np.floor(min(ksi_estimates)), np.floor(min((C_ksi.T @ Beta_ksi_mean).
 vmax = max(np.ceil(max(ksi_estimates)), np.ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0])))
 fig, ax     = plt.subplots(1,2)
 ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates,
-                            vmin = vmin, vmax = vmax)
+                            vmin = vmin, vmax = 0.5)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('ksi data estimates')
 ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
-                                vmin = vmin, vmax = vmax)
+                                vmin = vmin, vmax = 0.5)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('ksi post mean estimates')
 fig.subplots_adjust(right=0.8)
