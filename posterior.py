@@ -11,6 +11,26 @@ np.set_printoptions(threshold=sys.maxsize)
 import matplotlib.pyplot as plt
 import geopandas as gpd
 state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
+import matplotlib as mpl
+from matplotlib import colormaps
+
+class MidpointNormalize(mpl.colors.Normalize):
+    def __init__(self, vmin, vmax, midpoint=0, clip=False):
+        self.midpoint = midpoint
+        mpl.colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        normalized_min = max(0, 1 / 2 * (1 - abs((self.midpoint - self.vmin) / (self.midpoint - self.vmax))))
+        normalized_max = min(1, 1 / 2 * (1 + abs((self.vmax - self.midpoint) / (self.midpoint - self.vmin))))
+        normalized_mid = 0.5
+        x, y = [self.vmin, self.midpoint, self.vmax], [normalized_min, normalized_mid, normalized_max]
+        return np.ma.masked_array(np.interp(value, x, y))
+
+def my_ceil(a, precision=0):
+    return np.true_divide(np.ceil(a * 10**precision), 10**precision)
+
+def my_floor(a, precision=0):
+    return np.true_divide(np.floor(a * 10**precision), 10**precision)
 
 import os
 os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
@@ -35,8 +55,8 @@ data_seed = 2345
 np.random.seed(data_seed)
 
 
-# %% Load Dataset -----------------------------------------------------------------------------------------------
-# Load Dataset    -----------------------------------------------------------------------------------------------
+# %% Load Dataset and Setup -----------------------------------------------------------------------------------------------
+# Load Dataset and Setup   -----------------------------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------
 # data
@@ -68,7 +88,6 @@ elevations         = elevations[sites_subset]
 
 Y = JJA_maxima
 
-# %% Setup (Covariates and Constants) ----------------------------------------------------------------------------
 # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -514,8 +533,10 @@ ksi_estimates = None
 # folder                    = './data/20240217_t32_s125/'
 # folder                    = './data/20240220_t32_s125_isogrid_elev200/'
 # folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
-folder                    = './data/20240221_t32_s125_isogrid_elev200_postcov/'
+folder                    = './data/20240221_t32_s125_shifted_isogrid_elev200_postcov_20k/'
 # folder                    = './data/20240223_2345_t32_s300_standard/'
+# folder = './data/20240224_2345_t32_s300_standard_postcov/'
+# folder = './data/20240225_t32_s125_standard_isogrid_elev200_r0234_150k/'
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
@@ -679,13 +700,16 @@ plt.legend()
 # side by side mu0
 vmin = min(np.floor(min(mu0_estimates)), np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0])))
 vmax = max(np.ceil(max(mu0_estimates)), np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0])))
+# mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+
 fig, ax     = plt.subplots(1,2)
-mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates,
-                            vmin = vmin, vmax = vmax)
+mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates,
+                            cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu0 data estimates')
-mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_mu0.T @ Beta_mu0_mean).T[:,0],
-                                vmin = vmin, vmax = vmax)
+mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu0.T @ Beta_mu0_mean).T[:,0],
+                                cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu0 post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -696,13 +720,16 @@ plt.show()
 # side by side mu1
 vmin = min(np.floor(min(mu1_estimates)), np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0])))
 vmax = max(np.ceil(max(mu1_estimates)), np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0])))
+# mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = vmin, vmax = vmax)
+
 fig, ax     = plt.subplots(1,2)
-mu1_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu1_estimates,
-                            vmin = vmin, vmax = vmax)
+mu1_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu1_estimates,
+                            cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu1 data estimates')
-mu1_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_mu1.T @ Beta_mu1_mean).T[:,0],
-                                vmin = vmin, vmax = vmax)
+mu1_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu1.T @ Beta_mu1_mean).T[:,0],
+                                cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu1 post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -716,13 +743,15 @@ vmin = min(np.floor(min(mu0_estimates + mu1_estimates * Time[this_year])),
            np.floor(min(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year])))
 vmax = max(np.ceil(max(mu0_estimates + mu1_estimates * Time[this_year])), 
            np.ceil(max(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year])))
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+
 fig, ax     = plt.subplots(1,2)
-mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = mu0_estimates + mu1_estimates * Time[this_year],
-                            vmin = vmin, vmax = vmax)
+mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates + mu1_estimates * Time[this_year],
+                            cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('mu data year: ' + str(1950+this_year))
-mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year],
-                                vmin = vmin, vmax = vmax)
+mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year],
+                                cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('mu post mean year: ' + str(1950+this_year))
 fig.subplots_adjust(right=0.8)
@@ -731,15 +760,17 @@ fig.colorbar(mu0_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side logsigma
-vmin = min(np.floor(min(logsigma_estimates)), np.floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0])))
-vmax = max(np.ceil(max(logsigma_estimates)), np.ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0])))
+vmin = min(my_floor(min(logsigma_estimates), 1), my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
+vmax = max(my_ceil(max(logsigma_estimates), 1), my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+
 fig, ax     = plt.subplots(1,2)
-logsigma_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = logsigma_estimates,
-                            vmin = vmin, vmax = vmax)
+logsigma_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = logsigma_estimates,
+                            cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('logsigma data estimates')
-logsigma_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_logsigma.T @ Beta_logsigma_mean).T[:,0],
-                                vmin = vmin, vmax = vmax)
+logsigma_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_logsigma.T @ Beta_logsigma_mean).T[:,0],
+                                cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('logsigma post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -748,15 +779,17 @@ fig.colorbar(logsigma_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side ksi
-vmin = min(np.floor(min(ksi_estimates)), np.floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0])))
-vmax = max(np.ceil(max(ksi_estimates)), np.ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0])))
+vmin = min(my_floor(min(ksi_estimates), 1), my_floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
+vmax = max(my_ceil(max(ksi_estimates), 1), my_ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+
 fig, ax     = plt.subplots(1,2)
-ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = ksi_estimates,
-                            vmin = vmin, vmax = 0.5)
+ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = ksi_estimates,
+                            cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
 ax[0].title.set_text('ksi data estimates')
-ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, alpha = 0.7, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
-                                vmin = vmin, vmax = 0.5)
+ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
+                                cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
 ax[1].title.set_text('ksi post mean estimates')
 fig.subplots_adjust(right=0.8)
@@ -796,16 +829,16 @@ for site_id in np.arange(plotgrid_res_xy):
 phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_mean
 graph, ax = plt.subplots()
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 graph.colorbar(heatmap)
 plt.show()
 
 phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_mean
 fig, ax = plt.subplots()
-state_map.boundary.plot(ax=ax)
+state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 fig.colorbar(heatmap)
 plt.xlim([-105,-90])
@@ -818,16 +851,16 @@ plt.show()
 range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_mean
 graph, ax = plt.subplots()
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 graph.colorbar(heatmap)
 plt.show()
 
 range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_mean
 fig, ax = plt.subplots()
-state_map.boundary.plot(ax=ax)
+state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    cmap ='hot', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 fig.colorbar(heatmap)
 plt.xlim([-105,-90])
