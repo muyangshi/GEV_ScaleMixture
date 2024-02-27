@@ -748,7 +748,7 @@ if __name__ == "__main__":
     else:
         sys.exit('Which g in g(Z)?')
     
-    R_vec = wendland_weight_matrix @ R_at_knots
+    R_matrix = wendland_weight_matrix @ R_at_knots
 
     # %% Load Parameter
     # Load Parameter
@@ -911,7 +911,7 @@ if __name__ == "__main__":
 
     # phi_vec      = gaussian_weight_matrix @ phi_at_knots
     # range_vec    = gaussian_weight_matrix @ range_at_knots
-    # R_vec        = wendland_weight_matrix @ R_at_knots
+    # R_matrix        = wendland_weight_matrix @ R_at_knots
     # mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
     # sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
     # ksi_matrix   = (C_ksi.T @ Beta_ksi).T
@@ -919,69 +919,73 @@ if __name__ == "__main__":
     # %% initial impute missing values
     # initial impute missing values
 
-    def matern_correlation(d, range, nu):
-        # using wikipedia definition
-        part1 = 2**(1-nu)/scipy.special.gamma(nu)
-        part2 = (np.sqrt(2*nu) * d / range)**nu
-        part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
-        return part1*part2*part3
-    matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
+    # def matern_correlation(d, range, nu):
+    #     # using wikipedia definition
+    #     part1 = 2**(1-nu)/scipy.special.gamma(nu)
+    #     part2 = (np.sqrt(2*nu) * d / range)**nu
+    #     part3 = scipy.special.kv(nu, np.sqrt(2*nu) * d / range)
+    #     return part1*part2*part3
+    # matern_correlation_vec = np.vectorize(matern_correlation, otypes=[float])
 
-    K = np.full(shape = (Ns, Ns), fill_value = 0.0)
-    for i in range(Ns):
-        for j in range(i+1, Ns):
-            site_i = sites_xy[i,]
-            site_j = sites_xy[j,]
-            d = scipy.spatial.distance.pdist([site_i, site_j])
-            rho_i = range_vec[i]
-            rho_j = range_vec[j]
-            sigma_i = sigsq_vec[i]
-            sigma_j = sigsq_vec[j]
-            M = matern_correlation(d/np.sqrt((rho_i + rho_j)/2), 1, 0.5)
-            C = sigma_i * sigma_j * (np.sqrt(rho_i*rho_j)) * (1/((rho_i + rho_j)/2)) * M
-            K[i,j] = C[0]
-    K = K + K.T + sigsq * np.identity(Ns)
-    # Note:
-    #       K[i,j] (row i, col j) means the correlation between site_i and site_j
-    #       np.mean(np.round(K,3) == np.round(K_current, 3)) # 1.0, meaning they are the same. 
+    # # Note:
+    # #       K[i,j] (row i, col j) means the correlation between site_i and site_j
+    # #       np.mean(np.round(K,3) == np.round(K_current, 3)) # 1.0, meaning they are the same. 
+    # K = np.full(shape = (Ns, Ns), fill_value = 0.0)
+    # for i in range(Ns):
+    #     for j in range(i+1, Ns):
+    #         site_i = sites_xy[i,]
+    #         site_j = sites_xy[j,]
+    #         d = scipy.spatial.distance.pdist([site_i, site_j])
+    #         rho_i = range_vec[i]
+    #         rho_j = range_vec[j]
+    #         sigma_i = sigsq_vec[i]
+    #         sigma_j = sigsq_vec[j]
+    #         M = matern_correlation(d/np.sqrt((rho_i + rho_j)/2), 1, 0.5)
+    #         C = sigma_i * sigma_j * (np.sqrt(rho_i*rho_j)) * (1/((rho_i + rho_j)/2)) * M
+    #         K[i,j] = C[0]
+    # K = K + K.T + sigsq * np.identity(Ns)
 
-    for t in range(Nt): # Parallelize this later
-        miss_index = np.where(miss_matrix[:,t] == True)[0]
-        obs_index  = np.where(miss_matrix[:,t] == False)[0]
+    # # Note:
+    # #       the initial imputation is slightly different
+    # #       b/c we need to use Y to calculate X
+    # #       otherwise, we can put this initial imputation below (after X_star_1t_current)
+    # #       so we can use the same generic impute_1t function
+    # for t in range(Nt): # Parallelize this later
+    #     miss_index = np.where(miss_matrix[:,t] == True)[0]
+    #     obs_index  = np.where(miss_matrix[:,t] == False)[0]
 
-        phi_vec_obs      = phi_vec[obs_index]
-        gamma_vec_obs    = gamma_vec[obs_index]
-        R_vec_obs        = R_vec[obs_index,t]
-        mu_vec_obs       = mu_matrix[obs_index,t]
-        sigma_vec_obs    = sigma_matrix[obs_index,t]
-        ksi_vec_obs      = ksi_matrix[obs_index,t]
+    #     phi_vec_obs      = phi_vec[obs_index]
+    #     gamma_vec_obs    = gamma_vec[obs_index]
+    #     R_vec_obs        = R_matrix[obs_index,t]
+    #     mu_vec_obs       = mu_matrix[obs_index,t]
+    #     sigma_vec_obs    = sigma_matrix[obs_index,t]
+    #     ksi_vec_obs      = ksi_matrix[obs_index,t]
         
-        phi_vec_miss      = phi_vec[miss_index]
-        gamma_vec_miss    = gamma_vec[miss_index]
-        R_vec_miss        = R_vec[miss_index,t]
-        mu_vec_miss       = mu_matrix[miss_index,t]
-        sigma_vec_miss    = sigma_matrix[miss_index,t]
-        ksi_vec_miss      = ksi_matrix[miss_index,t]
+    #     phi_vec_miss      = phi_vec[miss_index]
+    #     gamma_vec_miss    = gamma_vec[miss_index]
+    #     R_vec_miss        = R_matrix[miss_index,t]
+    #     mu_vec_miss       = mu_matrix[miss_index,t]
+    #     sigma_vec_miss    = sigma_matrix[miss_index,t]
+    #     ksi_vec_miss      = ksi_matrix[miss_index,t]
         
-        Y_obs = Y[obs_index,t]
-        X_obs = qRW(pgev(Y_obs, mu_vec_obs, sigma_vec_obs, ksi_vec_obs), phi_vec_obs, gamma_vec_obs)
-        Z_obs = pareto_to_Norm(X_obs/R_vec_obs**phi_vec_obs)
+    #     Y_obs = Y[obs_index,t]
+    #     X_obs = qRW(pgev(Y_obs, mu_vec_obs, sigma_vec_obs, ksi_vec_obs), phi_vec_obs, gamma_vec_obs)
+    #     Z_obs = pareto_to_Norm(X_obs/R_vec_obs**phi_vec_obs)
 
-        K11       = K[miss_index,:][:,miss_index] # shape(miss, miss)
-        K12       = K[miss_index,:][:,obs_index]  # shape(miss, obs)
-        K21       = K[obs_index,:][:,miss_index]  # shape(obs, miss)
-        K22       = K[obs_index,:][:,obs_index]   # shape(obs, obs)
-        K22_inv   = np.linalg.inv(K22)
-        cond_mean = K12 @ K22_inv @ Z_obs
-        cond_cov  = K11 - K12 @ K22_inv @ K21
+    #     K11       = K[miss_index,:][:,miss_index] # shape(miss, miss)
+    #     K12       = K[miss_index,:][:,obs_index]  # shape(miss, obs)
+    #     K21       = K[obs_index,:][:,miss_index]  # shape(obs, miss)
+    #     K22       = K[obs_index,:][:,obs_index]   # shape(obs, obs)
+    #     K22_inv   = np.linalg.inv(K22)
+    #     cond_mean = K12 @ K22_inv @ Z_obs
+    #     cond_cov  = K11 - K12 @ K22_inv @ K21
 
-        Z_miss = scipy.stats.multivariate_normal.rvs(mean = cond_mean, cov = cond_cov)
-        X_miss = R_vec_miss**phi_vec_miss * norm_to_Pareto(Z_miss)
-        Y_miss = qgev(pRW(X_miss, phi_vec_miss, gamma_vec_miss), 
-                      mu_vec_miss, sigma_vec_miss, ksi_vec_miss)
+    #     Z_miss = scipy.stats.multivariate_normal.rvs(mean = cond_mean, cov = cond_cov)
+    #     X_miss = R_vec_miss**phi_vec_miss * norm_to_Pareto(Z_miss)
+    #     Y_miss = qgev(pRW(X_miss, phi_vec_miss, gamma_vec_miss), 
+    #                   mu_vec_miss, sigma_vec_miss, ksi_vec_miss)
                 
-        Y[miss_index,t] = Y_miss
-
+    #     Y[miss_index,t] = Y_miss
 
     # %% Plot Parameter Surface
     # Plot Parameter Surface
@@ -1460,8 +1464,27 @@ if __name__ == "__main__":
     #                       phi_vec_current, gamma_vec)
     # X_star_1t_current = X_star[:,rank]
 
-    X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                          phi_vec_current, gamma_vec)
+    # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+    #                       phi_vec_current, gamma_vec)
+
+    miss_vec   = miss_matrix[:,rank]
+    miss_index = np.where(miss_vec == True)[0]
+    obs_index  = np.where(miss_vec == False)[0]
+
+    Y_1t_current                 = Y[:,rank] # this is a shallow copy, modifying Y_1t_current will modify Y
+    X_star_1t_current            = np.full(shape = (Ns,), fill_value = np.nan) # contain missing values
+    X_star_1t_current[obs_index] = qRW(pgev(Y_1t_current[obs_index], 
+                                            Loc_matrix_current[obs_index,rank], 
+                                            Scale_matrix_current[obs_index,rank], 
+                                            Shape_matrix_current[obs_index,rank]),
+                                        phi_vec_current[obs_index], gamma_vec[obs_index])
+    X_star_1t_miss, Y_1t_miss = impute_1t(miss_index, obs_index, X_star_1t_current,
+                                            Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                            phi_vec_current, gamma_vec, R_vec_current, K_current)
+    X_star_1t_current[miss_index] = X_star_1t_miss
+    Y_1t_current[miss_index]      = Y_1t_miss # this will modify Y[:,rank] because Y_1t_current shallow copy
+
+    assert len(np.where(np.isnan(Y[:,rank]))[0]) == 0
 
 
     # %% Metropolis-Hasting Updates
@@ -1472,8 +1495,6 @@ if __name__ == "__main__":
 
     comm.Barrier() # Blocking before the update starts
 
-    # %% 10. Metropolis Update Loops -------------------------------------------------------------------------------------
-    # 10. Metropolis Update Loops
     if rank == 0:
         start_time = time.time()
         print('started on:', strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
@@ -1678,9 +1699,9 @@ if __name__ == "__main__":
                     range_vec_update   = range_vec_current
                     range_knots_update = range_knots_current
                 else:
-                    range_accepted            = True
-                    range_vec_update          = range_vec_proposal
-                    range_knots_update        = range_knots_proposal
+                    range_accepted     = True
+                    range_vec_update   = range_vec_proposal
+                    range_knots_update = range_knots_proposal
                     num_accepted[key] += 1
                 
                 # Store the result
@@ -1700,6 +1721,13 @@ if __name__ == "__main__":
                 K_current               = K_proposal
                 cholesky_matrix_current = cholesky_matrix_proposal
                 lik_1t_current          = lik_1t_proposal
+                
+                # draw new Y_miss
+                X_star_1t_miss, Y_1t_miss     = impute_1t(miss_index, obs_index, X_star_1t_current,
+                                                          Loc_matrix_current[:,rank], Scale_matrix_current[:,rank],Shape_matrix_current[:,rank],
+                                                          phi_vec_current, gamma_vec, R_vec_current, K_current)
+                X_star_1t_current[miss_index] = X_star_1t_miss
+                Y_1t_current[miss_index]      = Y_1t_miss
 
             comm.Barrier() # block for range_block updates
 

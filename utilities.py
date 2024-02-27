@@ -475,19 +475,54 @@ def ns_cov_interp(range_vec, sigsq_vec, coords, tck):
 
 # # pairwise_distance = scipy.spatial.distance.pdist(sites_xy)
 # # matern_correlation_vec(pairwise_distance, 1, nu) # gives same result as skMatern(sites_xy)
-
 # # tri = np.zeros((4,4))
 # # tri[np.triu_indices(4,1)] = matern_correlation_vec(pairwise_distance, 1, 1)
 # # tri + tri.T + np.identity(4)
 
-# matern_covariance_matrix = np.full(shape=(num_sites, num_sites), 
-#                                    fill_value = 0.0)
-# for i in range(num_sites):
-#     for j in range(i+1, num_sites):
-#         distance = scipy.spatial.distance.pdist(sites_xy[(i,j),])
-#         variance = np.sqrt(sigsq_vec[i] * sigsq_vec[j])
-#         avg_range = (range_vec[i] + range_vec[j])/2
-#         prod_range = np.sqrt(range_vec[i] * range_vec[j])
-#         C = variance * (prod_range / avg_range) * matern_correlation(distance/np.sqrt(avg_range), 1, nu)
-#         matern_covariance_matrix[i,j] = C[0]
-# matern_covariance_matrix += matern_covariance_matrix.T + sigsq * np.identity(num_sites)
+# # Note:
+# #       K[i,j] (row i, col j) means the correlation between site_i and site_j
+# #       np.mean(np.round(K,3) == np.round(K_current, 3)) # 1.0, meaning they are the same. 
+# K = np.full(shape = (Ns, Ns), fill_value = 0.0)
+# for i in range(Ns):
+#     for j in range(i+1, Ns):
+#         site_i = sites_xy[i,]
+#         site_j = sites_xy[j,]
+#         d = scipy.spatial.distance.pdist([site_i, site_j])
+#         rho_i = range_vec[i]
+#         rho_j = range_vec[j]
+#         sigma_i = sigsq_vec[i]
+#         sigma_j = sigsq_vec[j]
+#         M = matern_correlation(d/np.sqrt((rho_i + rho_j)/2), 1, 0.5)
+#         C = sigma_i * sigma_j * (np.sqrt(rho_i*rho_j)) * (1/((rho_i + rho_j)/2)) * M
+#         K[i,j] = C[0]
+# K = K + K.T + sigsq * np.identity(Ns)
+
+def impute_1t(miss_index, obs_index, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec, gamma_vec, R_vec, K):
+
+    phi_vec_obs = phi_vec[obs_index]
+    R_vec_obs   = R_vec[obs_index]
+    X_obs       = X_vec[obs_index]
+    Z_obs       = pareto_to_Norm(X_obs/R_vec_obs**phi_vec_obs)
+
+    K11       = K[miss_index,:][:,miss_index] # shape(miss, miss)
+    K12       = K[miss_index,:][:,obs_index]  # shape(miss, obs)
+    K21       = K[obs_index,:][:,miss_index]  # shape(obs, miss)
+    K22       = K[obs_index,:][:,obs_index]   # shape(obs, obs)
+    K22_inv   = np.linalg.inv(K22)
+    
+    cond_mean = K12 @ K22_inv @ Z_obs
+    cond_cov  = K11 - K12 @ K22_inv @ K21
+
+    phi_vec_miss      = phi_vec[miss_index]
+    gamma_vec_miss    = gamma_vec[miss_index]
+    R_vec_miss        = R_vec[miss_index]
+    mu_vec_miss       = mu_vec[miss_index]
+    sigma_vec_miss    = sigma_vec[miss_index]
+    ksi_vec_miss      = ksi_vec[miss_index]
+
+    Z_miss = scipy.stats.multivariate_normal.rvs(mean = cond_mean, cov = cond_cov)
+    X_miss = R_vec_miss**phi_vec_miss * norm_to_Pareto(Z_miss)
+    Y_miss = qgev(pRW(X_miss, phi_vec_miss, gamma_vec_miss), 
+                    mu_vec_miss, sigma_vec_miss, ksi_vec_miss)
+
+    return (X_miss,Y_miss)
