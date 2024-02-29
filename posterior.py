@@ -484,12 +484,12 @@ sigma_Beta_ksi      = 1
 range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
 
 ### scenario 1
-# phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
+phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
 ### scenario 2
-phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
+# phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
 ### scenario 3
 # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
-#                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
+                        #  scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
 
 # ----------------------------------------------------------------------------------------------------------------
 # Generate Data
@@ -530,13 +530,13 @@ ksi_estimates = None
 
 # %% load traceplot
 # load traceplots
-# folder                    = './data/20240217_t32_s125/'
-# folder                    = './data/20240220_t32_s125_isogrid_elev200/'
-# folder                    = './data/20240221_t32_s125_standard_isogrid_elev200_r0234/'
-folder                    = './data/20240221_t32_s125_shifted_isogrid_elev200_postcov_20k/'
-# folder                    = './data/20240223_2345_t32_s300_standard/'
-# folder = './data/20240224_2345_t32_s300_standard_postcov/'
-# folder = './data/20240225_t32_s125_standard_isogrid_elev200_r0234_150k/'
+
+# folder                    = './data/20240221_t32_s125_shifted_isogrid_elev200_postcov_20k/'
+# # folder                    = './data/20240225_t32_s125_standard_isogrid_elev200_r0234_150k/'
+
+folder = './data/20240226_2345_sc1_t32_s300_standard_100k/'
+# folder = './data/20240226_2345_sc3_t32_s300_standard_100k/'
+
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
