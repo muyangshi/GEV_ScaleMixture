@@ -64,6 +64,7 @@ if __name__ == "__main__":
     os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
     os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
     import numpy as np
+    import matplotlib
     import matplotlib.pyplot as plt
     import scipy
     import time
@@ -1034,6 +1035,43 @@ if __name__ == "__main__":
         # plt.show()
         plt.savefig('stations.pdf')
         plt.close()
+
+
+        # fig, ax = plt.subplots()
+        # fig.set_size_inches(10,8)
+        # ax.set_aspect('equal', 'box')
+        # # radius
+        # for i in range(k):
+        #     circle_i = plt.Circle((knots_xy[i,0], knots_xy[i,1]), radius_from_knots[0],
+        #                             color='r', fill=True, fc='grey', ec='None', alpha = 0.2)
+        #     ax.add_patch(circle_i)
+        # # sites
+        # ax.scatter(sites_x, sites_y, marker ='.', c = 'blue', label="sites")
+        # # knots
+        # ax.scatter(knots_x, knots_y, marker='+', c = 'red', label="knot", s = 300)
+        # # domain
+        # space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+        #                                 fill = False, color = 'black')
+        # ax.add_patch(space_rectangle)
+        # ax.set_xticks([0,2,4,6,8,10])
+        # ax.set_yticks([0,2,4,6,8,10])
+
+        # box = ax.get_position()
+        # # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+        # legend_elements = [matplotlib.lines.Line2D([0], [0], marker= '.', linestyle='None', color='b', label='Site'),
+        #                 matplotlib.lines.Line2D([0], [0], marker='+', linestyle = "None", color='red', label='Knot Center',  markersize=20),
+        #                 matplotlib.lines.Line2D([0], [0], marker = 'o', linestyle = 'None', label = 'Knot Radius', markerfacecolor = 'grey', markersize = 20, alpha = 0.2),
+        #                 matplotlib.lines.Line2D([], [], color='None', marker='s', linestyle='None', markeredgecolor = 'black', markersize=20, label='Spatial Domain')]
+        # # ax.legend(handles = legend_elements, loc = (1.04,0.75), fontsize = 20)
+        # plt.legend(handles = legend_elements, bbox_to_anchor=(1.01,1.01), fontsize = 20)
+        # plt.xticks(fontsize = 20)
+        # plt.yticks(fontsize = 20)
+        # plt.subplots_adjust(right=0.6)
+        # plt.savefig('stations.pdf',bbox_inches="tight")
+        # plt.close()
+
+
     
     # 2. Elevation
     if rank == 0:
