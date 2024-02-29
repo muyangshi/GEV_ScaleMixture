@@ -499,6 +499,9 @@ def ns_cov_interp(range_vec, sigsq_vec, coords, tck):
 
 def impute_1t(miss_index, obs_index, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec, gamma_vec, R_vec, K):
 
+    if len(miss_index) == 0:
+        return (None, None)
+
     phi_vec_obs = phi_vec[obs_index]
     R_vec_obs   = R_vec[obs_index]
     X_obs       = X_vec[obs_index]
