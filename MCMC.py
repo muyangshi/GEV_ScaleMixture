@@ -91,17 +91,17 @@ if __name__ == "__main__":
         if rank == 0: print('data_seed: ', data_seed)
     np.random.seed(data_seed)
 
-    if rank == 0: print(norm_pareto)
+    if rank == 0: print('Pareto: ', norm_pareto)
 
     # %% Generate Data ----------------------------------------------------------------------------------
     # Generate Data -------------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Numbers - Ns, Nt, n_iters
+    # Numbers - Ns, Nt
     
     np.random.seed(data_seed)
     Nt = 32 # number of time replicates
-    Ns = 300 # number of sites/stations
+    Ns = 100 # number of sites/stations
     Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
     # ----------------------------------------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ if __name__ == "__main__":
 
     # Location mu_1(s) ----------------------------------------------------------------------------------------------
     
-    Beta_mu1_splines_m = 18 - 1 # drop the 3rd to last column of constant
+    Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
     Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
     C_mu1_splines      = np.array(r('''
                                     basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -345,12 +345,13 @@ if __name__ == "__main__":
     logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
     ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
+    # ----------------------------------------------------------------------------------------------------------------
     # missing indicator matrix
     
     ## random missing
     miss_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
     for t in range(Nt):
-        miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.95, 0.05])
+        miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
     
     ## no missing
     # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
@@ -1154,7 +1155,7 @@ if __name__ == "__main__":
     ########### MCMC Parameters ##############################################################################
     ##########################################################################################################
     
-    n_iters = 10000
+    n_iters = 5000
 
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
@@ -1348,8 +1349,9 @@ if __name__ == "__main__":
     else:
         sigma_m_sq_Rt_list = None
         num_accepted_Rt_list = None
-    sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
-    num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
+    if size != 1: # just so that this chunk get passed when running on local
+        sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
+        num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
 
     # 8. Storage for Traceplots -----------------------------------------------
@@ -1466,9 +1468,20 @@ if __name__ == "__main__":
                                             Scale_matrix_current[obs_index_1t,rank], 
                                             Shape_matrix_current[obs_index_1t,rank]),
                                         phi_vec_current[obs_index_1t], gamma_vec[obs_index_1t])
-    X_star_1t_miss, Y_1t_miss = impute_1t(miss_index_1t, obs_index_1t, X_star_1t_current,
+    X_star_1t_miss, Y_1t_miss = impute_1t(miss_index_1t, obs_index_1t, 
+                                          Y[:,rank], X_star_1t_current,
                                             Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                             phi_vec_current, gamma_vec, R_vec_current, K_current)
+    # X_star_1t_current = qRW(pgev(Y[:,rank][:], 
+    #                                         Loc_matrix_current[:,rank], 
+    #                                         Scale_matrix_current[:,rank], 
+    #                                         Shape_matrix_current[:,rank]),
+    #                                     phi_vec_current[:], gamma_vec[:])
+    # X_star_1t_miss, Y_1t_miss = impute_1t_fake(miss_index_1t, obs_index_1t, 
+    #                                       Y[:,rank], X_star_1t_current,
+    #                                         Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+    #                                         phi_vec_current, gamma_vec, R_vec_current, K_current)
+    
     X_star_1t_current[miss_index_1t] = X_star_1t_miss
     Y[:,rank][miss_index_1t]      = Y_1t_miss # this will modify Y[:,rank] because Y_1t_current shallow copy
 
@@ -1492,9 +1505,9 @@ if __name__ == "__main__":
     prior_1t_current = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
     if not np.isfinite(lik_1t_current) or not np.isfinite(prior_1t_current):
         print('initial values lead to none finite likelihood')
-        print(rank)
-        print(lik_1t_current)
-        print(prior_1t_current)
+        print('rank:',rank)
+        print('lik_1t_current:',lik_1t_current)
+        print('prior_1t_current of R:',prior_1t_current)
 
     for iter in range(1, n_iters):
         # %% Update Rt
@@ -1608,6 +1621,10 @@ if __name__ == "__main__":
                 ratio = np.exp(lik_proposal - lik_current)
                 if not np.isfinite(ratio):
                     ratio = 0
+                    if rank == 0:
+                        print('likelihood ratio not finite')
+                        print('lik_proposal:', lik_proposal)
+                        print('lik_current:', lik_current)
                 if u > ratio: # Reject
                     phi_accepted     = False
                     phi_vec_update   = phi_vec_current
@@ -1643,8 +1660,8 @@ if __name__ == "__main__":
         #########################################################################################
 
         # Update range ACTUALLY in blocks
-        for key in phi_block_idx_dict.keys():
-            change_indices = np.array(phi_block_idx_dict[key])
+        for key in range_block_idx_dict.keys():
+            change_indices = np.array(range_block_idx_dict[key])
 
             # Propose new range_block at the change indices
             if rank == 0:
@@ -1710,14 +1727,31 @@ if __name__ == "__main__":
                 cholesky_matrix_current = cholesky_matrix_proposal
                 lik_1t_current          = lik_1t_proposal
                 
-                # draw new Y_miss
-                X_star_1t_miss, Y_1t_miss     = impute_1t(miss_index_1t, obs_index_1t, X_star_1t_current,
-                                                          Loc_matrix_current[:,rank], Scale_matrix_current[:,rank],Shape_matrix_current[:,rank],
-                                                          phi_vec_current, gamma_vec, R_vec_current, K_current)
-                X_star_1t_current[miss_index_1t] = X_star_1t_miss
-                Y[:,rank][miss_index_1t]      = Y_1t_miss
-
             comm.Barrier() # block for range_block updates
+
+        # %% Update Missing Values
+        #########################################################################################
+        ####  Update missing values  ############################################################
+        #########################################################################################
+
+        # draw new Y_miss 
+        X_star_1t_miss, Y_1t_miss     = impute_1t(miss_index_1t, obs_index_1t, 
+                                                  Y[:,rank], X_star_1t_current,
+                                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank],Shape_matrix_current[:,rank],
+                                                    phi_vec_current, gamma_vec, R_vec_current, K_current)
+        # X_star_1t_miss, Y_1t_miss = impute_1t_fake(miss_index_1t, obs_index_1t, 
+        #                                 Y[:,rank], X_star_1t_current,
+        #                                 Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                 phi_vec_current, gamma_vec, R_vec_current, K_current)
+
+        X_star_1t_current[miss_index_1t] = X_star_1t_miss
+        Y[:,rank][miss_index_1t]      = Y_1t_miss
+
+        lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+                                                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                                    phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+
+        comm.Barrier()
 
         # %% Update Beta_mu0
         #############################################################

@@ -538,7 +538,9 @@ ksi_estimates = None
 # folder = './data/20240224_2345_sc2_t32_s300_standard_100k/'
 # folder = './data/20240226_2345_sc3_t32_s300_standard_100k/'
 
-folder = './data/20240229_t32_s300_standard_impute/'
+# folder = './data/20240229_t32_s300_standard_impute/'
+
+folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
@@ -699,6 +701,17 @@ plt.title('traceplot for Beta_mu1')
 plt.xlabel('iter thinned by 10')
 plt.ylabel('Beta_mu1')
 plt.legend()  
+
+for t in range(Nt):
+    label_by_knot = ['knot ' + str(knot) for knot in range(k)]
+    plt.subplots()
+    plt.plot(xs_thin2, R_trace_log_thin[:,:,t], label = label_by_knot)
+    plt.legend(loc = 'upper left')
+    plt.title('traceplot for log(Rt) at t=' + str(t))
+    plt.xlabel('iter thinned by 10')
+    plt.ylabel('log(Rt)s')
+    plt.savefig('Rt'+str(t)+'.pdf')
+    plt.close()
 
 # side by side mu0
 vmin = min(np.floor(min(mu0_estimates)), np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0])))

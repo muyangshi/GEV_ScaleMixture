@@ -497,7 +497,7 @@ def ns_cov_interp(range_vec, sigsq_vec, coords, tck):
 #         K[i,j] = C[0]
 # K = K + K.T + sigsq * np.identity(Ns)
 
-def impute_1t(miss_index, obs_index, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec, gamma_vec, R_vec, K):
+def impute_1t(miss_index, obs_index, Y_vec, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec, gamma_vec, R_vec, K):
 
     if len(miss_index) == 0:
         return (None, None)
@@ -527,5 +527,13 @@ def impute_1t(miss_index, obs_index, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec,
     X_miss = R_vec_miss**phi_vec_miss * norm_to_Pareto(Z_miss)
     Y_miss = qgev(pRW(X_miss, phi_vec_miss, gamma_vec_miss), 
                     mu_vec_miss, sigma_vec_miss, ksi_vec_miss)
+
+    return (X_miss,Y_miss)
+
+def impute_1t_fake(miss_index, obs_index, Y_vec, X_vec, mu_vec, sigma_vec, ksi_vec, phi_vec, gamma_vec, R_vec, K):
+    # just return the true values
+
+    X_miss = X_vec[miss_index]
+    Y_miss = Y_vec[miss_index]
 
     return (X_miss,Y_miss)
