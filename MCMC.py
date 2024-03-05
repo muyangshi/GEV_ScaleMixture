@@ -734,6 +734,8 @@ if __name__ == "__main__":
     Beta_mu1 = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
     Beta_logsigma = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
     Beta_ksi = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+
+    ## Note: these sigma_Beta_xx must be values, can't be arrays
     sigma_Beta_mu0      = 9.62944645
     sigma_Beta_mu1      = 0.22947093
     sigma_Beta_logsigma = 1.79421561
@@ -1427,7 +1429,7 @@ if __name__ == "__main__":
         if rank == 0:
             with open('sigma_m_sq.pkl','rb') as file:
                 sigma_m_sq = pickle.load(file)
-            with open('Sigma_0.pickle.pkl', 'rb') as file:
+            with open('Sigma_0.pkl', 'rb') as file:
                 Sigma_0    = pickle.load(file)
 
     # ----------------------------------------------------------------------------------------------------------------
@@ -1497,14 +1499,14 @@ if __name__ == "__main__":
             phi_knots_trace           = np.load('phi_knots_trace.npy')
             range_knots_trace         = np.load('range_knots_trace.npy')
             Beta_mu0_trace            = np.load('Beta_mu0_trace.npy')
-            Beta_mu1_trace            = np.load('Beta_mu1_trace')
-            Beta_logsigma_trace       = np.load('Beta_logsigma_trace')
-            Beta_ksi_trace            = np.load('Beta_ksi_trace')
-            sigma_Beta_mu0_trace      = np.load('sigma_Beta_mu0_trace')
-            sigma_Beta_mu1_trace      = np.load('sigma_Beta_mu1_trace')
-            sigma_Beta_logsigma_trace = np.load('sigma_Beta_logsigma_trace')
-            sigma_Beta_ksi_trace      = np.load('sigma_Beta_ksi_trace')
-            Y_trace                   = np.load('Y_trace')
+            Beta_mu1_trace            = np.load('Beta_mu1_trace.npy')
+            Beta_logsigma_trace       = np.load('Beta_logsigma_trace.npy')
+            Beta_ksi_trace            = np.load('Beta_ksi_trace.npy')
+            sigma_Beta_mu0_trace      = np.load('sigma_Beta_mu0_trace.npy')
+            sigma_Beta_mu1_trace      = np.load('sigma_Beta_mu1_trace.npy')
+            sigma_Beta_logsigma_trace = np.load('sigma_Beta_logsigma_trace.npy')
+            sigma_Beta_ksi_trace      = np.load('sigma_Beta_ksi_trace.npy')
+            Y_trace                   = np.load('Y_trace.npy')
         else:
             loglik_trace              = None
             loglik_detail_trace       = None
@@ -1558,10 +1560,11 @@ if __name__ == "__main__":
         Beta_mu1_init            = Beta_mu1_trace[last_iter,:]            if rank == 0 else None
         Beta_logsigma_init       = Beta_logsigma_trace[last_iter,:]       if rank == 0 else None
         Beta_ksi_init            = Beta_ksi_trace[last_iter,:]            if rank == 0 else None
-        sigma_Beta_mu0_init      = sigma_Beta_mu0_trace[last_iter,:]      if rank == 0 else None
-        sigma_Beta_mu1_init      = sigma_Beta_mu1_trace[last_iter,:]      if rank == 0 else None
-        sigma_Beta_logsigma_init = sigma_Beta_logsigma_trace[last_iter,:] if rank == 0 else None
-        sigma_Beta_ksi_init      = sigma_Beta_ksi_trace[last_iter,:]      if rank == 0 else None
+        ## Note: these sigma_Beta_xx must be values, can't be arrays
+        sigma_Beta_mu0_init      = sigma_Beta_mu0_trace[last_iter,0]      if rank == 0 else None
+        sigma_Beta_mu1_init      = sigma_Beta_mu1_trace[last_iter,0]      if rank == 0 else None
+        sigma_Beta_logsigma_init = sigma_Beta_logsigma_trace[last_iter,0] if rank == 0 else None
+        sigma_Beta_ksi_init      = sigma_Beta_ksi_trace[last_iter,0]      if rank == 0 else None
         Y_init                   = Y_trace[last_iter,:,:]                 if rank == 0 else None
 
 
