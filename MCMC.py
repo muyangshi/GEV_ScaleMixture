@@ -41,8 +41,11 @@ MCMC Sampler that takes in real data
 Feb 25, 2024
 Makes a separate file for proposal variance from trial run using posterior covariance
 
-Feb 26, 2024
-Added initial imputation
+March 2, 2024
+Making imputation with posterior predictive draw complete
+
+March 4, 2024
+"Cross checking" data generated with the other link function g(Z)
 """
 # Require:
 #   - utilities.py
@@ -93,15 +96,15 @@ if __name__ == "__main__":
 
     if rank == 0: print('Pareto: ', norm_pareto)
 
-    # %% Generate Data ----------------------------------------------------------------------------------
-    # Generate Data -------------------------------------------------------------------------------------
+    # %% Simulation Setup ----------------------------------------------------------------------------------
+    # Simulation Setup -------------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------------------------------------
     # Numbers - Ns, Nt
     
     np.random.seed(data_seed)
     Nt = 32 # number of time replicates
-    Ns = 100 # number of sites/stations
+    Ns = 225 # number of sites/stations
     Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
     # ----------------------------------------------------------------------------------------------------------------
@@ -295,6 +298,15 @@ if __name__ == "__main__":
     sigma_Beta_logsigma = 1
     sigma_Beta_ksi      = 1
 
+    mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
+    mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
+    logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
+    ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
+
+    mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+    ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+
     # ----------------------------------------------------------------------------------------------------------------
     # Data Model Parameters - X_star = R^phi * g(Z)
 
@@ -308,8 +320,12 @@ if __name__ == "__main__":
     # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
     #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
 
+
+    # %% Generate/Load Simulation Data ------------------------------------------------------------------------------------
+    # Generate/Load Simulation Data
+
     # ----------------------------------------------------------------------------------------------------------------
-    # Generate Data
+    # Generate Simulation Data ---------------------------------------------------------------------------------------
 
     # W = g(Z), Z ~ MVN(0, K)
     range_vec = gaussian_weight_matrix @ range_at_knots
@@ -340,25 +356,65 @@ if __name__ == "__main__":
     for t in np.arange(Nt):
         Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
-    mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
-    mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
-    logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
-    ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
-
     # ----------------------------------------------------------------------------------------------------------------
     # missing indicator matrix
     
     ## random missing
-    miss_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
     for t in range(Nt):
         miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
-    
-    ## no missing
-    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
     
     miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
     for t in range(Nt):
         Y[:,t][miss_matrix[:,t]] = np.nan
+
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Load Simulation Data ---------------------------------------------------------------------------------------
+    
+    # # cross check
+    # if norm_pareto == 'shifted':
+    #     Y_file_name = 'Y_standard_t32_s225_nomiss.npy'
+    # else: # norm_pareto == 'standard'
+    #     Y_file_name = 'Y_shifted_t32_s225_nomiss.npy'
+    # print('loading data file:', Y_file_name)
+    # Y = np.load(Y_file_name)
+
+    # # missing indicator matrix
+    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
+    # # for t in range(Nt):
+    # #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
+    # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+    # for t in range(Nt):
+    #     Y[:,t][miss_matrix[:,t]] = np.nan
+
+    # if norm_pareto == 'standard':
+    #     R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    #     phi_vec    = gaussian_weight_matrix @ phi_at_knots
+    #     for t in np.arange(Nt):
+    #         # only use non-missing values
+    #         miss_index_1t = np.where(miss_matrix[:,t] == True)[0]
+    #         obs_index_1t  = np.where(miss_matrix[:,t] == False)[0]
+    #         R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t], 
+    #                                            mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]), 
+    #                                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t]))/1.5)**2
+            
+    # elif norm_pareto == 'shifted':
+    #     # use the truth
+    #     R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    #     for t in np.arange(Nt):
+    #         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+
+        # # Calculate Rt in Parallel, only use non-missing values
+        # comm.Barrier()
+        # miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
+        # obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
+        # X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
+        #                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
+        # R_1t       = np.array([np.median(X_1t)**2] * k)
+        # R_gathered = comm.gather(R_1t, root = 0)
+        # R_at_knots = np.array(R_gathered).T if rank == 0 else None
+        # R_at_knots = comm.bcast(R_at_knots, root = 0)
+
 
     # %% Checking Data Generation
     # Checking Data Generation -------------------------------------------------------------------------------------
@@ -460,7 +516,7 @@ if __name__ == "__main__":
     # ## random missing
     # miss_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
     # for t in range(Nt):
-    #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.95, 0.05])
+    #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
     
     # ## no missing
     # # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
@@ -470,8 +526,8 @@ if __name__ == "__main__":
     #     Y[:,t][miss_matrix[:,t]] = np.nan
     
     
-    # # %% Setup (Covariates and Constants) ----------------------------------------------------------------------------
-    # # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
+    # %% Setup (Covariates and Constants) ----------------------------------------------------------------------------
+    # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
     
     # # ----------------------------------------------------------------------------------------------------------------
     # # Ns, Nt
@@ -1155,7 +1211,7 @@ if __name__ == "__main__":
     ########### MCMC Parameters ##############################################################################
     ##########################################################################################################
     
-    n_iters = 5000
+    n_iters = 20000
 
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
