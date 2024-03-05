@@ -104,9 +104,21 @@ if __name__ == "__main__":
     
     np.random.seed(data_seed)
     Nt = 32 # number of time replicates
-    Ns = 225 # number of sites/stations
+    Ns = 100 # number of sites/stations
     Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
+    # ----------------------------------------------------------------------------------------------------------------
+    # missing indicator matrix
+    
+    ## random missing
+    miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
+    for t in range(Nt):
+        miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
+    
+    miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+    if rank == 0:
+        np.save('miss_matrix_bool', miss_matrix)
+    
     # ----------------------------------------------------------------------------------------------------------------
     # Sites - random uniformly (x,y) generate site locations
     
@@ -355,16 +367,8 @@ if __name__ == "__main__":
     Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
     for t in np.arange(Nt):
         Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
-
-    # ----------------------------------------------------------------------------------------------------------------
-    # missing indicator matrix
-    
-    ## random missing
-    miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
-    for t in range(Nt):
-        miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
-    
-    miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+    if rank == 0:
+        np.save('Y_sim_sc2_t'+str(Nt)+'_s'+str(Ns)+'_truth', Y)
     for t in range(Nt):
         Y[:,t][miss_matrix[:,t]] = np.nan
 
@@ -377,13 +381,8 @@ if __name__ == "__main__":
     # else: # norm_pareto == 'standard'
     #     Y_file_name = 'Y_shifted_t32_s225_nomiss.npy'
     # print('loading data file:', Y_file_name)
+    
     # Y = np.load(Y_file_name)
-
-    # # missing indicator matrix
-    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
-    # # for t in range(Nt):
-    # #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
-    # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
     # for t in range(Nt):
     #     Y[:,t][miss_matrix[:,t]] = np.nan
 
@@ -404,16 +403,16 @@ if __name__ == "__main__":
     #     for t in np.arange(Nt):
     #         R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
 
-        # # Calculate Rt in Parallel, only use non-missing values
-        # comm.Barrier()
-        # miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
-        # obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
-        # X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
-        #                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
-        # R_1t       = np.array([np.median(X_1t)**2] * k)
-        # R_gathered = comm.gather(R_1t, root = 0)
-        # R_at_knots = np.array(R_gathered).T if rank == 0 else None
-        # R_at_knots = comm.bcast(R_at_knots, root = 0)
+    #     # # Calculate Rt in Parallel, only use non-missing values
+    #     # comm.Barrier()
+    #     # miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
+    #     # obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
+    #     # X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
+    #     #                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
+    #     # R_1t       = np.array([np.median(X_1t)**2] * k)
+    #     # R_gathered = comm.gather(R_1t, root = 0)
+    #     # R_at_knots = np.array(R_gathered).T if rank == 0 else None
+    #     # R_at_knots = comm.bcast(R_at_knots, root = 0)
 
 
     # %% Checking Data Generation
@@ -512,15 +511,10 @@ if __name__ == "__main__":
     # Y = JJA_maxima.copy()
 
     # # missing indicator matrix
-    
     # ## random missing
-    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
     # for t in range(Nt):
     #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
-    
-    # ## no missing
-    # # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
-    
     # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
     # for t in range(Nt):
     #     Y[:,t][miss_matrix[:,t]] = np.nan
@@ -1211,7 +1205,7 @@ if __name__ == "__main__":
     ########### MCMC Parameters ##############################################################################
     ##########################################################################################################
     
-    n_iters = 20000
+    n_iters = 10000
 
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
@@ -1426,6 +1420,7 @@ if __name__ == "__main__":
         sigma_Beta_mu1_trace      = np.full(shape=(n_iters, 1), fill_value = np.nan) # prior sd for beta_mu1's
         sigma_Beta_logsigma_trace = np.full(shape=(n_iters, 1), fill_value = np.nan) # prior sd for beta_logsigma's
         sigma_Beta_ksi_trace      = np.full(shape = (n_iters, 1), fill_value = np.nan) # prior sd for beta_ksi's
+        Y_trace                   = np.full(shape = (n_iters, Ns, Nt), fill_value = np.nan)
     else:
         loglik_trace              = None
         loglik_detail_trace       = None
@@ -1440,6 +1435,7 @@ if __name__ == "__main__":
         sigma_Beta_mu1_trace      = None
         sigma_Beta_logsigma_trace = None
         sigma_Beta_ksi_trace      = None
+        Y_trace                   = None
 
     # Initialize -------------------------------------------------------------------------------------
 
@@ -1455,6 +1451,7 @@ if __name__ == "__main__":
     sigma_Beta_mu1_init      = sigma_Beta_mu1      if rank == 0 else None
     sigma_Beta_logsigma_init = sigma_Beta_logsigma if rank == 0 else None
     sigma_Beta_ksi_init      = sigma_Beta_ksi      if rank == 0 else None
+    Y_init                   = Y                   if rank == 0 else None
     if rank == 0: # store initial value into first row of traceplot
         R_trace_log[0,:,:]             = R_matrix_init_log # matrix (k, Nt)
         phi_knots_trace[0,:]           = phi_knots_init
@@ -1467,6 +1464,7 @@ if __name__ == "__main__":
         sigma_Beta_mu1_trace[0,:]      = sigma_Beta_mu1_init
         sigma_Beta_logsigma_trace[0,:] = sigma_Beta_logsigma_init
         sigma_Beta_ksi_trace[0,:]      = sigma_Beta_ksi_init
+        Y_trace[0,:,:]                 = Y_init
 
     # Set Current Values
     ## ---- log(R) --------------------------------------------------------------------------------------------
@@ -1504,44 +1502,29 @@ if __name__ == "__main__":
     sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_init, root = 0)
 
     ## ---- X_star --------------------------------------------------------------------------------------------
-    # X_star = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    # for t in np.arange(Nt):
-    #     X_star[:,t] = qRW(pgev(Y[:,t], Loc_matrix_current[:,t], Scale_matrix_current[:,t], Shape_matrix_current[:,t]),
-    #                       phi_vec_current, gamma_vec)
-    # X_star_1t_current = X_star[:,rank]
-
-    # X_star_1t_current = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-    #                       phi_vec_current, gamma_vec)
 
     miss_vec_1t   = miss_matrix[:,rank]
     miss_index_1t = np.where(miss_vec_1t == True)[0]
     obs_index_1t  = np.where(miss_vec_1t == False)[0]
 
-    # Y_1t_current                = Y[:,rank] # this is a shallow copy, modifying Y_1t_current will modify Y
-    X_star_1t_current            = np.full(shape = (Ns,), fill_value = np.nan) # contain missing values
-    X_star_1t_current[obs_index_1t] = qRW(pgev(Y[:,rank][obs_index_1t], 
+    X_star_1t_current                = np.full(shape = (Ns,), fill_value = np.nan) # contain missing values
+    X_star_1t_current[obs_index_1t]  = qRW(pgev(Y[:,rank][obs_index_1t], 
                                             Loc_matrix_current[obs_index_1t,rank], 
                                             Scale_matrix_current[obs_index_1t,rank], 
                                             Shape_matrix_current[obs_index_1t,rank]),
                                         phi_vec_current[obs_index_1t], gamma_vec[obs_index_1t])
-    X_star_1t_miss, Y_1t_miss = impute_1t(miss_index_1t, obs_index_1t, 
-                                          Y[:,rank], X_star_1t_current,
-                                            Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                            phi_vec_current, gamma_vec, R_vec_current, K_current)
-    # X_star_1t_current = qRW(pgev(Y[:,rank][:], 
-    #                                         Loc_matrix_current[:,rank], 
-    #                                         Scale_matrix_current[:,rank], 
-    #                                         Shape_matrix_current[:,rank]),
-    #                                     phi_vec_current[:], gamma_vec[:])
-    # X_star_1t_miss, Y_1t_miss = impute_1t_fake(miss_index_1t, obs_index_1t, 
-    #                                       Y[:,rank], X_star_1t_current,
-    #                                         Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-    #                                         phi_vec_current, gamma_vec, R_vec_current, K_current)
-    
+    X_star_1t_miss, Y_1t_miss        = impute_1t(miss_index_1t, obs_index_1t, 
+                                                Y[:,rank], X_star_1t_current,
+                                                Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                phi_vec_current, gamma_vec, R_vec_current, K_current)
     X_star_1t_current[miss_index_1t] = X_star_1t_miss
-    Y[:,rank][miss_index_1t]      = Y_1t_miss # this will modify Y[:,rank] because Y_1t_current shallow copy
+    Y[:,rank][miss_index_1t]         = Y_1t_miss # this will modify Y[:,rank] because Y_1t_current shallow copy
 
     assert len(np.where(np.isnan(Y[:,rank]))[0]) == 0
+    
+    Y_gathered = comm.gather(Y[:,rank], root = 0)
+    if rank == 0:
+        Y_trace[0,:,:] = np.array(Y_gathered).T
 
 
     # %% Metropolis-Hasting Updates
@@ -1806,7 +1789,10 @@ if __name__ == "__main__":
         lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
                                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-
+        Y_gathered = comm.gather(Y[:,rank], root = 0)
+        if rank == 0:
+            Y_trace[iter,:,:] = np.array(Y_gathered).T
+            
         comm.Barrier()
 
         # %% Update Beta_mu0
@@ -2450,6 +2436,7 @@ if __name__ == "__main__":
                 np.save('sigma_Beta_mu1_trace', sigma_Beta_mu1_trace)
                 np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
                 np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
+                np.save('Y_trace', Y_trace)
 
                 # Print traceplot thinned by 10
                 xs       = np.arange(iter)
@@ -2678,3 +2665,4 @@ if __name__ == "__main__":
         np.save('sigma_Beta_mu1_trace', sigma_Beta_mu1_trace)
         np.save('sigma_Beta_logsigma_trace', sigma_Beta_logsigma_trace)
         np.save('sigma_Beta_ksi_trace', sigma_Beta_ksi_trace)
+        np.save('Y_trace', Y_trace)
