@@ -543,9 +543,11 @@ ksi_estimates = None
 # folder = './data/20240302_data_t32_s300_standard_impute_0.1/'
 # folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
 
-folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
+# folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
 
 # folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
+
+folder = './data/20240305_daisychain_t24_s125/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')

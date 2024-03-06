@@ -66,5 +66,6 @@ plt.xticks(fontsize = 20)
 plt.yticks(fontsize = 20)
 fig.text(0.5, 0.04, 'Credible Level', ha='center', va='center', fontsize = 24)
 fig.text(0.04, 0.5, 'Empirical Coverage', fontsize = 24, ha='center', va='center', rotation='vertical')
+fig.savefig('Posterior_Predictive_Check.pdf')
 
 # %%

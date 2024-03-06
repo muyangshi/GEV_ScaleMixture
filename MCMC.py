@@ -507,19 +507,19 @@ if __name__ == "__main__":
     stations           = np.array(r('stations')).T
     elevations         = np.array(r('elev')).T/200
 
-    # truncate for easier run on misspiggy
-    Nt                 = 24
-    Ns                 = 125
-    times_subset       = np.arange(Nt)
-    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-    GEV_estimates      = GEV_estimates[sites_subset,:]
-    mu0_estimates      = GEV_estimates[:,0]
-    mu1_estimates      = GEV_estimates[:,1]
-    logsigma_estimates = GEV_estimates[:,2]
-    ksi_estimates      = GEV_estimates[:,3]
-    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-    stations           = stations[sites_subset]
-    elevations         = elevations[sites_subset]
+    # # truncate for easier run on misspiggy
+    # Nt                 = 24
+    # Ns                 = 125
+    # times_subset       = np.arange(Nt)
+    # sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    # GEV_estimates      = GEV_estimates[sites_subset,:]
+    # mu0_estimates      = GEV_estimates[:,0]
+    # mu1_estimates      = GEV_estimates[:,1]
+    # logsigma_estimates = GEV_estimates[:,2]
+    # ksi_estimates      = GEV_estimates[:,3]
+    # JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    # stations           = stations[sites_subset]
+    # elevations         = elevations[sites_subset]
 
     Y = JJA_maxima.copy()
     miss_matrix = np.isnan(Y)
