@@ -231,7 +231,7 @@ C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
 # Location mu_1(s) ----------------------------------------------------------------------------------------------
 
-Beta_mu1_splines_m = 18 - 1 # drop the 3rd to last column of constant
+Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
 Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
 C_mu1_splines      = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -283,7 +283,7 @@ gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
 
 np.random.seed(data_seed)
 Nt = 32 # number of time replicates
-Ns = 125 # number of sites/stations
+Ns = 100 # number of sites/stations
 Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -422,7 +422,7 @@ C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
 # Location mu_1(s) ----------------------------------------------------------------------------------------------
 
-Beta_mu1_splines_m = 18 - 1 # drop the 3rd to last column of constant
+Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
 Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
 C_mu1_splines      = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -538,9 +538,14 @@ ksi_estimates = None
 # folder = './data/20240224_2345_sc2_t32_s300_standard_100k/'
 # folder = './data/20240226_2345_sc3_t32_s300_standard_100k/'
 
-# folder = './data/20240229_t32_s300_standard_impute/'
+# folder = './data/20240301_sim_2345_sc2_t32_s100_standard_impute_0.1/'
 
-folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
+# folder = './data/20240302_data_t32_s300_standard_impute_0.1/'
+# folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
+
+folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
+
+# folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
@@ -563,7 +568,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 
 # %%
 # burnins
-burnin = 4000
+burnin = 1000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
