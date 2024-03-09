@@ -1811,149 +1811,150 @@ if __name__ == "__main__":
         ####   Update phi_at_knots   ######################################################
         ###################################################################################
         
-        if norm_pareto == 'standard': # asymetric proposal
-            for key in phi_block_idx_dict.keys():
-                change_indices = np.array(phi_block_idx_dict[key])
+        # if norm_pareto == 'standard': # asymetric proposal
+        #     for key in phi_block_idx_dict.keys():
+        #         change_indices = np.array(phi_block_idx_dict[key])
 
-                # calculate truncation at each time
-                unchange_indices = np.array([x for x in range(k) if x not in change_indices])
-                phi_k = phi_at_knots[unchange_indices]
+        #         # calculate truncation at each time
+        #         unchange_indices = np.array([x for x in range(k) if x not in change_indices])
+        #         phi_k = phi_at_knots[unchange_indices]
                 
-                ub_idx = np.where(np.log(R_vec_current) > 0)[0]
-                lb_idx = np.where(np.log(R_vec_current) < 0)[0]
-                ubs_1t = np.append((np.log(X_star_1t_current[ub_idx])/np.log(R_vec_current[ub_idx]) - gaussian_weight_matrix[ub_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[ub_idx,:][:,change_indices].ravel(), 1)
-                lbs_1t = np.append((np.log(X_star_1t_current[lb_idx])/np.log(R_vec_current[lb_idx]) - gaussian_weight_matrix[lb_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[lb_idx,:][:,change_indices].ravel(), 0)
-                ub_1t  = np.min(ubs_1t)
-                lb_1t  = np.max(lbs_1t)
-                # assert ub_1t >= lb_1t
+        #         ub_idx = np.where(np.log(R_vec_current) > 0)[0]
+        #         lb_idx = np.where(np.log(R_vec_current) < 0)[0]
+        #         ubs_1t = np.append((np.log(X_star_1t_current[ub_idx])/np.log(R_vec_current[ub_idx]) - gaussian_weight_matrix[ub_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[ub_idx,:][:,change_indices].ravel(), 1)
+        #         lbs_1t = np.append((np.log(X_star_1t_current[lb_idx])/np.log(R_vec_current[lb_idx]) - gaussian_weight_matrix[lb_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[lb_idx,:][:,change_indices].ravel(), 0)
+        #         ub_1t  = np.min(ubs_1t)
+        #         lb_1t  = np.max(lbs_1t)
+        #         # assert ub_1t >= lb_1t
 
-                ub_1t_gathered = comm.gather(ub_1t, root = 0)
-                lb_1t_gathered = comm.gather(lb_1t, root = 0)
+        #         ub_1t_gathered = comm.gather(ub_1t, root = 0)
+        #         lb_1t_gathered = comm.gather(lb_1t, root = 0)
                 
-                # Asymmetric Proposal
-                if rank == 0:
-                    # truncation abscissae of the phi at knot that changed
-                    ub_trunc = np.min(ub_1t_gathered)
-                    lb_trunc = np.max(lb_1t_gathered)
+        #         # Asymmetric Proposal
+        #         if rank == 0:
+        #             # truncation abscissae of the phi at knot that changed
+        #             ub_trunc = np.min(ub_1t_gathered)
+        #             lb_trunc = np.max(lb_1t_gathered)
 
-                    if ub_trunc > lb_trunc:
-                        BoundError = False
-                        # transform to ub,lb in standard deviations for scipy truncnorm
-                        ub = (ub_trunc - phi_knots_current[change_indices]) / np.sqrt(sigma_m_sq[key])
-                        lb = (lb_trunc - phi_knots_current[change_indices]) / np.sqrt(sigma_m_sq[key])
-                        RV_truncnorm = scipy.stats.truncnorm(a = lb, b = ub,
-                                                            loc = phi_knots_current[change_indices],
-                                                            scale = np.sqrt(sigma_m_sq[key]))
+        #             if ub_trunc > lb_trunc:
+        #                 BoundError = False
+        #                 # transform to ub,lb in standard deviations for scipy truncnorm
+        #                 ub = (ub_trunc - phi_knots_current[change_indices]) / np.sqrt(sigma_m_sq[key])
+        #                 lb = (lb_trunc - phi_knots_current[change_indices]) / np.sqrt(sigma_m_sq[key])
+        #                 RV_truncnorm = scipy.stats.truncnorm(a = lb, b = ub,
+        #                                                     loc = phi_knots_current[change_indices],
+        #                                                     scale = np.sqrt(sigma_m_sq[key]))
 
-                        # proposal from truncated normal
-                        phi_knots_proposal                 = phi_knots_current.copy()
-                        phi_knots_proposal[change_indices] = RV_truncnorm.rvs(size = len(change_indices), random_state = random_generator)
+        #                 # proposal from truncated normal
+        #                 phi_knots_proposal                 = phi_knots_current.copy()
+        #                 phi_knots_proposal[change_indices] = RV_truncnorm.rvs(size = len(change_indices), random_state = random_generator)
                 
-                        # (log of) Hasting ratio denominator, the g(phi' | phi) i.e. phi is current, phi' is proposed
-                        hasting_denom_log = RV_truncnorm.logpdf(x = phi_knots_proposal[change_indices])
-                    else: # ub_trunc < lb_trunc
-                        BoundError = True
-                        # print('On iter:',iter,'ub_trunc < lb_trunc when updating phi',change_indices)
-                        # print('do not change the phi, set log hasting ratio to 0')
-                        phi_knots_proposal = phi_knots_current.copy()
-                        hasting_denom_log  = np.array([0])
-                else:
-                    phi_knots_proposal = None
+        #                 # (log of) Hasting ratio denominator, the g(phi' | phi) i.e. phi is current, phi' is proposed
+        #                 hasting_denom_log = RV_truncnorm.logpdf(x = phi_knots_proposal[change_indices])
+        #             else: # ub_trunc < lb_trunc
+        #                 BoundError = True
+        #                 # print('On iter:',iter,'ub_trunc < lb_trunc when updating phi',change_indices)
+        #                 # print('do not change the phi, set log hasting ratio to 0')
+        #                 phi_knots_proposal = phi_knots_current.copy()
+        #                 hasting_denom_log  = np.array([0])
+        #         else:
+        #             phi_knots_proposal = None
 
-                phi_knots_proposal     = comm.bcast(phi_knots_proposal, root = 0)
-                phi_vec_proposal       = gaussian_weight_matrix @ phi_knots_proposal
+        #         phi_knots_proposal     = comm.bcast(phi_knots_proposal, root = 0)
+        #         phi_vec_proposal       = gaussian_weight_matrix @ phi_knots_proposal
 
-                # Conditional log likelihood at proposal
-                phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
-                if phi_out_of_range:
-                    lik_1t_proposal = np.NINF
-                else:
-                    X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                            phi_vec_proposal, gamma_vec)
-                    lik_1t_proposal    = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                            phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
+        #         # Conditional log likelihood at proposal
+        #         phi_out_of_range = any(phi <= 0 for phi in phi_knots_proposal) or any(phi > 1 for phi in phi_knots_proposal) # U(0,1] prior
+        #         if phi_out_of_range:
+        #             lik_1t_proposal = np.NINF
+        #         else:
+        #             X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
+        #                                     phi_vec_proposal, gamma_vec)
+        #             lik_1t_proposal    = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
+        #                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+        #                                     phi_vec_proposal, gamma_vec, R_vec_current, cholesky_matrix_current)
                 
-                # Gather likelihood calculated across time
-                lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
-                lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+        #         # Gather likelihood calculated across time
+        #         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+        #         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
-                # Hasting numerator, ratio g(phi | phi')
-                ubs_1t_new = np.append((np.log(X_star_1t_proposal[ub_idx])/np.log(R_vec_current[ub_idx]) - gaussian_weight_matrix[ub_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[ub_idx,:][:,change_indices].ravel(), 1)
-                lbs_1t_new = np.append((np.log(X_star_1t_proposal[lb_idx])/np.log(R_vec_current[lb_idx]) - gaussian_weight_matrix[lb_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[lb_idx,:][:,change_indices].ravel(), 0)
-                ub_1t_new  = np.min(ubs_1t_new)
-                lb_1t_new  = np.max(lbs_1t_new)
-                ub_1t_new_gathered = comm.gather(ub_1t_new, root = 0)
-                lb_1t_new_gathered = comm.gather(lb_1t_new, root = 0)
+        #         # Hasting numerator, ratio g(phi | phi')
+        #         ubs_1t_new = np.append((np.log(X_star_1t_proposal[ub_idx])/np.log(R_vec_current[ub_idx]) - gaussian_weight_matrix[ub_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[ub_idx,:][:,change_indices].ravel(), 1)
+        #         lbs_1t_new = np.append((np.log(X_star_1t_proposal[lb_idx])/np.log(R_vec_current[lb_idx]) - gaussian_weight_matrix[lb_idx,:][:,unchange_indices] @ phi_k) / gaussian_weight_matrix[lb_idx,:][:,change_indices].ravel(), 0)
+        #         ub_1t_new  = np.min(ubs_1t_new)
+        #         lb_1t_new  = np.max(lbs_1t_new)
+        #         ub_1t_new_gathered = comm.gather(ub_1t_new, root = 0)
+        #         lb_1t_new_gathered = comm.gather(lb_1t_new, root = 0)
 
-                if rank == 0:
-                    if BoundError == True: 
-                        hasting_num_log = np.array([0])
-                    else:
-                        # truncation abscissae of the phi at knot that changed
-                        ub_new_trunc = np.min(ub_1t_new_gathered)
-                        lb_new_trunc = np.max(lb_1t_new_gathered)
+        #         if rank == 0:
+        #             if BoundError == True: 
+        #                 hasting_num_log = np.array([0])
+        #             else:
+        #                 # truncation abscissae of the phi at knot that changed
+        #                 ub_new_trunc = np.min(ub_1t_new_gathered)
+        #                 lb_new_trunc = np.max(lb_1t_new_gathered)
 
-                        # transform to ub,lb in standard deviations for scipy truncnorm
-                        ub_new = (ub_new_trunc - phi_knots_proposal[change_indices]) / np.sqrt(sigma_m_sq[key])
-                        lb_new = (lb_new_trunc - phi_knots_proposal[change_indices]) / np.sqrt(sigma_m_sq[key])
+        #                 # transform to ub,lb in standard deviations for scipy truncnorm
+        #                 ub_new = (ub_new_trunc - phi_knots_proposal[change_indices]) / np.sqrt(sigma_m_sq[key])
+        #                 lb_new = (lb_new_trunc - phi_knots_proposal[change_indices]) / np.sqrt(sigma_m_sq[key])
 
-                        RV_truncnorm_new = scipy.stats.truncnorm(a = lb_new, b = ub_new,
-                                                                loc = phi_knots_proposal[change_indices],
-                                                                scale = np.sqrt(sigma_m_sq[key]))
+        #                 RV_truncnorm_new = scipy.stats.truncnorm(a = lb_new, b = ub_new,
+        #                                                         loc = phi_knots_proposal[change_indices],
+        #                                                         scale = np.sqrt(sigma_m_sq[key]))
 
-                        # (log of) Hasting ratio denominator, the g(phi | phi') i.e. phi is current, phi' is proposed
-                        hasting_num_log = RV_truncnorm_new.logpdf(x = phi_knots_current[change_indices])
+        #                 # (log of) Hasting ratio denominator, the g(phi | phi') i.e. phi is current, phi' is proposed
+        #                 hasting_num_log = RV_truncnorm_new.logpdf(x = phi_knots_current[change_indices])
             
-                # Handle prior and Accept/Reject on worker 0
-                if rank == 0:
-                    # use Beta(5,5) prior on each one of the parameters in the block
-                    lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current,  a = 5, b = 5))
-                    lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
+        #         # Handle prior and Accept/Reject on worker 0
+        #         if rank == 0:
+        #             # use Beta(5,5) prior on each one of the parameters in the block
+        #             lik_current  = sum(lik_current_gathered)  + np.sum(scipy.stats.beta.logpdf(phi_knots_current,  a = 5, b = 5))
+        #             lik_proposal = sum(lik_proposal_gathered) + np.sum(scipy.stats.beta.logpdf(phi_knots_proposal, a = 5, b = 5))
                     
-                    # Hasting ratio
-                    lik_proposal += sum(hasting_num_log)
-                    lik_current  += sum(hasting_denom_log)
+        #             # Hasting ratio
+        #             lik_proposal += sum(hasting_num_log)
+        #             lik_current  += sum(hasting_denom_log)
 
-                    # Accept or Reject
-                    u     = random_generator.uniform()
-                    ratio = np.exp(lik_proposal - lik_current)
-                    if not np.isfinite(ratio):
-                        ratio = 0
-                        if rank == 0:
-                            print('likelihood ratio not finite')
-                            print('lik_proposal:', lik_proposal)
-                            print('lik_current:', lik_current)
-                    if u > ratio: # Reject
-                        phi_accepted     = False
-                        phi_vec_update   = phi_vec_current
-                        phi_knots_update = phi_knots_current
-                    else: # Accept, u <= ratio
-                        phi_accepted              = True
-                        phi_vec_update            = phi_vec_proposal
-                        phi_knots_update          = phi_knots_proposal
-                        num_accepted[key] += 1
+        #             # Accept or Reject
+        #             u     = random_generator.uniform()
+        #             ratio = np.exp(lik_proposal - lik_current)
+        #             if not np.isfinite(ratio):
+        #                 ratio = 0
+        #                 if rank == 0:
+        #                     print('likelihood ratio not finite')
+        #                     print('lik_proposal:', lik_proposal)
+        #                     print('lik_current:', lik_current)
+        #             if u > ratio: # Reject
+        #                 phi_accepted     = False
+        #                 phi_vec_update   = phi_vec_current
+        #                 phi_knots_update = phi_knots_current
+        #             else: # Accept, u <= ratio
+        #                 phi_accepted              = True
+        #                 phi_vec_update            = phi_vec_proposal
+        #                 phi_knots_update          = phi_knots_proposal
+        #                 num_accepted[key] += 1
                     
-                    # Store the result
-                    phi_knots_trace[iter,:] = phi_knots_update
+        #             # Store the result
+        #             phi_knots_trace[iter,:] = phi_knots_update
                     
-                    # Update the current value
-                    phi_vec_current   = phi_vec_update
-                    phi_knots_current = phi_knots_update
-                else: # broadcast to other workers
-                    phi_accepted  = None
-                phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
-                phi_knots_current = comm.bcast(phi_knots_current, root = 0)
-                phi_accepted      = comm.bcast(phi_accepted, root = 0)
+        #             # Update the current value
+        #             phi_vec_current   = phi_vec_update
+        #             phi_knots_current = phi_knots_update
+        #         else: # broadcast to other workers
+        #             phi_accepted  = None
+        #         phi_vec_current   = comm.bcast(phi_vec_current, root = 0)
+        #         phi_knots_current = comm.bcast(phi_knots_current, root = 0)
+        #         phi_accepted      = comm.bcast(phi_accepted, root = 0)
                 
-                # Update X_star and likelihood if accepted
-                if phi_accepted:
-                    X_star_1t_current = X_star_1t_proposal
-                    lik_1t_current    = lik_1t_proposal
+        #         # Update X_star and likelihood if accepted
+        #         if phi_accepted:
+        #             X_star_1t_current = X_star_1t_proposal
+        #             lik_1t_current    = lik_1t_proposal
 
-                comm.Barrier() # block for phi update
+        #         comm.Barrier() # block for phi update
 
-        if norm_pareto == 'shifted': # symmetric proposal
+        # if norm_pareto == 'shifted': # symmetric proposal
+        if norm_pareto == 'shifted' or 'standard':
             for key in phi_block_idx_dict.keys():
                 change_indices = np.array(phi_block_idx_dict[key])
 
