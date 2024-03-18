@@ -62,31 +62,41 @@ np.random.seed(data_seed)
 # data
 
 mgcv = importr('mgcv')
-r('''load('JJA_precip_maxima.RData')''')
+r('''load('JJA_precip_maxima_nonimputed.RData')''')
 GEV_estimates      = np.array(r('GEV_estimates')).T
 mu0_estimates      = GEV_estimates[:,0]
 mu1_estimates      = GEV_estimates[:,1]
 logsigma_estimates = GEV_estimates[:,2]
 ksi_estimates      = GEV_estimates[:,3]
-JJA_maxima         = np.array(r('JJA_maxima')).T
+JJA_maxima         = np.array(r('JJA_maxima_nonimputed'))
 stations           = np.array(r('stations')).T
 elevations         = np.array(r('elev')).T/200
 
-# truncate for easier run on misspiggy
-Nt                 = 32
-Ns                 = 300
-times_subset       = np.arange(Nt)
-sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-GEV_estimates      = GEV_estimates[sites_subset,:]
-mu0_estimates      = GEV_estimates[:,0]
-mu1_estimates      = GEV_estimates[:,1]
-logsigma_estimates = GEV_estimates[:,2]
-ksi_estimates      = GEV_estimates[:,3]
-JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-stations           = stations[sites_subset]
-elevations         = elevations[sites_subset]
+# # truncate for easier run on misspiggy
+# Nt                 = 24
+# Ns                 = 125
+# times_subset       = np.arange(Nt)
+# sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+# GEV_estimates      = GEV_estimates[sites_subset,:]
+# mu0_estimates      = GEV_estimates[:,0]
+# mu1_estimates      = GEV_estimates[:,1]
+# logsigma_estimates = GEV_estimates[:,2]
+# ksi_estimates      = GEV_estimates[:,3]
+# JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+# stations           = stations[sites_subset]
+# elevations         = elevations[sites_subset]
 
-Y = JJA_maxima
+Y = JJA_maxima.copy()
+miss_matrix = np.isnan(Y)
+
+# # missing indicator matrix
+# ## random missing
+# miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
+# for t in range(Nt):
+#     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
+# miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+# for t in range(Nt):
+#     Y[:,t][miss_matrix[:,t]] = np.nan
 
 # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
 
@@ -95,8 +105,8 @@ Y = JJA_maxima
 
 Nt = JJA_maxima.shape[1] # number of time replicates
 Ns = JJA_maxima.shape[0] # number of sites/stations
-start_year = 1950
-end_year   = 2017
+start_year = 1949
+end_year   = 2023
 all_years  = np.linspace(start_year, end_year, Nt)
 # Note, to use the mu1 estimates from Likun, the `Time`` must be standardized the same way
 # Time = np.linspace(-Nt/2, Nt/2-1, Nt)
@@ -547,7 +557,7 @@ ksi_estimates = None
 
 # folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
 
-folder = './data/20240305_daisychain_t24_s125/'
+folder = './data/20240306_realdata_t75_s590/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
@@ -570,7 +580,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 
 # %%
 # burnins
-burnin = 1000
+burnin = 2000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
@@ -761,7 +771,7 @@ fig.colorbar(mu1_est_scatter, cax = cbar_ax)
 plt.show()
 
 # side by side for mu = mu0 + mu1
-this_year = 31
+this_year = 50
 vmin = min(np.floor(min(mu0_estimates + mu1_estimates * Time[this_year])), 
            np.floor(min(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year])))
 vmax = max(np.ceil(max(mu0_estimates + mu1_estimates * Time[this_year])), 
@@ -772,11 +782,11 @@ fig, ax     = plt.subplots(1,2)
 mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates + mu1_estimates * Time[this_year],
                             cmap = colormaps['bwr'], norm = divnorm)
 ax[0].set_aspect('equal', 'box')
-ax[0].title.set_text('mu data year: ' + str(1950+this_year))
+ax[0].title.set_text('mu data year: ' + str(start_year+this_year))
 mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,this_year],
                                 cmap = colormaps['bwr'], norm = divnorm)
 ax[1].set_aspect('equal', 'box')
-ax[1].title.set_text('mu post mean year: ' + str(1950+this_year))
+ax[1].title.set_text('mu post mean year: ' + str(start_year+this_year))
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(mu0_est_scatter, cax = cbar_ax)
