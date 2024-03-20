@@ -900,7 +900,56 @@ plt.xlim([-105,-90])
 plt.ylim([30,50])
 plt.show()
 
+# %%
+# QQ plot of the Y
+mu_matrix    = np.full(shape = (Ns, Nt), fill_value = np.nan)
+sigma_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
+ksi_matrix   = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    mu_matrix[:,t]    = mu0_estimates + mu1_estimates * Time[t]
+    sigma_matrix[:,t] = np.exp(logsigma_estimates)
+    ksi_matrix[:,t]   = ksi_estimates
+pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    pY[:,t] = pgev(Y[:,t], mu_matrix[:,t],
+                           sigma_matrix[:,t],
+                           ksi_matrix[:,t])
+# histogram of pY
+plt.hist(pY.ravel())
+plt.title(r'Histogram of pY with GEV-fit $\mu$ $\sigma$ $\xi$')
+# qqplot of uniform
+scipy.stats.probplot(pY.ravel(), dist='uniform', fit=False, plot=plt)
+plt.axline((0,0), slope = 1, color = 'black')
+plt.title(r'Uniform QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
+plt.show()
+# qqplot of gumbel
+gumbel_pY = scipy.stats.gumbel_r.ppf(pY.ravel())
+scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
+plt.axline((0,0), slope = 1, color = 'black')
+plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
+plt.show()
 
+# mu0_matrix_mean = (C_mu0.T @ Beta_mu0_mean).T
+# mu1_matrix_mean = (C_mu1.T @ Beta_mu1_mean).T
+mu_matrix_mean    = (C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time
+sigma_matrix_mean = np.exp((C_logsigma.T @ Beta_logsigma_mean).T)
+ksi_matrix_mean   = (C_ksi.T @ Beta_ksi_mean).T
+pY_mean = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    pY_mean[:,t] = pgev(Y[:,t], mu_matrix_mean[:,t],
+                                sigma_matrix_mean[:,t],
+                                ksi_matrix_mean[:,t])
+plt.hist(pY_mean.ravel())
+plt.title(r'Histogram of pY with post. mean $\mu$ $\sigma$ $\xi$')
+scipy.stats.probplot(pY_mean.ravel(), dist='uniform', fit=False, plot=plt)
+plt.axline((0,0), slope = 1, color = 'black')
+plt.title(r'Uniform QQplot with post. mean $\mu$ $\sigma$ $\xi$')
+plt.show()
+gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean)
+scipy.stats.probplot(gumbel_pY_mean.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
+plt.axline((0,0), slope = 1, color = 'black')
+plt.title(r'Gumbel QQplot with post. mean $\mu$ $\sigma$ $\xi$')
+plt.show()
 
 # %%
 # GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
