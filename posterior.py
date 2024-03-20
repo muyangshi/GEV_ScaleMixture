@@ -958,6 +958,25 @@ ax.plot(theoretical_q, ci_l, '--')
 ax.plot(theoretical_q, ci_h, '--')
 plt.axline((0,0), slope = 1, color = 'black')
 
+# single site
+gumbel_pY = scipy.stats.gumbel_r.ppf(pY[3,:].ravel())
+qqplot_gumbel_pY = scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
+plt.axline((0,0), slope = 1, color = 'black')
+plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
+plt.show()
+theoretical_q, ordered_q = qqplot_gumbel_pY
+notnanmask = np.where(~np.isnan(ordered_q))[0]
+theoretical_q = theoretical_q[notnanmask]
+ordered_q = ordered_q[notnanmask]
+n = len(theoretical_q)
+ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')
 
 
 # mu0_matrix_mean = (C_mu0.T @ Beta_mu0_mean).T
@@ -1031,3 +1050,15 @@ plt.axline((0,0), slope = 1, color = 'black')
 # # np.corrcoef(np.vstack((mu, tau,phi)))
 
 # %%
+norm_sample = scipy.stats.norm.rvs(size = 100)
+qqplot_norm = scipy.stats.probplot(norm_sample, dist = scipy.stats.norm, fit = False, plot = plt)
+theoretical_q, ordered_q = qqplot_norm
+n = len(theoretical_q)
+ci_l = [scipy.stats.norm.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.norm.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')

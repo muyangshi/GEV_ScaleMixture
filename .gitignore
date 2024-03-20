@@ -10,6 +10,7 @@ write_bash*.py
 data/*
 *.gzip
 *.RData
+*.pages
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
