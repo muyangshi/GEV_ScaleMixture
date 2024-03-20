@@ -918,16 +918,47 @@ for t in range(Nt):
 plt.hist(pY.ravel())
 plt.title(r'Histogram of pY with GEV-fit $\mu$ $\sigma$ $\xi$')
 # qqplot of uniform
-scipy.stats.probplot(pY.ravel(), dist='uniform', fit=False, plot=plt)
+qqplot_uniform_pY = scipy.stats.probplot(pY.ravel(), dist='uniform', fit=False, plot=plt)
 plt.axline((0,0), slope = 1, color = 'black')
 plt.title(r'Uniform QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
 plt.show()
+
+theoretical_q, ordered_q = qqplot_uniform_pY
+notnanmask = np.where(~np.isnan(ordered_q))[0]
+theoretical_q = theoretical_q[notnanmask]
+ordered_q = ordered_q[notnanmask]
+n = len(theoretical_q)
+ci_l = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')
+
 # qqplot of gumbel
 gumbel_pY = scipy.stats.gumbel_r.ppf(pY.ravel())
-scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
+qqplot_gumbel_pY = scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
 plt.axline((0,0), slope = 1, color = 'black')
 plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
 plt.show()
+
+theoretical_q, ordered_q = qqplot_gumbel_pY
+notnanmask = np.where(~np.isnan(ordered_q))[0]
+theoretical_q = theoretical_q[notnanmask]
+ordered_q = ordered_q[notnanmask]
+n = len(theoretical_q)
+ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')
+
+
 
 # mu0_matrix_mean = (C_mu0.T @ Beta_mu0_mean).T
 # mu1_matrix_mean = (C_mu1.T @ Beta_mu1_mean).T
@@ -939,17 +970,50 @@ for t in range(Nt):
     pY_mean[:,t] = pgev(Y[:,t], mu_matrix_mean[:,t],
                                 sigma_matrix_mean[:,t],
                                 ksi_matrix_mean[:,t])
+# histogram of pY_mean
 plt.hist(pY_mean.ravel())
 plt.title(r'Histogram of pY with post. mean $\mu$ $\sigma$ $\xi$')
-scipy.stats.probplot(pY_mean.ravel(), dist='uniform', fit=False, plot=plt)
+
+# qqplot of uniform pY_mean
+qqplot_uniform_pY_mean = scipy.stats.probplot(pY_mean.ravel(), dist='uniform', fit=False, plot=plt)
 plt.axline((0,0), slope = 1, color = 'black')
 plt.title(r'Uniform QQplot with post. mean $\mu$ $\sigma$ $\xi$')
 plt.show()
-gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean)
-scipy.stats.probplot(gumbel_pY_mean.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
+
+theoretical_q, ordered_q = qqplot_uniform_pY_mean
+notnanmask = np.where(~np.isnan(ordered_q))[0]
+theoretical_q = theoretical_q[notnanmask]
+ordered_q = ordered_q[notnanmask]
+n = len(theoretical_q)
+ci_l = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')
+
+# qqplot of gumbel pY_mean
+gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean.ravel())
+qqplot_gumbel_pY_mean = scipy.stats.probplot(gumbel_pY_mean.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
 plt.axline((0,0), slope = 1, color = 'black')
 plt.title(r'Gumbel QQplot with post. mean $\mu$ $\sigma$ $\xi$')
 plt.show()
+
+theoretical_q, ordered_q = qqplot_gumbel_pY_mean
+notnanmask = np.where(~np.isnan(ordered_q))[0]
+theoretical_q = theoretical_q[notnanmask]
+ordered_q = ordered_q[notnanmask]
+n = len(theoretical_q)
+ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
+ax.plot(theoretical_q, ci_l, '--')
+ax.plot(theoretical_q, ci_h, '--')
+plt.axline((0,0), slope = 1, color = 'black')
 
 # %%
 # GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
