@@ -118,7 +118,7 @@ if __name__ == "__main__":
             print('Setting start_iter to 1')
         start_iter = 1
     
-    n_iters = 5000
+    n_iters = 20000
 
     # %% Simulation Setup ----------------------------------------------------------------------------------
     # Simulation Setup -------------------------------------------------------------------------------------
@@ -1264,11 +1264,16 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
     
-    phi_block_idx_size   = 4
-    range_block_idx_size = 4
+    if norm_pareto == 'standard':
+        phi_block_idx_size   = 1
+        range_block_idx_size = 1
+    
+    if norm_pareto == 'shifted':
+        phi_block_idx_size = 4
+        range_block_idx_size = 3
 
-    Beta_mu0_block_idx_size = 4
-    Beta_mu1_block_idx_size = 4
+    # Beta_mu0_block_idx_size = 4
+    # Beta_mu1_block_idx_size = 4
 
     # Create Coefficient Index Blocks
 
