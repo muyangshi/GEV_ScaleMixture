@@ -53,6 +53,18 @@ Preparations for "daisy-chainning" the runs
 March 8, 2024
 Adding the "Hasting" to Metropolis, for standard Pareto.
 - phi
+- Rt
+
+March 20, 2024
+A separate MCMC_fixGEV.py file: 
+    Use the GEV-fit marginal parameters, 
+    fix those values in copula model
+
+March 21, 2024
+More grid knots: 
+    isometric: 9 --> 16
+    total: (9+4)=13 --> (16+9)=25
+Modify idx block size to indicate maximumm size of each block
 """
 # Require:
 #   - utilities.py
@@ -115,280 +127,281 @@ if __name__ == "__main__":
             print('Setting start_iter to 1')
         start_iter = 1
     
-    n_iters = 10000
+    if norm_pareto == 'shifted': n_iters = 20000
+    if norm_pareto == 'standard': n_iters = 200000
 
     # %% Simulation Setup ----------------------------------------------------------------------------------
     # Simulation Setup -------------------------------------------------------------------------------------
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Numbers - Ns, Nt
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Numbers - Ns, Nt
     
-    np.random.seed(data_seed)
-    Nt = 24 # number of time replicates
-    Ns = 300 # number of sites/stations
-    Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
+    # np.random.seed(data_seed)
+    # Nt = 24 # number of time replicates
+    # Ns = 300 # number of sites/stations
+    # Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # missing indicator matrix
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # missing indicator matrix
     
-    ## random missing
-    miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
-    for t in range(Nt):
-        miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
+    # ## random missing
+    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
+    # for t in range(Nt):
+    #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
     
-    miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
-    if rank == 0:
-        np.save('miss_matrix_bool', miss_matrix)
+    # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+    # if rank == 0:
+    #     np.save('miss_matrix_bool', miss_matrix)
     
-    # ----------------------------------------------------------------------------------------------------------------
-    # Sites - random uniformly (x,y) generate site locations
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Sites - random uniformly (x,y) generate site locations
     
-    sites_xy = np.random.random((Ns, 2)) * 10
-    sites_x = sites_xy[:,0]
-    sites_y = sites_xy[:,1]
+    # sites_xy = np.random.random((Ns, 2)) * 10
+    # sites_x = sites_xy[:,0]
+    # sites_y = sites_xy[:,1]
 
-    # # define the lower and upper limits for x and y
-    minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
-    minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
+    # # # define the lower and upper limits for x and y
+    # minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
+    # minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Elevation Function - 
-    # Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
-    #       this might cause identifiability issue
-    # def elevation_func(x,y):
-        # return(np.abs(x-5)/5 + np.abs(y-5)/5)
-    elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
-    elevations = elev_surf_generator((sites_x, sites_y))
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Elevation Function - 
+    # # Note: the simple elevation function 1/5(|x-5| + |y-5|) is way too similar to the first basis
+    # #       this might cause identifiability issue
+    # # def elevation_func(x,y):
+    #     # return(np.abs(x-5)/5 + np.abs(y-5)/5)
+    # elev_surf_generator = gs.SRF(gs.Gaussian(dim=2, var = 1, len_scale = 2), seed=data_seed)
+    # elevations = elev_surf_generator((sites_x, sites_y))
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Knots - uniform grid of 9 knots, should do this programatically...
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Knots - uniform grid of 9 knots, should do this programatically...
 
-    # k = 9 # number of knots
-    # x_pos = np.linspace(0,10,5,True)[1:-1]
-    # y_pos = np.linspace(0,10,5,True)[1:-1]
-    # X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
-    # knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
-    # knots_x = knots_xy[:,0]
-    # knots_y = knots_xy[:,1]
+    # # k = 9 # number of knots
+    # # x_pos = np.linspace(0,10,5,True)[1:-1]
+    # # y_pos = np.linspace(0,10,5,True)[1:-1]
+    # # X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
+    # # knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
+    # # knots_x = knots_xy[:,0]
+    # # knots_y = knots_xy[:,1]
 
-    # isometric knot grid
-    N_outer_grid = 9
-    x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-    y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
-    x_outer_pos              = x_pos[0::2]
-    x_inner_pos              = x_pos[1::2]
-    y_outer_pos              = y_pos[0::2]
-    y_inner_pos              = y_pos[1::2]
-    X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-    X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-    knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-    knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-    knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-    knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-    knots_xy                 = knots_xy[knots_id_in_domain]
-    knots_x                  = knots_xy[:,0]
-    knots_y                  = knots_xy[:,1]
-    k                        = len(knots_id_in_domain)
+    # # isometric knot grid
+    # N_outer_grid = 9
+    # x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
+    # y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+    # x_outer_pos              = x_pos[0::2]
+    # x_inner_pos              = x_pos[1::2]
+    # y_outer_pos              = y_pos[0::2]
+    # y_inner_pos              = y_pos[1::2]
+    # X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+    # X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+    # knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+    # knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+    # knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+    # knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+    # knots_xy                 = knots_xy[knots_id_in_domain]
+    # knots_x                  = knots_xy[:,0]
+    # knots_y                  = knots_xy[:,1]
+    # k                        = len(knots_id_in_domain)
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Copula Splines
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Copula Splines
 
-    bandwidth = 4 # range for the gaussian kernel
-    radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-    radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
-    assert k == len(knots_xy)
+    # bandwidth = 4 # range for the gaussian kernel
+    # radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    # radius_from_knots = np.repeat(radius, k) # ?influence radius from a knot?
+    # assert k == len(knots_xy)
     
-    # Weight matrix generated using Gaussian Smoothing Kernel
-    gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
-    for site_id in np.arange(Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                        XB = knots_xy)
-        # influence coming from each of the knots
-        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-        gaussian_weight_matrix[site_id, :] = weight_from_knots
-
-    # Weight matrix generated using wendland basis
-    wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
-    for site_id in np.arange(Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                        XB = knots_xy)
-        # influence coming from each of the knots
-        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-        wendland_weight_matrix[site_id, :] = weight_from_knots
-    
-    # # constant weight matrix
-    # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # # Weight matrix generated using Gaussian Smoothing Kernel
+    # gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
     # for site_id in np.arange(Ns):
     #     # Compute distance between each pair of the two collections of inputs
     #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
     #                                     XB = knots_xy)
     #     # influence coming from each of the knots
-    #     weight_from_knots = np.repeat(1, k)/k
-    #     constant_weight_matrix[site_id, :] = weight_from_knots
+    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    #     gaussian_weight_matrix[site_id, :] = weight_from_knots
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Setup For the Marginal Model - GEV(mu, sigma, ksi)
-
-    # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
-    # "knots" and prediction sites for splines 
-    gs_x        = np.linspace(minX, maxX, 50)
-    gs_y        = np.linspace(minY, maxY, 50)
-    gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
-
-    gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
-    gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
-    gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
-    sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
-
-    r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
-    r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
-    r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
-    r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
-
-    mgcv = importr('mgcv')
-    r('''
-        gs_xy_df <- as.data.frame(gs_xy_ro)
-        colnames(gs_xy_df) <- c('x','y')
-        sites_xy_df <- as.data.frame(sites_xy_ro)
-        colnames(sites_xy_df) <- c('x','y')
-        ''')
+    # # Weight matrix generated using wendland basis
+    # wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+    # for site_id in np.arange(Ns):
+    #     # Compute distance between each pair of the two collections of inputs
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    #                                     XB = knots_xy)
+    #     # influence coming from each of the knots
+    #     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    #     wendland_weight_matrix[site_id, :] = weight_from_knots
     
-    # r("save(gs_x_ro, file='gs_x_ro.gzip', compress=TRUE)")
-    # r("save(gs_y_ro, file='gs_y_ro.gzip', compress=TRUE)")
-    # r("save(gs_xy_df, file='gs_xy_df.gzip', compress=TRUE)")
-    # r("save(sites_xy_df, file='sites_xy_df.gzip',compress=TRUE)")
+    # # # constant weight matrix
+    # # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # # for site_id in np.arange(Ns):
+    # #     # Compute distance between each pair of the two collections of inputs
+    # #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    # #                                     XB = knots_xy)
+    # #     # influence coming from each of the knots
+    # #     weight_from_knots = np.repeat(1, k)/k
+    # #     constant_weight_matrix[site_id, :] = weight_from_knots
 
-    # Location mu_0(s) ----------------------------------------------------------------------------------------------
-    Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
-    Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
-    C_mu0_splines      = np.array(r('''
-                                    basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                    basis_site <- PredictMat(basis, data = sites_xy_df)
-                                    # basis_site
-                                    basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
-                                    '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
-    C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
-                                        elevations,     # elevation
-                                        C_mu0_splines)) # splines (excluding intercept)
-    C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Setup For the Marginal Model - GEV(mu, sigma, ksi)
 
-    # Location mu_1(s) ----------------------------------------------------------------------------------------------
+    # # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
+    # # "knots" and prediction sites for splines 
+    # gs_x        = np.linspace(minX, maxX, 50)
+    # gs_y        = np.linspace(minY, maxY, 50)
+    # gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
+
+    # gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+    # gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+    # gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+    # sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+
+    # r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+    # r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+    # r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+    # r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+
+    # mgcv = importr('mgcv')
+    # r('''
+    #     gs_xy_df <- as.data.frame(gs_xy_ro)
+    #     colnames(gs_xy_df) <- c('x','y')
+    #     sites_xy_df <- as.data.frame(sites_xy_ro)
+    #     colnames(sites_xy_df) <- c('x','y')
+    #     ''')
     
-    Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
-    Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
-    C_mu1_splines      = np.array(r('''
-                                    basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                    basis_site <- PredictMat(basis, data = sites_xy_df)
-                                    # basis_site
-                                    basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
-                                    '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
-    C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
-                                        elevations,     # elevation
-                                        C_mu1_splines)) # splines (excluding intercept)
-    C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+    # # r("save(gs_x_ro, file='gs_x_ro.gzip', compress=TRUE)")
+    # # r("save(gs_y_ro, file='gs_y_ro.gzip', compress=TRUE)")
+    # # r("save(gs_xy_df, file='gs_xy_df.gzip', compress=TRUE)")
+    # # r("save(sites_xy_df, file='sites_xy_df.gzip',compress=TRUE)")
 
-    # Scale logsigma(s) ----------------------------------------------------------------------------------------------
+    # # Location mu_0(s) ----------------------------------------------------------------------------------------------
+    # Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+    # Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
+    # C_mu0_splines      = np.array(r('''
+    #                                 basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+    #                                 basis_site <- PredictMat(basis, data = sites_xy_df)
+    #                                 # basis_site
+    #                                 basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+    #                                 '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+    # C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+    #                                     elevations,     # elevation
+    #                                     C_mu0_splines)) # splines (excluding intercept)
+    # C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+
+    # # Location mu_1(s) ----------------------------------------------------------------------------------------------
     
-    Beta_logsigma_m   = 2 # just intercept and elevation
-    C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
-    C_logsigma[0,:,:] = 1.0 
-    C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+    # Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
+    # Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+    # C_mu1_splines      = np.array(r('''
+    #                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+    #                                 basis_site <- PredictMat(basis, data = sites_xy_df)
+    #                                 # basis_site
+    #                                 basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+    #                                 '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+    # C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+    #                                     elevations,     # elevation
+    #                                     C_mu1_splines)) # splines (excluding intercept)
+    # C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
 
-    # Shape ksi(s) ----------------------------------------------------------------------------------------------
+    # # Scale logsigma(s) ----------------------------------------------------------------------------------------------
     
-    Beta_ksi_m   = 2 # just intercept and elevation
-    C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
-    C_ksi[0,:,:] = 1.0
-    C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+    # Beta_logsigma_m   = 2 # just intercept and elevation
+    # C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+    # C_logsigma[0,:,:] = 1.0 
+    # C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Setup For the Copula/Data Model - X_star = R^phi * g(Z)
+    # # Shape ksi(s) ----------------------------------------------------------------------------------------------
+    
+    # Beta_ksi_m   = 2 # just intercept and elevation
+    # C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+    # C_ksi[0,:,:] = 1.0
+    # C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
-    # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
-    nu = 0.5 # exponential kernel for matern with nu = 1/2
-    sigsq = 1.0 # sill for Z
-    sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Setup For the Copula/Data Model - X_star = R^phi * g(Z)
 
-    # Scale Mixture R^phi --------------------------------------------------------------------------------------------
-    ## phi and gamma
-    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
-    delta = 0.0 # this is the delta in levy, stays 0
-    alpha = 0.5
-    gamma_at_knots = np.repeat(gamma, k)
-    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
-                       axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
+    # # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
+    # nu = 0.5 # exponential kernel for matern with nu = 1/2
+    # sigsq = 1.0 # sill for Z
+    # sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Marginal Parameters - GEV(mu, sigma, ksi)
-    Beta_mu0            = np.concatenate(([0], [0.1], np.array([0.05]*Beta_mu0_splines_m)))
-    Beta_mu1            = np.concatenate(([0], [0.01], np.array([0.01] * Beta_mu1_splines_m)))
-    Beta_logsigma       = np.array([0.0, 0.01])
-    Beta_ksi            = np.array([0.2, 0.05])
-    sigma_Beta_mu0      = 1
-    sigma_Beta_mu1      = 1
-    sigma_Beta_logsigma = 1
-    sigma_Beta_ksi      = 1
+    # # Scale Mixture R^phi --------------------------------------------------------------------------------------------
+    # ## phi and gamma
+    # gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
+    # delta = 0.0 # this is the delta in levy, stays 0
+    # alpha = 0.5
+    # gamma_at_knots = np.repeat(gamma, k)
+    # gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+    #                    axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
-    mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
-    mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
-    logsigma_estimates = (C_logsigma.T @ Beta_logsigma).T[:,0]
-    ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Marginal Parameters - GEV(mu, sigma, ksi)
+    # Beta_mu0            = np.concatenate(([0], [0.1], np.array([0.05]*Beta_mu0_splines_m)))
+    # Beta_mu1            = np.concatenate(([0], [0.01], np.array([0.01] * Beta_mu1_splines_m)))
+    # Beta_logsigma       = np.array([0.0, 0.01])
+    # Beta_ksi            = np.array([0.2, 0.05])
+    # sigma_Beta_mu0      = 1
+    # sigma_Beta_mu1      = 1
+    # sigma_Beta_logsigma = 1
+    # sigma_Beta_ksi      = 1
 
-    mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
-    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-    ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+    # mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
+    # mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
+    # logsigma_estimates = (C_logsigma.T @ Beta_logsigma).T[:,0]
+    # ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
-    # ----------------------------------------------------------------------------------------------------------------
-    # Data Model Parameters - X_star = R^phi * g(Z)
+    # mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+    # sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+    # ksi_matrix   = (C_ksi.T @ Beta_ksi).T
 
-    range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
+    # # ----------------------------------------------------------------------------------------------------------------
+    # # Data Model Parameters - X_star = R^phi * g(Z)
 
-    ### scenario 1
-    # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
-    ### scenario 2
-    phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
-    ### scenario 3
-    # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
-    #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
+    # range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
+
+    # ### scenario 1
+    # # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
+    # ### scenario 2
+    # phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
+    # ### scenario 3
+    # # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+    # #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
 
 
     # %% Generate Simulation Data ------------------------------------------------------------------------------------
     # Generate Simulation Data
 
-    # W = g(Z), Z ~ MVN(0, K)
-    range_vec = gaussian_weight_matrix @ range_at_knots
-    K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
-                        coords = sites_xy, kappa = nu, cov_model = "matern")
-    Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
-    W         = norm_to_Pareto(Z) 
+    # # W = g(Z), Z ~ MVN(0, K)
+    # range_vec = gaussian_weight_matrix @ range_at_knots
+    # K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
+    #                     coords = sites_xy, kappa = nu, cov_model = "matern")
+    # Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
+    # W         = norm_to_Pareto(Z) 
 
-    # R^phi Scaling Factor
-    phi_vec    = gaussian_weight_matrix @ phi_at_knots
-    R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
-        # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
-        # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
-        # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
-    R_at_sites = wendland_weight_matrix @ R_at_knots
-    R_phi      = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
+    # # R^phi Scaling Factor
+    # phi_vec    = gaussian_weight_matrix @ phi_at_knots
+    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+    #     # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
+    #     # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
+    #     # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
+    # R_at_sites = wendland_weight_matrix @ R_at_knots
+    # R_phi      = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
 
-    # F_Y(y) = F_Xstar(Xstar = R^phi * g(Z))
-    mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
-    sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-    ksi_matrix   = (C_ksi.T @ Beta_ksi).T
-    X_star       = R_phi * W
-    Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    for t in np.arange(Nt):
-        Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
-    if rank == 0:
-        np.save('Y_sim_sc2_t'+str(Nt)+'_s'+str(Ns)+'_truth', Y)
-    for t in range(Nt):
-        Y[:,t][miss_matrix[:,t]] = np.nan
+    # # F_Y(y) = F_Xstar(Xstar = R^phi * g(Z))
+    # mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+    # sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+    # ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+    # X_star       = R_phi * W
+    # Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    # for t in np.arange(Nt):
+    #     Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
+    # if rank == 0:
+    #     np.save('Y_sim_sc2_t'+str(Nt)+'_s'+str(Ns)+'_truth', Y)
+    # for t in range(Nt):
+    #     Y[:,t][miss_matrix[:,t]] = np.nan
 
     # %% Load Simulation Data -----------------------------------------------------------------------------------------
     # Load Simulation Data --------------------------------------------------------------------------------------------
@@ -509,343 +522,343 @@ if __name__ == "__main__":
     # %% Load Dataset -----------------------------------------------------------------------------------------------
     # Load Dataset    -----------------------------------------------------------------------------------------------
 
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # data
+    # ----------------------------------------------------------------------------------------------------------------
+    # data
     
-    # mgcv = importr('mgcv')
-    # r('''load('JJA_precip_maxima_nonimputed.RData')''')
-    # GEV_estimates      = np.array(r('GEV_estimates')).T
-    # mu0_estimates      = GEV_estimates[:,0]
-    # mu1_estimates      = GEV_estimates[:,1]
-    # logsigma_estimates = GEV_estimates[:,2]
-    # ksi_estimates      = GEV_estimates[:,3]
-    # JJA_maxima         = np.array(r('JJA_maxima_nonimputed'))
-    # stations           = np.array(r('stations')).T
-    # elevations         = np.array(r('elev')).T/200
+    mgcv = importr('mgcv')
+    r('''load('JJA_precip_maxima_nonimputed.RData')''')
+    GEV_estimates      = np.array(r('GEV_estimates')).T
+    mu0_estimates      = GEV_estimates[:,0]
+    mu1_estimates      = GEV_estimates[:,1]
+    logsigma_estimates = GEV_estimates[:,2]
+    ksi_estimates      = GEV_estimates[:,3]
+    JJA_maxima         = np.array(r('JJA_maxima_nonimputed'))
+    stations           = np.array(r('stations')).T
+    elevations         = np.array(r('elev')).T/200
 
-    # # # truncate for easier run on misspiggy
-    # # Nt                 = 24
-    # # Ns                 = 125
-    # # times_subset       = np.arange(Nt)
-    # # sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-    # # GEV_estimates      = GEV_estimates[sites_subset,:]
-    # # mu0_estimates      = GEV_estimates[:,0]
-    # # mu1_estimates      = GEV_estimates[:,1]
-    # # logsigma_estimates = GEV_estimates[:,2]
-    # # ksi_estimates      = GEV_estimates[:,3]
-    # # JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-    # # stations           = stations[sites_subset]
-    # # elevations         = elevations[sites_subset]
+    # truncate for easier run on misspiggy
+    Nt                 = 24
+    Ns                 = 500
+    times_subset       = np.arange(Nt)
+    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    GEV_estimates      = GEV_estimates[sites_subset,:]
+    mu0_estimates      = GEV_estimates[:,0]
+    mu1_estimates      = GEV_estimates[:,1]
+    logsigma_estimates = GEV_estimates[:,2]
+    ksi_estimates      = GEV_estimates[:,3]
+    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    stations           = stations[sites_subset]
+    elevations         = elevations[sites_subset]
 
-    # Y = JJA_maxima.copy()
-    # miss_matrix = np.isnan(Y)
+    Y = JJA_maxima.copy()
+    miss_matrix = np.isnan(Y)
 
-    # # # missing indicator matrix
-    # # ## random missing
-    # # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
-    # # for t in range(Nt):
-    # #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
-    # # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
-    # # for t in range(Nt):
-    # #     Y[:,t][miss_matrix[:,t]] = np.nan
+    # # missing indicator matrix
+    # ## random missing
+    # miss_matrix = np.full(shape = (Ns, Nt), fill_value = 0)
+    # for t in range(Nt):
+    #     miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
+    # miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
+    # for t in range(Nt):
+    #     Y[:,t][miss_matrix[:,t]] = np.nan
     
     
     # %% Setup (Covariates and Constants) ----------------------------------------------------------------------------
     # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
     
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Ns, Nt
+    # ----------------------------------------------------------------------------------------------------------------
+    # Ns, Nt
     
-    # Nt = JJA_maxima.shape[1] # number of time replicates
-    # Ns = JJA_maxima.shape[0] # number of sites/stations
-    # start_year = 1949
-    # end_year   = 2023
-    # all_years  = np.linspace(start_year, end_year, Nt)
-    # # Note, to use the mu1 estimates from Likun, the `Time`` must be standardized the same way
-    # # Time = np.linspace(-Nt/2, Nt/2-1, Nt)
-    # Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1) # delta degress of freedom, to match the n-1 in R
-    # Time       = Time[0:Nt] # if there is any truncation specified above
+    Nt = JJA_maxima.shape[1] # number of time replicates
+    Ns = JJA_maxima.shape[0] # number of sites/stations
+    start_year = 1949
+    end_year   = 2023
+    all_years  = np.linspace(start_year, end_year, Nt)
+    # Note, to use the mu1 estimates from Likun, the `Time`` must be standardized the same way
+    # Time = np.linspace(-Nt/2, Nt/2-1, Nt)
+    Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1) # delta degress of freedom, to match the n-1 in R
+    Time       = Time[0:Nt] # if there is any truncation specified above
 
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Sites
+    # ----------------------------------------------------------------------------------------------------------------
+    # Sites
     
-    # sites_xy = stations
-    # sites_x = sites_xy[:,0]
-    # sites_y = sites_xy[:,1]
+    sites_xy = stations
+    sites_x = sites_xy[:,0]
+    sites_y = sites_xy[:,1]
 
-    # # define the lower and upper limits for x and y
-    # minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
-    # minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
+    # define the lower and upper limits for x and y
+    minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
+    minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Knots
+    # ----------------------------------------------------------------------------------------------------------------
+    # Knots
 
-    # # res_x = 3
-    # # res_y = 3
-    # # k = res_x * res_y # number of knots
-    # # # create one-dimensional arrays for x and y
-    # # x_pos = np.linspace(minX, maxX, res_x+2)[1:-1]
-    # # y_pos = np.linspace(minY, maxY, res_y+2)[1:-1]
-    # # # create the mesh based on these arrays
-    # # X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
-    # # knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
-    # # knots_x = knots_xy[:,0]
-    # # knots_y = knots_xy[:,1]    
+    # res_x = 3
+    # res_y = 3
+    # k = res_x * res_y # number of knots
+    # # create one-dimensional arrays for x and y
+    # x_pos = np.linspace(minX, maxX, res_x+2)[1:-1]
+    # y_pos = np.linspace(minY, maxY, res_y+2)[1:-1]
+    # # create the mesh based on these arrays
+    # X_pos, Y_pos = np.meshgrid(x_pos,y_pos)
+    # knots_xy = np.vstack([X_pos.ravel(), Y_pos.ravel()]).T
+    # knots_x = knots_xy[:,0]
+    # knots_y = knots_xy[:,1]    
 
-    # # isometric knot grid
-    # N_outer_grid = 9
-    # x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-    # y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
-    # x_outer_pos              = x_pos[0::2]
-    # x_inner_pos              = x_pos[1::2]
-    # y_outer_pos              = y_pos[0::2]
-    # y_inner_pos              = y_pos[1::2]
-    # X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-    # X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-    # knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-    # knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-    # knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-    # knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-    # knots_xy                 = knots_xy[knots_id_in_domain]
-    # knots_x                  = knots_xy[:,0]
-    # knots_y                  = knots_xy[:,1]
-    # k                        = len(knots_id_in_domain)
+    # isometric knot grid
+    N_outer_grid = 16
+    x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
+    y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+    x_outer_pos              = x_pos[0::2]
+    x_inner_pos              = x_pos[1::2]
+    y_outer_pos              = y_pos[0::2]
+    y_inner_pos              = y_pos[1::2]
+    X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+    X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+    knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+    knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+    knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+    knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+    knots_xy                 = knots_xy[knots_id_in_domain]
+    knots_x                  = knots_xy[:,0]
+    knots_y                  = knots_xy[:,1]
+    k                        = len(knots_id_in_domain)
 
 
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Copula Splines
+    # ----------------------------------------------------------------------------------------------------------------
+    # Copula Splines
     
-    # # Basis Parameters - for the Gaussian and Wendland Basis
-    # bandwidth = 4 # range for the gaussian kernel
-    # radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-    # radius_from_knots = np.repeat(radius, k) # influence radius from a knot
+    # Basis Parameters - for the Gaussian and Wendland Basis
+    bandwidth = 4 # range for the gaussian kernel
+    radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
-    # # Generate the weight matrices
-    # # Weight matrix generated using Gaussian Smoothing Kernel
-    # gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    # Generate the weight matrices
+    # Weight matrix generated using Gaussian Smoothing Kernel
+    gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+        gaussian_weight_matrix[site_id, :] = weight_from_knots
+
+    # Weight matrix generated using wendland basis
+    wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
+    for site_id in np.arange(Ns):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                        XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+        wendland_weight_matrix[site_id, :] = weight_from_knots
+    
+    # # constant weight matrix
+    # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
     # for site_id in np.arange(Ns):
     #     # Compute distance between each pair of the two collections of inputs
     #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
     #                                     XB = knots_xy)
     #     # influence coming from each of the knots
-    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    #     gaussian_weight_matrix[site_id, :] = weight_from_knots
+    #     weight_from_knots = np.repeat(1, k)/k
+    #     constant_weight_matrix[site_id, :] = weight_from_knots
 
-    # # Weight matrix generated using wendland basis
-    # wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
-    # for site_id in np.arange(Ns):
-    #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-    #                                     XB = knots_xy)
-    #     # influence coming from each of the knots
-    #     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    #     wendland_weight_matrix[site_id, :] = weight_from_knots
+    # ----------------------------------------------------------------------------------------------------------------
+    # Setup For the Marginal Model - GEV(mu, sigma, ksi)
+
+    # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
+    # "knots" and prediction sites for splines 
+    gs_x        = np.linspace(minX, maxX, 50)
+    gs_y        = np.linspace(minY, maxY, 50)
+    gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
+
+    gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+    gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+    gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+    sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+
+    r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+    r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+    r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+    r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+
+    r('''
+        gs_xy_df <- as.data.frame(gs_xy_ro)
+        colnames(gs_xy_df) <- c('x','y')
+        sites_xy_df <- as.data.frame(sites_xy_ro)
+        colnames(sites_xy_df) <- c('x','y')
+        ''')
+
+    # Location mu_0(s) ----------------------------------------------------------------------------------------------
     
-    # # # constant weight matrix
-    # # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
-    # # for site_id in np.arange(Ns):
-    # #     # Compute distance between each pair of the two collections of inputs
-    # #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-    # #                                     XB = knots_xy)
-    # #     # influence coming from each of the knots
-    # #     weight_from_knots = np.repeat(1, k)/k
-    # #     constant_weight_matrix[site_id, :] = weight_from_knots
-
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Setup For the Marginal Model - GEV(mu, sigma, ksi)
-
-    # # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
-    # # "knots" and prediction sites for splines 
-    # gs_x        = np.linspace(minX, maxX, 50)
-    # gs_y        = np.linspace(minY, maxY, 50)
-    # gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
-
-    # gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
-    # gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
-    # gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
-    # sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
-
-    # r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
-    # r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
-    # r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
-    # r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
-
-    # r('''
-    #     gs_xy_df <- as.data.frame(gs_xy_ro)
-    #     colnames(gs_xy_df) <- c('x','y')
-    #     sites_xy_df <- as.data.frame(sites_xy_ro)
-    #     colnames(sites_xy_df) <- c('x','y')
-    #     ''')
-
-    # # Location mu_0(s) ----------------------------------------------------------------------------------------------
+    Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+    Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
+    C_mu0_splines      = np.array(r('''
+                                    basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                    basis_site <- PredictMat(basis, data = sites_xy_df)
+                                    # basis_site
+                                    basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                    '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+    C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                        elevations,     # elevation
+                                        C_mu0_splines)) # splines (excluding intercept)
+    C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
     
-    # Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
-    # Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
-    # C_mu0_splines      = np.array(r('''
-    #                                 basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-    #                                 basis_site <- PredictMat(basis, data = sites_xy_df)
-    #                                 # basis_site
-    #                                 basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
-    #                                 '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
-    # C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
-    #                                     elevations,     # elevation
-    #                                     C_mu0_splines)) # splines (excluding intercept)
-    # C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+    # Location mu_1(s) ----------------------------------------------------------------------------------------------
     
-    # # Location mu_1(s) ----------------------------------------------------------------------------------------------
+    Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
+    Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+    C_mu1_splines      = np.array(r('''
+                                    basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                    basis_site <- PredictMat(basis, data = sites_xy_df)
+                                    # basis_site
+                                    basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                    '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+    C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                        elevations,     # elevation
+                                        C_mu1_splines)) # splines (excluding intercept)
+    C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+    # Scale logsigma(s) ----------------------------------------------------------------------------------------------
     
-    # Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
-    # Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
-    # C_mu1_splines      = np.array(r('''
-    #                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-    #                                 basis_site <- PredictMat(basis, data = sites_xy_df)
-    #                                 # basis_site
-    #                                 basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
-    #                                 '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
-    # C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
-    #                                     elevations,     # elevation
-    #                                     C_mu1_splines)) # splines (excluding intercept)
-    # C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+    Beta_logsigma_m   = 2 # just intercept and elevation
+    C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+    C_logsigma[0,:,:] = 1.0 
+    C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
-    # # Scale logsigma(s) ----------------------------------------------------------------------------------------------
+    # Shape ksi(s) ----------------------------------------------------------------------------------------------
     
-    # Beta_logsigma_m   = 2 # just intercept and elevation
-    # C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
-    # C_logsigma[0,:,:] = 1.0 
-    # C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+    Beta_ksi_m   = 2 # just intercept and elevation
+    C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+    C_ksi[0,:,:] = 1.0
+    C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
-    # # Shape ksi(s) ----------------------------------------------------------------------------------------------
-    
-    # Beta_ksi_m   = 2 # just intercept and elevation
-    # C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
-    # C_ksi[0,:,:] = 1.0
-    # C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
+    # ----------------------------------------------------------------------------------------------------------------
+    # Setup For the Copula/Data Model - X_star = R^phi * g(Z)
 
-    # # ----------------------------------------------------------------------------------------------------------------
-    # # Setup For the Copula/Data Model - X_star = R^phi * g(Z)
+    # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
+    nu = 0.5 # exponential kernel for matern with nu = 1/2
+    sigsq = 1.0 # sill for Z
+    sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
 
-    # # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------
-    # nu = 0.5 # exponential kernel for matern with nu = 1/2
-    # sigsq = 1.0 # sill for Z
-    # sigsq_vec = np.repeat(sigsq, Ns) # hold at 1
-
-    # # Scale Mixture R^phi --------------------------------------------------------------------------------------------
-    # ## phi and gamma
-    # gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
-    # delta = 0.0 # this is the delta in levy, stays 0
-    # alpha = 0.5
-    # gamma_at_knots = np.repeat(gamma, k)
-    # gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
-    #                    axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
+    # Scale Mixture R^phi --------------------------------------------------------------------------------------------
+    ## phi and gamma
+    gamma = 0.5 # this is the gamma that goes in rlevy, gamma_at_knots
+    delta = 0.0 # this is the delta in levy, stays 0
+    alpha = 0.5
+    gamma_at_knots = np.repeat(gamma, k)
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+                       axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
 
     # %% Estimate Parameter -----------------------------------------------------------------------------------------------
     # Estimate Parameter    -----------------------------------------------------------------------------------------------
 
-    # if start_iter == 1:
-        # # ----------------------------------------------------------------------------------------------------------------
-        # # Marginal Parameters - GEV(mu, sigma, ksi)
+    if start_iter == 1:
+        # ----------------------------------------------------------------------------------------------------------------
+        # Marginal Parameters - GEV(mu, sigma, ksi)
 
-        # Beta_mu0 = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
-        # Beta_mu1 = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
-        # Beta_logsigma = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
-        # Beta_ksi = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+        Beta_mu0 = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+        Beta_mu1 = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+        Beta_logsigma = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+        Beta_ksi = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
 
-        # ## Note: these sigma_Beta_xx must be values, can't be arrays
-        # sigma_Beta_mu0      = 9.62944645
-        # sigma_Beta_mu1      = 0.22947093
-        # sigma_Beta_logsigma = 1.79421561
-        # sigma_Beta_ksi      = 0.13111096
+        ## Note: these sigma_Beta_xx must be values, can't be arrays
+        sigma_Beta_mu0      = 9.62944645
+        sigma_Beta_mu1      = 0.22947093
+        sigma_Beta_logsigma = 1.79421561
+        sigma_Beta_ksi      = 0.13111096
 
-        # mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
-        # sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
-        # ksi_matrix   = (C_ksi.T @ Beta_ksi).T
+        mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
+        sigma_matrix = np.exp((C_logsigma.T @ Beta_logsigma).T)
+        ksi_matrix   = (C_ksi.T @ Beta_ksi).T
 
-        # # ----------------------------------------------------------------------------------------------------------------
-        # # Data Model Parameters - X_star = R^phi * g(Z)
+        # ----------------------------------------------------------------------------------------------------------------
+        # Data Model Parameters - X_star = R^phi * g(Z)
 
-        # # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------------------------
+        # Covariance K for Gaussian Field g(Z) --------------------------------------------------------------------------------------------
 
-        # # Estimate range: using sites within the radius of each knot
-        # range_at_knots = np.array([])
-        # distance_matrix = np.full(shape=(Ns, k), fill_value=np.nan)
-        # # distance from knots
-        # for site_id in np.arange(Ns):
-        #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), XB = knots_xy)
-        #     distance_matrix[site_id,:] = d_from_knots
-        # # each knot's "own" sites
-        # sites_within_knots = {}
-        # for knot_id in np.arange(k):
-        #     knot_name = 'knot_' + str(knot_id)
-        #     sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= radius_from_knots[knot_id])[0]
+        # Estimate range: using sites within the radius of each knot
+        range_at_knots = np.array([])
+        distance_matrix = np.full(shape=(Ns, k), fill_value=np.nan)
+        # distance from knots
+        for site_id in np.arange(Ns):
+            d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), XB = knots_xy)
+            distance_matrix[site_id,:] = d_from_knots
+        # each knot's "own" sites
+        sites_within_knots = {}
+        for knot_id in np.arange(k):
+            knot_name = 'knot_' + str(knot_id)
+            sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= radius_from_knots[knot_id])[0]
 
-        # # empirical variogram estimates
-        # for key in sites_within_knots.keys():
-        #     selected_sites           = sites_within_knots[key]
-        #     demeaned_Y               = Y - mu_matrix
-        #     bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
-        #                                                 np.nanmean(demeaned_Y[selected_sites], axis=1))
-        #     fit_model = gs.Exponential(dim=2)
-        #     fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
-        #     # ax = fit_model.plot(x_max = 4)
-        #     # ax.scatter(bin_center, gamma_variog)
-        #     range_at_knots = np.append(range_at_knots, fit_model.len_scale)
-        # if rank == 0:
-        #     print('estimated range:',range_at_knots)
+        # empirical variogram estimates
+        for key in sites_within_knots.keys():
+            selected_sites           = sites_within_knots[key]
+            demeaned_Y               = Y - mu_matrix
+            bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
+                                                        np.nanmean(demeaned_Y[selected_sites], axis=1))
+            fit_model = gs.Exponential(dim=2)
+            fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
+            # ax = fit_model.plot(x_max = 4)
+            # ax.scatter(bin_center, gamma_variog)
+            range_at_knots = np.append(range_at_knots, fit_model.len_scale)
+        if rank == 0:
+            print('estimated range:',range_at_knots)
 
-        # # check for unreasonably large values, intialize at some smaller ones
-        # range_upper_bound = 4
-        # if len(np.where(range_at_knots > range_upper_bound)[0]) > 0:
-        #     if rank == 0: print('estimated range >', range_upper_bound, ' at:', np.where(range_at_knots > range_upper_bound)[0])
-        #     if rank == 0: print('range at those knots set to be at', range_upper_bound)
-        #     range_at_knots[np.where(range_at_knots > range_upper_bound)[0]] = range_upper_bound
+        # check for unreasonably large values, intialize at some smaller ones
+        range_upper_bound = 4
+        if len(np.where(range_at_knots > range_upper_bound)[0]) > 0:
+            if rank == 0: print('estimated range >', range_upper_bound, ' at:', np.where(range_at_knots > range_upper_bound)[0])
+            if rank == 0: print('range at those knots set to be at', range_upper_bound)
+            range_at_knots[np.where(range_at_knots > range_upper_bound)[0]] = range_upper_bound
         
-        # # check for unreasonably small values, initialize at some larger ones
-        # range_lower_bound = 0.01
-        # if len(np.where(range_at_knots < range_lower_bound)[0]) > 0:
-        #     if rank == 0: print('estimated range <', range_lower_bound, ' at:', np.where(range_at_knots < range_lower_bound)[0])
-        #     if rank == 0: print('range at those knots set to be at', range_lower_bound)
-        #     range_at_knots[np.where(range_at_knots < range_lower_bound)[0]] = range_lower_bound    
+        # check for unreasonably small values, initialize at some larger ones
+        range_lower_bound = 0.01
+        if len(np.where(range_at_knots < range_lower_bound)[0]) > 0:
+            if rank == 0: print('estimated range <', range_lower_bound, ' at:', np.where(range_at_knots < range_lower_bound)[0])
+            if rank == 0: print('range at those knots set to be at', range_lower_bound)
+            range_at_knots[np.where(range_at_knots < range_lower_bound)[0]] = range_lower_bound    
         
-        # # range_vec = gaussian_weight_matrix @ range_at_knots
+        # range_vec = gaussian_weight_matrix @ range_at_knots
 
-        # # Scale Mixture R^phi --------------------------------------------------------------------------------------------
+        # Scale Mixture R^phi --------------------------------------------------------------------------------------------
 
-        # phi_at_knots = np.array([0.4] * k)
-        # phi_vec = gaussian_weight_matrix @ phi_at_knots
+        phi_at_knots = np.array([0.4] * k)
+        phi_vec = gaussian_weight_matrix @ phi_at_knots
 
-        # # Calculate Rt
-        # # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-        # # for t in np.arange(Nt):
-        # #     R_at_knots[:,t] = np.median(qRW(pgev(Y[:,t], 
-        # #                                          ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)[:,t], 
-        # #                                          np.exp((C_logsigma.T @ Beta_logsigma).T)[:,t], 
-        # #                                          ((C_ksi.T @ Beta_ksi).T)[:,t]), 
-        # #                                     phi_vec, gamma_vec))**2
+        # Calculate Rt
+        # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+        # for t in np.arange(Nt):
+        #     R_at_knots[:,t] = np.median(qRW(pgev(Y[:,t], 
+        #                                          ((C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time)[:,t], 
+        #                                          np.exp((C_logsigma.T @ Beta_logsigma).T)[:,t], 
+        #                                          ((C_ksi.T @ Beta_ksi).T)[:,t]), 
+        #                                     phi_vec, gamma_vec))**2
 
-        # if norm_pareto == 'standard':
-        #     R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-        #     for t in np.arange(Nt):
-        #         # R_at_knots[:,t] = (np.min(qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]), 
-        #         #                         phi_vec, gamma_vec))/1.5)**2
+        if norm_pareto == 'standard':
+            R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
+            for t in np.arange(Nt):
+                # R_at_knots[:,t] = (np.min(qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]), 
+                #                         phi_vec, gamma_vec))/1.5)**2
                 
-        #         # only use non-missing values
-        #         miss_index_1t = np.where(miss_matrix[:,t] == True)[0]
-        #         obs_index_1t  = np.where(miss_matrix[:,t] == False)[0]
-        #         R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t], 
-        #                                            mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]), 
-        #                                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t]))/1.5)**(1/phi_at_knots)
-        # else: # norm_pareto == 'shifted':
-        #     # Calculate Rt in Parallel, only use non-missing values
-        #     comm.Barrier()
-        #     miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
-        #     obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
-        #     X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
-        #                         phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
-        #     R_1t       = np.array([np.median(X_1t)**2] * k)
-        #     R_gathered = comm.gather(R_1t, root = 0)
-        #     R_at_knots = np.array(R_gathered).T if rank == 0 else None
-        #     R_at_knots = comm.bcast(R_at_knots, root = 0)
+                # only use non-missing values
+                miss_index_1t = np.where(miss_matrix[:,t] == True)[0]
+                obs_index_1t  = np.where(miss_matrix[:,t] == False)[0]
+                R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t], 
+                                                   mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]), 
+                                            phi_vec[obs_index_1t], gamma_vec[obs_index_1t]))/1.5)**(1/phi_at_knots)
+        else: # norm_pareto == 'shifted':
+            # Calculate Rt in Parallel, only use non-missing values
+            comm.Barrier()
+            miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
+            obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
+            X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
+                                phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
+            R_1t       = np.array([np.median(X_1t)**2] * k)
+            R_gathered = comm.gather(R_1t, root = 0)
+            R_at_knots = np.array(R_gathered).T if rank == 0 else None
+            R_at_knots = comm.bcast(R_at_knots, root = 0)
     
     # %% Load Parameter
     # Load Parameter
@@ -1247,56 +1260,92 @@ if __name__ == "__main__":
     
     if norm_pareto == 'shifted':
         phi_block_idx_size = 4
-        range_block_idx_size = 3
+        range_block_idx_size = 4
 
     Beta_mu0_block_idx_size = 4
     Beta_mu1_block_idx_size = 4
 
-    # Create Coefficient Index Blocks
+    # Create Coefficient Index Blocks - each block size does not exceed size specified above
 
     ## phi
-    phi_block_idx_dict = {} # dictionary that stores the index of phis in each block
-    phi_nblock         = int(k/phi_block_idx_size)
-    for i in range(phi_nblock):
-        start_index = phi_block_idx_size*i
-        end_index   = start_index + phi_block_idx_size
-        if i+1 < phi_nblock:
-            phi_block_idx_dict['phi_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
-        else: # last block, take any residuals
-            phi_block_idx_dict['phi_block_idx_'+str(i+1)] = [index for index in range(start_index, k)]
+    phi_block_idx_dict = {}
+    lst = list(range(k))
+    for i in range(0, k, phi_block_idx_size):
+        start_index = i
+        end_index   = i + phi_block_idx_size
+        key         = 'phi_block_idx_'+str(i//phi_block_idx_size+1)
+        phi_block_idx_dict[key] = lst[start_index:end_index]
 
     ## range
-    range_block_idx_dict = {} # dictionary that stores the index of ranges in each block
-    range_nblock         = int(k/range_block_idx_size)
-    for i in range(range_nblock):
-        start_index = range_block_idx_size*i
-        end_index   = start_index + range_block_idx_size
-        if i+1 < range_nblock:
-            range_block_idx_dict['range_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
-        else: # last block, take any residuals
-            range_block_idx_dict['range_block_idx_'+str(i+1)] = [index for index in range(start_index, k)]
+    range_block_idx_dict = {}
+    lst = list(range(k))
+    for i in range(0, k, range_block_idx_size):
+        start_index = i
+        end_index   = i + range_block_idx_size
+        key         = 'range_block_idx_'+str(i//range_block_idx_size+1)
+        range_block_idx_dict[key] = lst[start_index:end_index]
 
     ## Beta_mu0
-    Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in each block
-    Beta_mu0_nblock         = int(Beta_mu0_m/Beta_mu0_block_idx_size)
-    for i in range(Beta_mu0_nblock):
-        start_index = Beta_mu0_block_idx_size*i
-        end_index   = start_index + Beta_mu0_block_idx_size
-        if i+1 < Beta_mu0_nblock:
-            Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
-        else: # last block
-            Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
+    Beta_mu0_block_idx_dict = {}
+    lst = list(range(Beta_mu0_m))
+    for i in range(0, Beta_mu0_m, Beta_mu0_block_idx_size):
+        start_index = i
+        end_index   = i + Beta_mu0_block_idx_size
+        key         = 'Beta_mu0_block_idx_'+str(i//Beta_mu0_block_idx_size+1)
+        Beta_mu0_block_idx_dict[key] = lst[start_index:end_index]
 
     ## Beta_mu1
-    Beta_mu1_block_idx_dict = {} # dictionary that stores the index of Beta_mu1 in each block
-    Beta_mu1_nblock         = int(Beta_mu1_m/Beta_mu1_block_idx_size)
-    for i in range(Beta_mu1_nblock):
-        start_index = Beta_mu1_block_idx_size*i
-        end_index   = start_index + Beta_mu1_block_idx_size
-        if i + 1 < Beta_mu1_nblock:
-            Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
-        else:
-            Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu1_m)]
+    Beta_mu1_block_idx_dict = {}
+    lst = list(range(Beta_mu1_m))
+    for i in range(0, Beta_mu1_m, Beta_mu1_block_idx_size):
+        start_index = i
+        end_index   = i + Beta_mu1_block_idx_size
+        key         = 'Beta_mu1_block_idx_'+str(i//Beta_mu1_block_idx_size + 1)
+        Beta_mu1_block_idx_dict[key] = lst[start_index:end_index]
+
+    # ## phi
+    # phi_block_idx_dict = {} # dictionary that stores the index of phis in each block
+    # phi_nblock         = int(k/phi_block_idx_size)
+    # for i in range(phi_nblock):
+    #     start_index = phi_block_idx_size*i
+    #     end_index   = start_index + phi_block_idx_size
+    #     if i+1 < phi_nblock:
+    #         phi_block_idx_dict['phi_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else: # last block, take any residuals
+    #         phi_block_idx_dict['phi_block_idx_'+str(i+1)] = [index for index in range(start_index, k)]
+
+    # ## range
+    # range_block_idx_dict = {} # dictionary that stores the index of ranges in each block
+    # range_nblock         = int(k/range_block_idx_size)
+    # for i in range(range_nblock):
+    #     start_index = range_block_idx_size*i
+    #     end_index   = start_index + range_block_idx_size
+    #     if i+1 < range_nblock:
+    #         range_block_idx_dict['range_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else: # last block, take any residuals
+    #         range_block_idx_dict['range_block_idx_'+str(i+1)] = [index for index in range(start_index, k)]
+
+    # ## Beta_mu0
+    # Beta_mu0_block_idx_dict = {}  # dictionary that stores the index of Beta_mu0 in each block
+    # Beta_mu0_nblock         = int(Beta_mu0_m/Beta_mu0_block_idx_size)
+    # for i in range(Beta_mu0_nblock):
+    #     start_index = Beta_mu0_block_idx_size*i
+    #     end_index   = start_index + Beta_mu0_block_idx_size
+    #     if i+1 < Beta_mu0_nblock:
+    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else: # last block
+    #         Beta_mu0_block_idx_dict['Beta_mu0_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu0_m)]
+
+    # ## Beta_mu1
+    # Beta_mu1_block_idx_dict = {} # dictionary that stores the index of Beta_mu1 in each block
+    # Beta_mu1_nblock         = int(Beta_mu1_m/Beta_mu1_block_idx_size)
+    # for i in range(Beta_mu1_nblock):
+    #     start_index = Beta_mu1_block_idx_size*i
+    #     end_index   = start_index + Beta_mu1_block_idx_size
+    #     if i + 1 < Beta_mu1_nblock:
+    #         Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, end_index)]
+    #     else:
+    #         Beta_mu1_block_idx_dict['Beta_mu1_block_idx_'+str(i+1)] = [index for index in range(start_index, Beta_mu1_m)]
 
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: tuning constants
@@ -1315,8 +1364,8 @@ if __name__ == "__main__":
 
     if start_iter == 1: # initialize the adaptive update necessities
         # with no trial run
-        phi_cov                 = 1e-3 * np.identity(k)
-        range_cov               = np.identity(k)
+        phi_cov                 = 1e-2 * np.identity(k)
+        range_cov               = 0.5  * np.identity(k)
         Beta_mu0_cov            = 1e-2 * np.identity(Beta_mu0_m)
         Beta_mu1_cov            = 1e-2 * np.identity(Beta_mu1_m)
         Beta_logsigma_cov       = 1e-6 * np.identity(Beta_logsigma_m)
