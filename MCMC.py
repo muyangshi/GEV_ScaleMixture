@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
     mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
     mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
-    logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
+    logsigma_estimates = (C_logsigma.T @ Beta_logsigma).T[:,0]
     ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
     mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
@@ -1241,8 +1241,13 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
     
-    phi_block_idx_size   = 1
-    range_block_idx_size = 4
+    if norm_pareto == 'standard':
+        phi_block_idx_size   = 1
+        range_block_idx_size = 1
+    
+    if norm_pareto == 'shifted':
+        phi_block_idx_size = 4
+        range_block_idx_size = 3
 
     Beta_mu0_block_idx_size = 4
     Beta_mu1_block_idx_size = 4
