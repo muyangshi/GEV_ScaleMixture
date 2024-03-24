@@ -95,10 +95,10 @@ rect_i = plt.Rectangle((knots_xy[0][0] - rect_width/2, knots_xy[0][1] - rect_hei
                        width = rect_width, height = rect_height,
                        fill = False, ec = 'black', linewidth = 2)
 ax.add_patch(rect_i)
-
 plt.xlim([-105,-90])
 plt.ylim([30,50])
 plt.show()
+plt.close()
 
 # histogram of distance between sites
 allsite_dist_mat = np.full(shape = (Ns, Ns), fill_value = np.nan)
@@ -106,6 +106,8 @@ for si in range(Ns):
     for sj in range(Ns):
         allsite_dist_mat[si,sj] = coord_to_dist(sites_xy[si], sites_xy[sj])
 plt.hist(allsite_dist_mat[np.triu_indices(Ns, k = 1)].ravel())
+plt.show()
+plt.close()
 
 
 # select sites within the rectangle
@@ -125,6 +127,58 @@ for si in range(n_sites):
     for sj in range(n_sites):
         sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
 plt.hist(sites_dist_mat[np.triu_indices(n_sites, k = 1)].ravel())
+plt.show()
+plt.close()
+
+# draw edges example
+# select sites within the rectangle
+i = 36
+u = 0.99
+h = 60
+e_abs = 0.2
+h_low = h * (1 - e_abs)
+h_up  = h * (1 + e_abs)
+rect_left   = knots_xy[i][0] - rect_width/2
+rect_right  = knots_xy[i][0] + rect_width/2
+rect_top    = knots_xy[i][1] + rect_height/2
+rect_bottom = knots_xy[i][1] - rect_height/2
+sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+                                    np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+sites_in_rect = sites_xy[sites_in_rect_mask]
+
+# calculate the distance between sites inside rectangle (coords --> km)
+n_sites = sites_in_rect.shape[0]
+sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+for si in range(n_sites):
+    for sj in range(n_sites):
+        sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+
+# select pairs: sites that are ~h km apart
+sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+                            np.triu(sites_dist_mat) < h_up)
+n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+plt.hist(sites_dist_mat[sites_h_mask])
+plt.show()
+plt.close()
+fig, ax = plt.subplots()
+fig.set_size_inches(6,8)
+ax.set_aspect('equal', 'box')
+state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+ax.scatter(sites_in_rect[:,0], sites_in_rect[:,1], s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+ax.scatter(knots_x, knots_y, s = 15, color = 'red', marker = '+')
+for site_pair in site_pairs_to_check:
+    coord_1 = sites_in_rect[site_pair[0]]
+    coord_2 = sites_in_rect[site_pair[1]]
+    ax.plot((coord_1[0], coord_2[0]), (coord_1[1], coord_2[1]), 'blue', linestyle='-', linewidth = 0.5)
+rect_i = plt.Rectangle((knots_xy[i][0] - rect_width/2, knots_xy[i][1] - rect_height/2), 
+                    width = rect_width, height = rect_height,
+                    fill = False, ec = 'black', linewidth = 2)
+ax.add_patch(rect_i)
+plt.xlim([-105,-90])
+plt.ylim([30,50])
+plt.show()
+plt.close()
 
 
 # %%
@@ -133,11 +187,11 @@ plt.hist(sites_dist_mat[np.triu_indices(n_sites, k = 1)].ravel())
 
 u = 0.99 # 0.9, 0.95, 0.99
 h = 225 # 75, 150, 225
+e_abs = 0.2
 
-for u in [0.9, 0.95, 0.99]:
-    for h in [75, 150, 225]:
+for h in [75, 150, 225]:
+    for u in [0.9, 0.95, 0.99]:
 
-        e_abs = 0.2
         h_low = h * (1 - e_abs)
         h_up  = h * (1 + e_abs)
 
@@ -172,46 +226,23 @@ for u in [0.9, 0.95, 0.99]:
                                         np.triu(sites_dist_mat) < h_up)
             n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
             site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
-            # plt.hist(sites_dist_mat[sites_h_mask])
-            # plt.close()
-
-            # # draw edges
-            # if i % 10 == 0:
-            #     fig, ax = plt.subplots()
-            #     fig.set_size_inches(6,8)
-            #     ax.set_aspect('equal', 'box')
-            #     state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-            #     ax.scatter(sites_in_rect[:,0], sites_in_rect[:,1], s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-            #     ax.scatter(knots_x, knots_y, s = 15, color = 'red', marker = '+')
-            #     for site_pair in site_pairs_to_check:
-            #         coord_1 = sites_in_rect[site_pair[0]]
-            #         coord_2 = sites_in_rect[site_pair[1]]
-            #         ax.plot((coord_1[0], coord_2[0]), (coord_1[1], coord_2[1]), 'blue', linestyle='-', linewidth = 0.5)
-            #     rect_i = plt.Rectangle((knots_xy[i][0] - rect_width/2, knots_xy[i][1] - rect_height/2), 
-            #                         width = rect_width, height = rect_height,
-            #                         fill = False, ec = 'black', linewidth = 2)
-            #     ax.add_patch(rect_i)
-            #     plt.xlim([-105,-90])
-            #     plt.ylim([30,50])
-            #     plt.show()
-            #     plt.close()
 
             # large pairs
             Y_in_rect     = Y[sites_in_rect_mask]
             pY_in_rect    = pY[sites_in_rect_mask]
 
+            # Calculate empirical chi
             count_co_extreme = 0
             for site_pair in site_pairs_to_check:
                 # for this pair, over time, how many co-occured extremes?
                 count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
                                                         pY_in_rect[site_pair[1]] >= u))
+            prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+            prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+            chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
 
-            prob_joint_ext = count_co_extreme / (n_pairs * Nt)
-            prob_uni_ext   = np.mean(pY_in_rect >= u)
-            chi            = prob_joint_ext / prob_uni_ext
-
-            chi_mat[i % 7, i // 7] = chi
-            chi_mat2[-1 - i // 7, i % 7] = chi
+            chi_mat[i % len(x_pos), i // len(x_pos)] = chi
+            chi_mat2[-1 - i // len(x_pos), i % len(x_pos)] = chi
 
         fig, ax = plt.subplots()
         fig.set_size_inches(6,8)
@@ -231,21 +262,119 @@ for u in [0.9, 0.95, 0.99]:
         plt.close()
 
 # %%
-fig, ax = plt.subplots()
-fig.set_size_inches(6,8)
-ax.set_aspect('equal', 'box')
-state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-heatmap = ax.imshow(chi_mat2, cmap ='bwr', interpolation='nearest', 
-                    extent = [min(x_pos - rect_width/8), max(x_pos + rect_width/8), 
-                              min(y_pos - rect_height/8), max(y_pos+rect_height/8)])
-# ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-ax.scatter(knots_x, knots_y, s = 15, color = 'white', marker = '+')
-fig.colorbar(heatmap)
-plt.xlim([-105,-90])
-plt.ylim([30,50])
-plt.title(rf'empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
-plt.show()
-plt.close()
+# Plot chi with same h in same figure
+
+u = 0.99 # 0.9, 0.95, 0.99
+h = 225 # 75, 150, 225
+e_abs = 0.2
+
+# Define the colors for the colormap (white to red)
+colors = ["#ffffff", "#ff0000"]
+min_chi = 0
+max_chi = 0.5
+
+# Create a LinearSegmentedColormap
+n_bins = 12  # Number of discrete bins
+cmap_name = "white_to_red"
+colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+ticks = np.linspace(min_chi, max_chi, n_bins+1).round(3)
+
+for h in [75, 150, 225]:
+
+    fig, axes = plt.subplots(1,3)
+    fig.set_size_inches(10,6)
+
+    for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+        h_low = h * (1 - e_abs)
+        h_up  = h * (1 + e_abs)
+
+        # e_abs = 20
+        # h_low = h - e_abs
+        # h_up  = h + e_abs
+
+        chi_mat = np.full(shape = (len(x_pos), len(y_pos)), fill_value = np.nan)
+        chi_mat2 = np.full(shape = (len(y_pos), len(x_pos)), fill_value = np.nan)
+
+        for i in range(knots_xy.shape[0]):
+
+            # select sites within the rectangle
+            rect_left   = knots_xy[i][0] - rect_width/2
+            rect_right  = knots_xy[i][0] + rect_width/2
+            rect_top    = knots_xy[i][1] + rect_height/2
+            rect_bottom = knots_xy[i][1] - rect_height/2
+            sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+                                                np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+            sites_in_rect = sites_xy[sites_in_rect_mask]
+
+            # calculate the distance between sites inside rectangle (coords --> km)
+            n_sites = sites_in_rect.shape[0]
+            sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+            for si in range(n_sites):
+                for sj in range(n_sites):
+                    sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+
+            # select pairs: sites that are ~h km apart
+            sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+                                        np.triu(sites_dist_mat) < h_up)
+            n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+            site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+
+            # large pairs
+            Y_in_rect     = Y[sites_in_rect_mask]
+            pY_in_rect    = pY[sites_in_rect_mask]
+
+            # Calculate empirical chi
+            count_co_extreme = 0
+            for site_pair in site_pairs_to_check:
+                # for this pair, over time, how many co-occured extremes?
+                count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
+                                                        pY_in_rect[site_pair[1]] >= u))
+            prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+            prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+            chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+
+            chi_mat[i % len(x_pos), i // len(x_pos)] = chi
+            chi_mat2[-1 - i // len(x_pos), i % len(x_pos)] = chi
+
+        assert np.all(chi_mat2 <= max_chi)
+
+        ax = axes[ax_id]
+        ax.set_aspect('equal', 'box')
+        state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+        heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0, vmax = 0.5,
+                            interpolation='nearest', 
+                            extent = [min(x_pos - rect_width/8), max(x_pos + rect_width/8), 
+                                    min(y_pos - rect_height/8), max(y_pos+rect_height/8)])
+        # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+        ax.scatter(knots_x, knots_y, s = 15, color = 'white', marker = '+')
+        ax.set_xlim(-101,-93)
+        ax.set_ylim(32.5, 45)
+        ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km')
+
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+    fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+    plt.savefig('empirical_chi_h={}.pdf'.format(h))
+    plt.show()
+    plt.close()      
+
+# %%
+# fig, ax = plt.subplots()
+# fig.set_size_inches(6,8)
+# ax.set_aspect('equal', 'box')
+# state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+# heatmap = ax.imshow(chi_mat2, cmap ='bwr', interpolation='nearest', 
+#                     extent = [min(x_pos - rect_width/8), max(x_pos + rect_width/8), 
+#                               min(y_pos - rect_height/8), max(y_pos+rect_height/8)])
+# # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+# ax.scatter(knots_x, knots_y, s = 15, color = 'white', marker = '+')
+# fig.colorbar(heatmap)
+# plt.xlim([-105,-90])
+# plt.ylim([30,50])
+# plt.title(rf'empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
+# plt.show()
+# plt.close()
 # fig, ax = plt.subplots()
 # fig.set_size_inches(6,8)
 # ax.set_aspect('equal', 'box')
