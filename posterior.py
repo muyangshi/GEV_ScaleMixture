@@ -966,10 +966,18 @@ gumbel_pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
 for t in range(Nt):
     gumbel_pY[:,t] = scipy.stats.gumbel_r.ppf(pY[:,t])
 
+gumbel_pY_ro = numpy2rpy(gumbel_pY)
+r.assign('gumbel_pY_ro',gumbel_pY_ro)
+r("save(gumbel_pY_ro, file='gumbel_pY_ro.gzip', compress=TRUE)")
+
 gumbel_pY_mcmc = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
 for i in range(n):
     for t in range(Nt):
         gumbel_pY_mcmc[i,:,t] = scipy.stats.gumbel_r.ppf(pY_mcmc[i,:,t])
+
+gumbel_pY_mcmc_ro = numpy2rpy(gumbel_pY_mcmc)
+r.assign('gumbel_pY_mcmc_ro',gumbel_pY_mcmc_ro)
+r("save(gumbel_pY_mcmc_ro, file='gumbel_pY_mcmc_ro.gzip', compress=TRUE)")
 
 # Single Site Gumbel QQPlot
 # single site with GEV fit marginal parameter
