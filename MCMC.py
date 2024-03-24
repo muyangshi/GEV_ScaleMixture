@@ -3146,7 +3146,7 @@ if __name__ == "__main__":
     if rank == 0:
         end_time = time.time()
         print('total time: ', round(end_time - start_time, 1), ' seconds')
-        print('true R: ', R_at_knots)
+        # print('true R: ', R_at_knots)
         np.save('loglik_trace', loglik_trace)
         np.save('loglik_detail_trace', loglik_detail_trace)
         np.save('R_trace_log', R_trace_log)
