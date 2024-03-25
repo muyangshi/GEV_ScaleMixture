@@ -6,6 +6,7 @@ import numpy as np
 # import model_sim
 # from numba import jit
 import os, ctypes
+RW_lib = ctypes.CDLL(os.path.abspath('./RW_inte_cpp.so'))
 
 # %%
 ###########################################################
@@ -13,7 +14,6 @@ import os, ctypes
 # for the shifted Pareto, no nugget                       #
 # pRW_transformed_cpp, dRW_transformed_cpp, qRW_transformed_cpp #
 ###########################################################
-RW_lib = ctypes.CDLL(os.path.abspath('./RW_inte_cpp.so'))
 
 RW_lib.pRW_transformed.restype = ctypes.c_double
 RW_lib.pRW_transformed.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double)
@@ -63,6 +63,27 @@ RW_lib.qRW_standard_Pareto_C_brent.argtypes = (ctypes.c_double, ctypes.c_double,
 dRW_standard_Pareto_vec = np.vectorize(RW_lib.dRW_standard_Pareto_C, otypes=[float])
 pRW_standard_Pareto_vec = np.vectorize(RW_lib.pRW_standard_Pareto_C, otypes=[float])
 qRW_standard_Pareto_vec = np.vectorize(RW_lib.qRW_standard_Pareto_C_brent, otypes=[float])
+
+# %%
+################################################
+# Using Incomplete gamma functions for the     #
+# STANDARD Non-shifted Pareto, WITH nugget     #
+# pRW_stdPareto, dRW_stdPareto, qRW_stdPareto  # 
+################################################
+RW_lib.pRW_standard_Pareto_nugget_C.restype = ctypes.c_double
+RW_lib.pRW_standard_Pareto_nugget_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+
+RW_lib.qRW_standard_Pareto_nugget_C_brent.restype = ctypes.c_double
+RW_lib.qRW_standard_Pareto_nugget_C_brent.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+
+pRW_standard_Pareto_nugget_vec = np.vectorize(RW_lib.pRW_standard_Pareto_nugget_C, otypes=[float])
+qRW_standard_Pareto_nugget_vec = np.vectorize(RW_lib.qRW_standard_Pareto_nugget_C_brent, otypes=[float])
+
+
+
+# RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot.restype = ctypes.c_double
+# RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+# pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot_vec = np.vectorize(RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot, otypes=[float])
 
 # %%
 # def integrate_dRW(b, phi, gamma):

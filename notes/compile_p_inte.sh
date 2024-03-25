@@ -20,10 +20,11 @@ $CXX -std=c++11 -Wall -pedantic -I$CURC_GSL_INC -I$CURC_BOOST_INC -L$CURC_GSL_LI
 # To compile on Misspiggy (misspiggy_MCMC):
 ##################################################
 # note that misspiggy uses the conda mpicxx anyway because mpi4py, openmpi is installed through conda-forge
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/gsl-2.7.1/lib:/usr/local/boost_1_79/lib
-export LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/gsl-2.7.1/lib:/usr/local/boost_1_79/lib # note that this line is added to my profile
+export LD_LIBRARY_PATH # so no longer needed to do this
 g++ -I/usr/local/gsl-2.7.1/include -I/usr/local/boost_1_79/include -std=c++11 -Wall -pedantic p_inte.cpp -shared -fPIC -L/usr/local/boost_1_79/lib -L/usr/local/gsl-2.7.1/lib -o p_inte.so -lgsl -lgslcblas
 g++ -I/usr/local/gsl-2.7.1/include -I/usr/local/boost_1_79/include -std=c++11 -Wall -pedantic RW_inte_cpp.cpp -shared -fPIC -L/usr/local/boost_1_79/lib -L/usr/local/gsl-2.7.1/lib -o RW_inte_cpp.so -lgsl -lgslcblas
+g++ -I$GSL_INC -I$BOOST_INC -std=c++11 -Wall -pedantic RW_inte_cpp.cpp -shared -fPIC -L$BOOST_LIB -L$GSL_LIB -o RW_inte_cpp.so -lgsl -lgslcblas
 ##################################################
 
 
