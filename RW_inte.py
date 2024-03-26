@@ -70,20 +70,30 @@ qRW_standard_Pareto_vec = np.vectorize(RW_lib.qRW_standard_Pareto_C_brent, otype
 # STANDARD Non-shifted Pareto, WITH nugget     #
 # pRW_stdPareto, dRW_stdPareto, qRW_stdPareto  # 
 ################################################
+RW_lib.dRW_standard_Pareto_nugget_C.restype = ctypes.c_double
+RW_lib.dRW_standard_Pareto_nugget_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+
 RW_lib.pRW_standard_Pareto_nugget_C.restype = ctypes.c_double
 RW_lib.pRW_standard_Pareto_nugget_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
 
 RW_lib.qRW_standard_Pareto_nugget_C_brent.restype = ctypes.c_double
 RW_lib.qRW_standard_Pareto_nugget_C_brent.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
 
+dRW_standard_Pareto_nugget_vec = np.vectorize(RW_lib.dRW_standard_Pareto_nugget_C, otypes=[float])
 pRW_standard_Pareto_nugget_vec = np.vectorize(RW_lib.pRW_standard_Pareto_nugget_C, otypes=[float])
 qRW_standard_Pareto_nugget_vec = np.vectorize(RW_lib.qRW_standard_Pareto_nugget_C_brent, otypes=[float])
-
 
 
 # RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot.restype = ctypes.c_double
 # RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
 # pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot_vec = np.vectorize(RW_lib.pRW_standard_Pareto_nugget_upper_gamma_integrand_forplot, otypes=[float])
+
+
+# transformation on s = (1/t)/t gives bad result. Don't do it
+# RW_lib.pRW_standard_Pareto_nugget_transform_C.restype  = ctypes.c_double
+# RW_lib.pRW_standard_Pareto_nugget_transform_C.argtypes = (ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double)
+# pRW_standard_Pareto_nugget_transform_vec               = np.vectorize(RW_lib.pRW_standard_Pareto_nugget_transform_C, otypes=[float])
+
 
 # %%
 # def integrate_dRW(b, phi, gamma):

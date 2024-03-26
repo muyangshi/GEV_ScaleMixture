@@ -322,6 +322,44 @@ double qRW_standard_Pareto_C_brent(double p, double phi, double gamma){
 // Convolution with a Gaussian(0, var = tau^2) nugget for threshold exceedance
 // ---------------------------------------------------------------------------
 
+double dRW_standard_Pareto_nugget_integrand(double t, void * params_ptr){
+    double x     = (*(double(*)[4]) params_ptr)[0];
+    double phi   = (*(double(*)[4]) params_ptr)[1];
+    double gamma = (*(double(*)[4]) params_ptr)[2];
+    double tau   = (*(double(*)[4]) params_ptr)[3];
+    double upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2 * pow(t, 1/phi)));;
+    double gaussian = gsl_ran_gaussian_pdf(x - t, tau);
+    return (1/pow(t,2)) * upper_gamma * gaussian;        
+}
+
+double dRW_standard_Pareto_nugget_C(double x, double phi, double gamma, double tau){
+    gsl_set_error_handler_off();
+    double lb = fmax(0.0, x - 38 * tau); // integration lowerbound for gaussian convolution
+    double ub = x + 38 * tau; // integration upperbound for gaussian convolution
+
+    // convolution of the lower gamma piece
+    gsl_integration_workspace * w = gsl_integration_workspace_alloc (1e8);
+    double result, error;
+    double params[4] = {x, phi, gamma, tau};
+    gsl_function F;
+    F.function = &dRW_standard_Pareto_nugget_integrand;
+    F.params = &params;
+    int status = gsl_integration_qag (&F, lb, ub, 1e-8, 1e-8, 1e8,
+                                    1, w, &result, &error);
+    if (status) {
+        fprintf (stderr, "failed, gsl_errno=%d\n", status);
+        std::cout << "dRW integration failed " <<
+        std::string( gsl_strerror(status)) <<
+        " x: "    << x     << " " <<
+        "phi: "   << phi   << " " <<
+        "gamma: " << gamma <<
+        std::endl;
+    }
+    gsl_integration_workspace_free(w);
+
+    return sqrt(1/M_PI) * pow(gamma/2, phi) * result;
+}
+
 double pRW_standard_Pareto_nugget_lower_gamma_integrand(double t, void * params_ptr){
     double x     = (*(double(*)[4]) params_ptr)[0];
     double phi   = (*(double(*)[4]) params_ptr)[1];
@@ -482,6 +520,80 @@ double qRW_standard_Pareto_nugget_C_brent(double p, double phi, double gamma, do
 
     return r;
 }
+
+
+
+// double pRW_standard_Pareto_nugget_lower_gamma_transform_integrand(double s, void * params_ptr){
+//     double x     = (*(double(*)[4]) params_ptr)[0];
+//     double phi   = (*(double(*)[4]) params_ptr)[1];
+//     double gamma = (*(double(*)[4]) params_ptr)[2];
+//     double tau   = (*(double(*)[4]) params_ptr)[3];
+//     double jacobian = 1/pow(s,2);
+//     double lower_gamma = lower_gamma_C(0.5, gamma / (2 * pow((1-s)/s, 1/phi)));
+//     double gaussian = gsl_ran_gaussian_pdf(x - (1-s)/s, tau);
+//     return jacobian * lower_gamma * gaussian;
+// }
+
+// double pRW_standard_Pareto_nugget_upper_gamma_transform_integrand(double s, void * params_ptr){
+//     double x     = (*(double(*)[4]) params_ptr)[0];
+//     double phi   = (*(double(*)[4]) params_ptr)[1];
+//     double gamma = (*(double(*)[4]) params_ptr)[2];
+//     double tau   = (*(double(*)[4]) params_ptr)[3];
+//     double upper_gamma = upper_gamma_C(0.5 - phi, gamma / (2 * pow((1-s)/s, 1/phi)));;
+//     double gaussian = gsl_ran_gaussian_pdf(x - (1-s)/s, tau);
+//     return (1/s*(1-s)) * upper_gamma * gaussian;
+// }
+
+// double pRW_standard_Pareto_nugget_transform_C(double x, double phi, double gamma, double tau){
+//     gsl_set_error_handler_off();
+//     double lb = fmax(0.0, 1/(x + 38 * tau + 1)); // integration lowerbound for gaussian convolution
+//     double ub = fmin(1.0, 1/(x - 38 * tau + 1)); // integration upperbound for gaussian convolution
+//     // survival function of the Guassian
+//     double Phi_bar_x = gsl_cdf_gaussian_Q(x, tau);
+//     // convolution of the lower gamma piece
+//     gsl_integration_workspace * w = gsl_integration_workspace_alloc (1e8);
+//     double lower_gamma_convolution, error;
+//     double params[4] = {x, phi, gamma, tau};
+//     gsl_function F;
+//     F.function = &pRW_standard_Pareto_nugget_lower_gamma_transform_integrand;
+//     F.params = &params;
+//     int status = gsl_integration_qag (&F, lb, ub, 1e-8, 1e-8, 1e8,
+//                                     1, w, &lower_gamma_convolution, &error);
+//     if (status) {
+//         fprintf (stderr, "failed, gsl_errno=%d\n", status);
+//         std::cout << "lower gamma convolution failed " <<
+//         std::string( gsl_strerror(status)) <<
+//         " x: "    << x     << " " <<
+//         "phi: "   << phi   << " " <<
+//         "gamma: " << gamma <<
+//         std::endl;
+//     }
+//     gsl_integration_workspace_free(w);
+//     // convolution of the upper gamma piece
+//     gsl_integration_workspace * w2 = gsl_integration_workspace_alloc (1e8);
+//     double upper_gamma_convolution, error2;
+//     double params2[4] = {x, phi, gamma, tau};
+//     gsl_function F2;
+//     F2.function = &pRW_standard_Pareto_nugget_upper_gamma_transform_integrand;
+//     F2.params = &params2;
+//     int status2 = gsl_integration_qag (&F2, lb, ub, 1e-8, 1e-8, 1e8,
+//                                     1, w2, &upper_gamma_convolution, &error2);
+//     if (status2) {
+//         fprintf (stderr, "failed, gsl_errno=%d\n", status2);
+//         std::cout << "upper gamma convolution failed " <<
+//         std::string( gsl_strerror(status2)) <<
+//         " x: "    << x     << " " <<
+//         "phi: "   << phi   << " " <<
+//         "gamma: " << gamma <<
+//         std::endl;
+//     }
+//     gsl_integration_workspace_free(w2);
+//     double survival = Phi_bar_x + 
+//                         sqrt(1/M_PI) * lower_gamma_convolution + 
+//                         sqrt(1/M_PI) * pow(gamma/2, phi) * upper_gamma_convolution;
+//     return 1.0 - survival;
+// }
+
 }
 
 int main(){
