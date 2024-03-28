@@ -607,8 +607,12 @@ if __name__ == "__main__":
 
     # isometric knot grid
     N_outer_grid = 16
-    x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-    y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+    h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
+    v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
+    x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+                                           num = int(2*np.sqrt(N_outer_grid)))
+    y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+                                           num = int(2*np.sqrt(N_outer_grid)))
     x_outer_pos              = x_pos[0::2]
     x_inner_pos              = x_pos[1::2]
     y_outer_pos              = y_pos[0::2]
@@ -1032,8 +1036,8 @@ if __name__ == "__main__":
     
     if rank == 0 and start_iter == 1:
         # 0. Grids for plots
-        plotgrid_res_x = 50
-        plotgrid_res_y = 75
+        plotgrid_res_x = 500
+        plotgrid_res_y = 750
         plotgrid_res_xy = plotgrid_res_x * plotgrid_res_y
         plotgrid_x = np.linspace(minX,maxX,plotgrid_res_x)
         plotgrid_y = np.linspace(minY,maxY,plotgrid_res_y)
