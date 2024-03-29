@@ -6,7 +6,11 @@ Summary informaiton regarding the posterior draws
 
 March 23
 - qqplot of gumbel
-It's better to run on misspiggy. Laptop can lag quite a bit.
+It's better to run perform the transformation to Gumbel on Misspiggy.
+Laptop hangs.
+
+March 28
+- QQPlot of Gumbel on Additional Sites
 """
 # %%
 import numpy as np
@@ -57,6 +61,174 @@ from rpy2.robjects.packages import importr
 
 data_seed = 2345
 np.random.seed(data_seed)
+
+
+# %% load traceplot
+# load traceplots
+
+# folder                    = './data/20240221_t32_s125_shifted_isogrid_elev200_postcov_20k/'
+# folder                    = './data/20240225_t32_s125_standard_isogrid_elev200_r0234_150k/'
+# folder = './data/20240226_2345_sc1_t32_s300_standard_100k/'
+# folder = './data/20240224_2345_sc2_t32_s300_standard_100k/'
+# folder = './data/20240226_2345_sc3_t32_s300_standard_100k/'
+# folder = './data/20240301_sim_2345_sc2_t32_s100_standard_impute_0.1/'
+# folder = './data/20240302_data_t32_s300_standard_impute_0.1/'
+# folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
+# folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
+# folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
+folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
+# folder = './data/20240320_realdata_t75_s590_fixGEV/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
+# folder = './data/20240321_realdata_t24_s500_k16/' # ran on Misspiggy, k = 16 + 9 = 25 Mark's Iso grid
+# folder = './data/20240321_sim2345sc2_t24s300_hasting_phi_Rt_100k_rangenoadaptive/'
+# folder = './data/20240326_sim2345sc2_t24s150_100k_standard_noadapt_phi_rho/'
+
+phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
+R_trace_log               = np.load(folder + 'R_trace_log.npy')
+range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
+Beta_mu0_trace            = np.load(folder + 'Beta_mu0_trace.npy')
+Beta_mu1_trace            = np.load(folder + 'Beta_mu1_trace.npy')
+Beta_logsigma_trace       = np.load(folder + 'Beta_logsigma_trace.npy')
+Beta_ksi_trace            = np.load(folder + 'Beta_ksi_trace.npy')
+sigma_Beta_mu0_trace      = np.load(folder + 'sigma_Beta_mu0_trace.npy')
+sigma_Beta_mu1_trace      = np.load(folder + 'sigma_Beta_mu1_trace.npy')
+sigma_Beta_logsigma_trace = np.load(folder + 'sigma_Beta_logsigma_trace.npy')
+sigma_Beta_ksi_trace      = np.load(folder + 'sigma_Beta_ksi_trace.npy')
+
+k               = R_trace_log.shape[1]
+Nt              = R_trace_log.shape[2]
+Beta_mu0_m      = Beta_mu0_trace.shape[1]
+Beta_mu1_m      = Beta_mu1_trace.shape[1]
+Beta_logsigma_m = Beta_logsigma_trace.shape[1]
+Beta_ksi_m      = Beta_ksi_trace.shape[1]
+
+# %%
+# burnins
+# burnin = 60000
+burnin = 4000
+
+phi_knots_trace           = phi_knots_trace[burnin:]
+R_trace_log               = R_trace_log[burnin:]
+range_knots_trace         = range_knots_trace[burnin:]
+Beta_mu0_trace            = Beta_mu0_trace[burnin:]
+Beta_mu1_trace            = Beta_mu1_trace[burnin:]
+Beta_logsigma_trace       = Beta_logsigma_trace[burnin:]
+Beta_ksi_trace            = Beta_ksi_trace[burnin:]
+sigma_Beta_mu0_trace      = sigma_Beta_mu0_trace[burnin:]
+sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[burnin:]
+sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[burnin:]
+sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[burnin:]
+
+
+# %%
+# remove unfinished cells
+
+R_trace_log               = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k,Nt))
+phi_knots_trace           = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k))
+range_knots_trace         = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k))
+Beta_mu0_trace            = Beta_mu0_trace[~np.isnan(Beta_mu0_trace)].reshape((-1,Beta_mu0_m))
+Beta_mu1_trace            = Beta_mu1_trace[~np.isnan(Beta_mu1_trace)].reshape((-1,Beta_mu1_m))
+Beta_logsigma_trace       = Beta_logsigma_trace[~np.isnan(Beta_logsigma_trace)].reshape((-1,Beta_logsigma_m))
+Beta_ksi_trace            = Beta_ksi_trace[~np.isnan(Beta_ksi_trace)].reshape((-1,Beta_ksi_m))
+sigma_Beta_mu0_trace      = sigma_Beta_mu0_trace[~np.isnan(sigma_Beta_mu0_trace)].reshape((-1,1))
+sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[~np.isnan(sigma_Beta_mu1_trace)].reshape((-1,1))
+sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[~np.isnan(sigma_Beta_logsigma_trace)].reshape((-1,1))
+sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[~np.isnan(sigma_Beta_ksi_trace)].reshape((-1,1))
+
+#######################################
+##### Posterior mean            #####
+#######################################
+# Potentially use these as initial values
+# %%
+# posterior mean
+phi_mean                 = np.mean(phi_knots_trace, axis = 0)
+R_log_mean               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
+for t in range(R_trace_log.shape[2]):
+    R_log_mean[:,t] = np.mean(R_trace_log[:,:,t], axis = 0)
+range_mean               = np.mean(range_knots_trace, axis = 0)
+Beta_mu0_mean            = np.mean(Beta_mu0_trace, axis = 0)
+Beta_mu1_mean            = np.mean(Beta_mu1_trace, axis = 0)
+Beta_logsigma_mean       = np.mean(Beta_logsigma_trace, axis = 0)
+Beta_ksi_mean            = np.mean(Beta_ksi_trace, axis = 0)
+sigma_Beta_mu0_mean      = np.mean(sigma_Beta_mu0_trace, axis = 0)
+sigma_Beta_mu1_mean      = np.mean(sigma_Beta_mu1_trace, axis = 0)
+sigma_Beta_logsigma_mean = np.mean(sigma_Beta_logsigma_trace, axis = 0)
+sigma_Beta_ksi_mean      = np.mean(sigma_Beta_ksi_trace, axis = 0)
+
+
+#######################################
+##### Posterior Covariance Matrix #####
+#######################################
+# %%
+# posterior covariance matrix
+phi_cov           = np.cov(phi_knots_trace.T)
+R_log_cov         = np.full(shape=(k,k,R_trace_log.shape[2]), fill_value = np.nan)
+for t in range(R_trace_log.shape[2]):
+    R_log_cov[:,:,t] = np.cov(R_trace_log[:,:,t].T)
+range_cov         = np.cov(range_knots_trace.T)
+Beta_mu0_cov      = np.cov(Beta_mu0_trace.T)
+Beta_mu1_cov      = np.cov(Beta_mu1_trace.T)
+Beta_logsigma_cov = np.cov(Beta_logsigma_trace.T)
+Beta_ksi_cov      = np.cov(Beta_ksi_trace.T)
+sigma_Beta_mu0_cov = np.cov(sigma_Beta_mu0_trace.T)
+sigma_Beta_mu1_cov = np.cov(sigma_Beta_mu1_trace.T)
+sigma_Beta_logsigma_cov = np.cov(sigma_Beta_logsigma_trace.T)
+sigma_Beta_ksi_cov = np.cov(sigma_Beta_ksi_trace.T)
+
+#######################################
+##### Posterior Median            #####
+#######################################
+# Potentially use these as initial values
+# %%
+# posterior median
+phi_median                 = np.median(phi_knots_trace, axis = 0)
+R_log_median               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
+for t in range(R_trace_log.shape[2]):
+    R_log_median[:,t] = np.median(R_trace_log[:,:,t], axis = 0)
+range_median               = np.median(range_knots_trace, axis = 0)
+Beta_mu0_median            = np.median(Beta_mu0_trace, axis = 0)
+Beta_mu1_median            = np.median(Beta_mu1_trace, axis = 0)
+Beta_logsigma_median       = np.median(Beta_logsigma_trace, axis = 0)
+Beta_ksi_median            = np.median(Beta_ksi_trace, axis = 0)
+sigma_Beta_mu0_median      = np.median(sigma_Beta_mu0_trace, axis = 0)
+sigma_Beta_mu1_median      = np.median(sigma_Beta_mu1_trace, axis = 0)
+sigma_Beta_logsigma_median = np.median(sigma_Beta_logsigma_trace, axis = 0)
+sigma_Beta_ksi_median      = np.median(sigma_Beta_ksi_trace, axis = 0)
+
+#######################################
+##### Posterior Last Iteration    #####
+#######################################
+# %%
+# last iteration values
+phi_knots_last           = phi_knots_trace[-1]
+R_last_log               = R_trace_log[-1]
+range_knots_last         = range_knots_trace[-1]
+Beta_mu0_last            = Beta_mu0_trace[-1]
+Beta_mu1_last            = Beta_mu1_trace[-1]
+Beta_logsigma_last       = Beta_logsigma_trace[-1]
+Beta_ksi_last            = Beta_ksi_trace[-1]
+sigma_Beta_mu0_last      = sigma_Beta_mu0_trace[-1]
+sigma_Beta_mu1_last      = sigma_Beta_mu1_trace[-1]
+sigma_Beta_logsigma_last = sigma_Beta_logsigma_trace[-1]
+sigma_Beta_ksi_last      = sigma_Beta_ksi_trace[-1]
+
+# %%
+# thinned by 10
+iter = phi_knots_trace.shape[0]
+xs       = np.arange(iter)
+xs_thin  = xs[0::10] # index 1, 11, 21, ...
+xs_thin2 = np.arange(len(xs_thin)) # index 1, 2, 3, ...
+
+R_trace_log_thin               = R_trace_log[0:iter:10,:,:]
+phi_knots_trace_thin           = phi_knots_trace[0:iter:10,:]
+range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
+Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
+Beta_mu1_trace_thin            = Beta_mu1_trace[0:iter:10,:]
+Beta_logsigma_trace_thin       = Beta_logsigma_trace[0:iter:10,:]
+Beta_ksi_trace_thin            = Beta_ksi_trace[0:iter:10,:]
+sigma_Beta_mu0_trace_thin      = sigma_Beta_mu0_trace[0:iter:10,:]
+sigma_Beta_mu1_trace_thin      = sigma_Beta_mu1_trace[0:iter:10,:]
+sigma_Beta_logsigma_trace_thin = sigma_Beta_logsigma_trace[0:iter:10,:]
+sigma_Beta_ksi_trace_thin      = sigma_Beta_ksi_trace[0:iter:10,:]
 
 
 # %% Load Dataset and Setup -----------------------------------------------------------------------------------------------
@@ -143,8 +315,8 @@ minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 # knots_x = knots_xy[:,0]
 # knots_y = knots_xy[:,1]    
 
-# isometric knot grid
-N_outer_grid = 16
+# isometric knot grid - Mark's
+N_outer_grid = 9
 x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
 y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
 x_outer_pos              = x_pos[0::2]
@@ -161,6 +333,29 @@ knots_xy                 = knots_xy[knots_id_in_domain]
 knots_x                  = knots_xy[:,0]
 knots_y                  = knots_xy[:,1]
 k                        = len(knots_id_in_domain)
+
+# # isometric knot grid - Muyang's
+# N_outer_grid = 16
+# h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
+# v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
+# x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+#                                         num = int(2*np.sqrt(N_outer_grid)))
+# y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+#                                         num = int(2*np.sqrt(N_outer_grid)))
+# x_outer_pos              = x_pos[0::2]
+# x_inner_pos              = x_pos[1::2]
+# y_outer_pos              = y_pos[0::2]
+# y_inner_pos              = y_pos[1::2]
+# X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+# X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+# knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+# knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+# knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+# knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+# knots_xy                 = knots_xy[knots_id_in_domain]
+# knots_x                  = knots_xy[:,0]
+# knots_y                  = knots_xy[:,1]
+# k                        = len(knots_id_in_domain)
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -297,7 +492,7 @@ gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
 
 np.random.seed(data_seed)
 Nt = 24 # number of time replicates
-Ns = 300 # number of sites/stations
+Ns = 150 # number of sites/stations
 Time = np.linspace(-Nt/2, Nt/2-1, Nt)/np.std(np.linspace(-Nt/2, Nt/2-1, Nt), ddof=1)
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -349,6 +544,29 @@ knots_xy                 = knots_xy[knots_id_in_domain]
 knots_x                  = knots_xy[:,0]
 knots_y                  = knots_xy[:,1]
 k                        = len(knots_id_in_domain)
+
+# # isometric knot grid - Muyang's
+# N_outer_grid = 16
+# h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
+# v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
+# x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+#                                         num = int(2*np.sqrt(N_outer_grid)))
+# y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+#                                         num = int(2*np.sqrt(N_outer_grid)))
+# x_outer_pos              = x_pos[0::2]
+# x_inner_pos              = x_pos[1::2]
+# y_outer_pos              = y_pos[0::2]
+# y_inner_pos              = y_pos[1::2]
+# X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+# X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+# knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+# knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+# knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+# knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+# knots_xy                 = knots_xy[knots_id_in_domain]
+# knots_x                  = knots_xy[:,0]
+# knots_y                  = knots_xy[:,1]
+# k                        = len(knots_id_in_domain)
 
 # ----------------------------------------------------------------------------------------------------------------
 # Copula Splines
@@ -421,7 +639,7 @@ r('''
 # r("save(sites_xy_df, file='sites_xy_df.gzip',compress=TRUE)")
 
 # Location mu_0(s) ----------------------------------------------------------------------------------------------
-Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+Beta_mu0_splines_m = 6 - 1 # number of splines basis, -1 b/c drop constant column
 Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
 C_mu0_splines      = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -436,7 +654,7 @@ C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
 # Location mu_1(s) ----------------------------------------------------------------------------------------------
 
-Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
+Beta_mu1_splines_m = 6 - 1 # drop the 3rd to last column of constant
 Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
 C_mu1_splines      = np.array(r('''
                                 basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
@@ -483,14 +701,19 @@ gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
 
 # ----------------------------------------------------------------------------------------------------------------
 # Marginal Parameters - GEV(mu, sigma, ksi)
-Beta_mu0            = np.concatenate(([0], [0.1], np.array([0.05]*Beta_mu0_splines_m)))
-Beta_mu1            = np.concatenate(([0], [0.01], np.array([0.01] * Beta_mu1_splines_m)))
+Beta_mu0            = np.concatenate(([0], [0.25], np.array([0.1]*Beta_mu0_splines_m)))
+Beta_mu1            = np.concatenate(([0], [0.1], np.array([0.05] * Beta_mu1_splines_m)))
 Beta_logsigma       = np.array([0.0, 0.01])
 Beta_ksi            = np.array([0.2, 0.05])
 sigma_Beta_mu0      = 1
 sigma_Beta_mu1      = 1
 sigma_Beta_logsigma = 1
 sigma_Beta_ksi      = 1
+
+mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
+mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
+logsigma_estimates = (C_logsigma.T @ Beta_logsigma).T[:,0]
+ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
 # ----------------------------------------------------------------------------------------------------------------
 # Data Model Parameters - X_star = R^phi * g(Z)
@@ -537,195 +760,11 @@ Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
 for t in np.arange(Nt):
     Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
 
-mu0_estimates = None
-mu1_estimates = None
-logsigma_estimates = None
-ksi_estimates = None
-
-# %% load traceplot
-# load traceplots
-
-# folder                    = './data/20240221_t32_s125_shifted_isogrid_elev200_postcov_20k/'
-# folder                    = './data/20240225_t32_s125_standard_isogrid_elev200_r0234_150k/'
-
-# folder = './data/20240226_2345_sc1_t32_s300_standard_100k/'
-# folder = './data/20240224_2345_sc2_t32_s300_standard_100k/'
-# folder = './data/20240226_2345_sc3_t32_s300_standard_100k/'
-
-# folder = './data/20240301_sim_2345_sc2_t32_s100_standard_impute_0.1/'
-
-# folder = './data/20240302_data_t32_s300_standard_impute_0.1/'
-# folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
-
-# folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
-
-# folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
-
-# folder = './data/20240306_realdata_t75_s590/'
-
-# folder = './data/20240320_realdata_t75_s590_fixGEV/'
-
-# folder = './data/20240321_realdata_t24_s500_k16/'
-
-folder = './data/20240321_sim2345sc2_t24s300_hasting_phi_Rt_100k_rangenoadaptive/'
-
-phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
-R_trace_log               = np.load(folder + 'R_trace_log.npy')
-range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
-Beta_mu0_trace            = np.load(folder + 'Beta_mu0_trace.npy')
-Beta_mu1_trace            = np.load(folder + 'Beta_mu1_trace.npy')
-Beta_logsigma_trace       = np.load(folder + 'Beta_logsigma_trace.npy')
-Beta_ksi_trace            = np.load(folder + 'Beta_ksi_trace.npy')
-sigma_Beta_mu0_trace      = np.load(folder + 'sigma_Beta_mu0_trace.npy')
-sigma_Beta_mu1_trace      = np.load(folder + 'sigma_Beta_mu1_trace.npy')
-sigma_Beta_logsigma_trace = np.load(folder + 'sigma_Beta_logsigma_trace.npy')
-sigma_Beta_ksi_trace      = np.load(folder + 'sigma_Beta_ksi_trace.npy')
-
-k               = R_trace_log.shape[1]
-Nt              = R_trace_log.shape[2]
-Beta_mu0_m      = Beta_mu0_trace.shape[1]
-Beta_mu1_m      = Beta_mu1_trace.shape[1]
-Beta_logsigma_m = Beta_logsigma_trace.shape[1]
-Beta_ksi_m      = Beta_ksi_trace.shape[1]
-
-# %%
-# burnins
-burnin = 50000
-
-phi_knots_trace           = phi_knots_trace[burnin:]
-R_trace_log               = R_trace_log[burnin:]
-range_knots_trace         = range_knots_trace[burnin:]
-Beta_mu0_trace            = Beta_mu0_trace[burnin:]
-Beta_mu1_trace            = Beta_mu1_trace[burnin:]
-Beta_logsigma_trace       = Beta_logsigma_trace[burnin:]
-Beta_ksi_trace            = Beta_ksi_trace[burnin:]
-sigma_Beta_mu0_trace      = sigma_Beta_mu0_trace[burnin:]
-sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[burnin:]
-sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[burnin:]
-sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[burnin:]
-
-
-# %%
-# remove unfinished cells
-
-R_trace_log               = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k,Nt))
-phi_knots_trace           = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k))
-range_knots_trace         = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k))
-Beta_mu0_trace            = Beta_mu0_trace[~np.isnan(Beta_mu0_trace)].reshape((-1,Beta_mu0_m))
-Beta_mu1_trace            = Beta_mu1_trace[~np.isnan(Beta_mu1_trace)].reshape((-1,Beta_mu1_m))
-Beta_logsigma_trace       = Beta_logsigma_trace[~np.isnan(Beta_logsigma_trace)].reshape((-1,Beta_logsigma_m))
-Beta_ksi_trace            = Beta_ksi_trace[~np.isnan(Beta_ksi_trace)].reshape((-1,Beta_ksi_m))
-sigma_Beta_mu0_trace      = sigma_Beta_mu0_trace[~np.isnan(sigma_Beta_mu0_trace)].reshape((-1,1))
-sigma_Beta_mu1_trace      = sigma_Beta_mu1_trace[~np.isnan(sigma_Beta_mu1_trace)].reshape((-1,1))
-sigma_Beta_logsigma_trace = sigma_Beta_logsigma_trace[~np.isnan(sigma_Beta_logsigma_trace)].reshape((-1,1))
-sigma_Beta_ksi_trace      = sigma_Beta_ksi_trace[~np.isnan(sigma_Beta_ksi_trace)].reshape((-1,1))
-
-
-#######################################
-##### Posterior Covariance Matrix #####
-#######################################
-# %%
-# posterior covariance matrix
-phi_cov           = np.cov(phi_knots_trace.T)
-R_log_cov         = np.full(shape=(k,k,R_trace_log.shape[2]), fill_value = np.nan)
-for t in range(R_trace_log.shape[2]):
-    R_log_cov[:,:,t] = np.cov(R_trace_log[:,:,t].T)
-range_cov         = np.cov(range_knots_trace.T)
-Beta_mu0_cov      = np.cov(Beta_mu0_trace.T)
-Beta_mu1_cov      = np.cov(Beta_mu1_trace.T)
-Beta_logsigma_cov = np.cov(Beta_logsigma_trace.T)
-Beta_ksi_cov      = np.cov(Beta_ksi_trace.T)
-sigma_Beta_mu0_cov = np.cov(sigma_Beta_mu0_trace.T)
-sigma_Beta_mu1_cov = np.cov(sigma_Beta_mu1_trace.T)
-sigma_Beta_logsigma_cov = np.cov(sigma_Beta_logsigma_trace.T)
-sigma_Beta_ksi_cov = np.cov(sigma_Beta_ksi_trace.T)
-
-#######################################
-##### Posterior Median            #####
-#######################################
-# Potentially use these as initial values
-# %%
-# posterior median
-phi_median                 = np.median(phi_knots_trace, axis = 0)
-R_log_median               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
-for t in range(R_trace_log.shape[2]):
-    R_log_median[:,t] = np.median(R_trace_log[:,:,t], axis = 0)
-range_median               = np.median(range_knots_trace, axis = 0)
-Beta_mu0_median            = np.median(Beta_mu0_trace, axis = 0)
-Beta_mu1_median            = np.median(Beta_mu1_trace, axis = 0)
-Beta_logsigma_median       = np.median(Beta_logsigma_trace, axis = 0)
-Beta_ksi_median            = np.median(Beta_ksi_trace, axis = 0)
-sigma_Beta_mu0_median      = np.median(sigma_Beta_mu0_trace, axis = 0)
-sigma_Beta_mu1_median      = np.median(sigma_Beta_mu1_trace, axis = 0)
-sigma_Beta_logsigma_median = np.median(sigma_Beta_logsigma_trace, axis = 0)
-sigma_Beta_ksi_median      = np.median(sigma_Beta_ksi_trace, axis = 0)
-
-#######################################
-##### Posterior mean            #####
-#######################################
-# Potentially use these as initial values
-# %%
-# posterior mean
-phi_mean                 = np.mean(phi_knots_trace, axis = 0)
-R_log_mean               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
-for t in range(R_trace_log.shape[2]):
-    R_log_mean[:,t] = np.mean(R_trace_log[:,:,t], axis = 0)
-range_mean               = np.mean(range_knots_trace, axis = 0)
-Beta_mu0_mean            = np.mean(Beta_mu0_trace, axis = 0)
-Beta_mu1_mean            = np.mean(Beta_mu1_trace, axis = 0)
-Beta_logsigma_mean       = np.mean(Beta_logsigma_trace, axis = 0)
-Beta_ksi_mean            = np.mean(Beta_ksi_trace, axis = 0)
-sigma_Beta_mu0_mean      = np.mean(sigma_Beta_mu0_trace, axis = 0)
-sigma_Beta_mu1_mean      = np.mean(sigma_Beta_mu1_trace, axis = 0)
-sigma_Beta_logsigma_mean = np.mean(sigma_Beta_logsigma_trace, axis = 0)
-sigma_Beta_ksi_mean      = np.mean(sigma_Beta_ksi_trace, axis = 0)
-
-
-#######################################
-##### Posterior Last Iteration    #####
-#######################################
-# %%
-# last iteration values
-phi_knots_last           = phi_knots_trace[-1]
-R_last_log               = R_trace_log[-1]
-range_knots_last         = range_knots_trace[-1]
-Beta_mu0_last            = Beta_mu0_trace[-1]
-Beta_mu1_last            = Beta_mu1_trace[-1]
-Beta_logsigma_last       = Beta_logsigma_trace[-1]
-Beta_ksi_last            = Beta_ksi_trace[-1]
-sigma_Beta_mu0_last      = sigma_Beta_mu0_trace[-1]
-sigma_Beta_mu1_last      = sigma_Beta_mu1_trace[-1]
-sigma_Beta_logsigma_last = sigma_Beta_logsigma_trace[-1]
-sigma_Beta_ksi_last      = sigma_Beta_ksi_trace[-1]
-
-# %%
-# thinned by 10
-iter = phi_knots_trace.shape[0]
-xs       = np.arange(iter)
-xs_thin  = xs[0::10] # index 1, 11, 21, ...
-xs_thin2 = np.arange(len(xs_thin)) # index 1, 2, 3, ...
-
-R_trace_log_thin               = R_trace_log[0:iter:10,:,:]
-phi_knots_trace_thin           = phi_knots_trace[0:iter:10,:]
-range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
-Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
-Beta_mu1_trace_thin            = Beta_mu1_trace[0:iter:10,:]
-Beta_logsigma_trace_thin       = Beta_logsigma_trace[0:iter:10,:]
-Beta_ksi_trace_thin            = Beta_ksi_trace[0:iter:10,:]
-sigma_Beta_mu0_trace_thin      = sigma_Beta_mu0_trace[0:iter:10,:]
-sigma_Beta_mu1_trace_thin      = sigma_Beta_mu1_trace[0:iter:10,:]
-sigma_Beta_logsigma_trace_thin = sigma_Beta_logsigma_trace[0:iter:10,:]
-sigma_Beta_ksi_trace_thin      = sigma_Beta_ksi_trace[0:iter:10,:]
 
 
 
-# %%
-#######################################
-##### Posterior Plotting          #####
-#######################################
+# %% Marginal Posterior Surface Plotting
 
-
-# %%
 for j in range(Beta_mu1_m):
     plt.plot(xs_thin2, Beta_mu1_trace_thin[:,j], label = 'Beta_'+str(j))
     plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu1_trace_thin[:,j][-1]))
@@ -845,8 +884,9 @@ cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 fig.colorbar(ksi_est_scatter, cax = cbar_ax)
 plt.show()
 
-plotgrid_res_x = 50
-plotgrid_res_y = 75
+# %% Copula Posterior Surface Plotting
+plotgrid_res_x = 150
+plotgrid_res_y = 275
 plotgrid_res_xy = plotgrid_res_x * plotgrid_res_y
 plotgrid_x = np.linspace(minX,maxX,plotgrid_res_x)
 plotgrid_y = np.linspace(minY,maxY,plotgrid_res_y)
@@ -916,14 +956,16 @@ plt.ylim([30,50])
 plt.show()
 
 
-
-
-
-
+# %%
+"""
+Note: 
+    This should be performed on misspiggy
+    Once the CDF(Y) and Transformed Gumbel are generated, run local on R
+"""
 ##############################################################################
 ##### QQplot of Y with GEV and Copula fitted marginal parameter          #####
 ##############################################################################
-# %%
+# %% QQPlot for Gumbel Transformed Y on Observed Sites
 # Calculate CDF(Y)
 
 # with GEV fitted marginal params
@@ -964,7 +1006,6 @@ r("save(pY_mcmc_ro, file='pY_mcmc_ro.gzip', compress=TRUE)")
 # Plotting of the uniforms (F(Y)) ----------------------------------------------------------------------
 
 
-# %%
 # Plotting the Gumbels --------------------------------------------------------------------------------
 
 # transform to Gumbel
@@ -1095,244 +1136,205 @@ plt.show()
 plt.close()
 
 
-# # %%
-# # QQ plot of the Y
-# mu_matrix    = np.full(shape = (Ns, Nt), fill_value = np.nan)
-# sigma_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
-# ksi_matrix   = np.full(shape = (Ns, Nt), fill_value = np.nan)
-# for t in range(Nt):
-#     mu_matrix[:,t]    = mu0_estimates + mu1_estimates * Time[t]
-#     sigma_matrix[:,t] = np.exp(logsigma_estimates)
-#     ksi_matrix[:,t]   = ksi_estimates
-# pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
-# for t in range(Nt):
-#     pY[:,t] = pgev(Y[:,t], mu_matrix[:,t],
-#                            sigma_matrix[:,t],
-#                            ksi_matrix[:,t])
-# # histogram of pY
-# plt.hist(pY.ravel())
-# plt.title(r'Histogram of pY with GEV-fit $\mu$ $\sigma$ $\xi$')
-# # qqplot of uniform
-# qqplot_uniform_pY = scipy.stats.probplot(pY.ravel(), dist='uniform', fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Uniform QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
-# plt.show()
+# %% QQPlot on Holdout Sites
+###############################################
+##### QQplot on Holdout sites            ######
+###############################################
 
-# theoretical_q, ordered_q = qqplot_uniform_pY
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
+# constructing holdout set
+mgcv = importr('mgcv')
+
+r('''load('JJA_precip_maxima_nonimputed.RData')''')
+GEV_estimates_590      = np.array(r('GEV_estimates')).T
+mu0_estimates_590      = GEV_estimates_590[:,0]
+mu1_estimates_590      = GEV_estimates_590[:,1]
+logsigma_estimates_590 = GEV_estimates_590[:,2]
+ksi_estimates_590      = GEV_estimates_590[:,3]
+JJA_maxima_590         = np.array(r('JJA_maxima_nonimputed'))
+stations_590           = np.array(r('stations')).T
+elevations_590         = np.array(r('elev')).T/200
+
+r('''load('JJA_precip_maxima.RData')''')
+GEV_estimates_1034      = np.array(r('GEV_estimates')).T
+mu0_estimates_1034      = GEV_estimates_1034[:,0]
+mu1_estimates_1034      = GEV_estimates_1034[:,1]
+logsigma_estimates_1034 = GEV_estimates_1034[:,2]
+ksi_estimates_1034      = GEV_estimates_1034[:,3]
+JJA_maxima_1034         = np.array(r('JJA_maxima')).T
+stations_1034           = np.array(r('stations')).T
+elevations_1034         = np.array(r('elev')).T/200
+
+stations_590_set           = set(tuple(station) for station in stations_590)
+holdout_idx                = [i for i in range(1034) if tuple(stations_1034[i]) not in stations_590_set]
+GEV_estimates_holdout      = GEV_estimates_1034[holdout_idx]
+mu0_estimates_holdout      = mu0_estimates_1034[holdout_idx]
+mu1_estimates_holdout      = mu1_estimates_1034[holdout_idx]
+logsigma_estimates_holdout = logsigma_estimates_1034[holdout_idx]
+ksi_estimates_holdout      = ksi_estimates_1034[holdout_idx]
+JJA_maxima_holdout         = JJA_maxima_1034[holdout_idx]
+stations_holdout           = stations_1034[holdout_idx]
+elevations_holdout         = elevations_1034[holdout_idx]
+
+sites_xy = stations_holdout
+sites_x  = sites_xy[:,0]
+sites_y  = sites_xy[:,1]
+minX, maxX = (-102.0, -92.0)
+minY, maxY = (32.0, 45.0)
+
+# # 1. Station, Knots 
 # fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+# fig.set_size_inches(10,8)
+# ax.set_aspect('equal', 'box')
+# ax.scatter(sites_x, sites_y, marker = '.', c = 'blue', label='sites')
+# space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+#                                 fill = False, color = 'black')
+# ax.add_patch(space_rectangle)
+# ax.set_xticks(np.linspace(minX, maxX,num=3))
+# ax.set_yticks(np.linspace(minY, maxY,num=5))
+# box = ax.get_position()
+# legend_elements = [mpl.lines.Line2D([0], [0], marker= '.', linestyle='None', color='b', label='Site'),
+#                 mpl.lines.Line2D([0], [0], marker='+', linestyle = "None", color='red', label='Knot Center',  markersize=20),
+#                 mpl.lines.Line2D([0], [0], marker = 'o', linestyle = 'None', label = 'Knot Radius', markerfacecolor = 'grey', markersize = 20, alpha = 0.2),
+#                 mpl.lines.Line2D([], [], color='None', marker='s', linestyle='None', markeredgecolor = 'black', markersize=20, label='Spatial Domain')]
+# plt.legend(handles = legend_elements, bbox_to_anchor=(1.01,1.01), fontsize = 20)
+# plt.xticks(fontsize = 20)
+# plt.yticks(fontsize = 20)
+# plt.xlabel('longitude', fontsize = 20)
+# plt.ylabel('latitude', fontsize = 20)
+# plt.subplots_adjust(right=0.6)
+# plt.savefig('stations.pdf',bbox_inches="tight")
 
-# # qqplot of gumbel
-# gumbel_pY = scipy.stats.gumbel_r.ppf(pY.ravel())
-# qqplot_gumbel_pY = scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
-# plt.show()
+# Time must be standardized the same way as the MCMC Chain
+start_year = 1949
+end_year   = 2023
+all_years  = np.linspace(start_year, end_year, JJA_maxima_590.shape[1])
+Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1) # delta degress of freedom, to match the n-1 in R
+Time       = Time[0:JJA_maxima_1034.shape[1]] # if there is any truncation
 
-# theoretical_q, ordered_q = qqplot_gumbel_pY
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+Ns = len(sites_xy)
+Nt = len(Time)
 
-# # single site
-# gumbel_pY = scipy.stats.gumbel_r.ppf(pY[7,:].ravel())
-# qqplot_gumbel_pY = scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
-# plt.show()
-# theoretical_q, ordered_q = qqplot_gumbel_pY
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+# Setup Splines at the Holdout Set
 
+# ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
+# "knots" and prediction sites for splines 
+gs_x        = np.linspace(minX, maxX, 50)
+gs_y        = np.linspace(minY, maxY, 50)
+gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
 
-# # mu0_matrix_mean = (C_mu0.T @ Beta_mu0_mean).T
-# # mu1_matrix_mean = (C_mu1.T @ Beta_mu1_mean).T
-# mu_matrix_mean    = (C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time
-# sigma_matrix_mean = np.exp((C_logsigma.T @ Beta_logsigma_mean).T)
-# ksi_matrix_mean   = (C_ksi.T @ Beta_ksi_mean).T
-# pY_mean = np.full(shape = (Ns, Nt), fill_value = np.nan)
-# for t in range(Nt):
-#     pY_mean[:,t] = pgev(Y[:,t], mu_matrix_mean[:,t],
-#                                 sigma_matrix_mean[:,t],
-#                                 ksi_matrix_mean[:,t])
-# # histogram of pY_mean
-# plt.hist(pY_mean.ravel())
-# plt.title(r'Histogram of pY with post. mean $\mu$ $\sigma$ $\xi$')
+gs_x_ro     = numpy2rpy(gs_x)        # Convert to R object
+gs_y_ro     = numpy2rpy(gs_y)        # Convert to R object
+gs_xy_ro    = numpy2rpy(gs_xy)       # Convert to R object
+sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
 
-# # qqplot of uniform pY_mean
-# qqplot_uniform_pY_mean = scipy.stats.probplot(pY_mean.ravel(), dist='uniform', fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Uniform QQplot with post. mean $\mu$ $\sigma$ $\xi$')
-# plt.show()
+r.assign("gs_x_ro", gs_x_ro)         # Note: this is a matrix in R, not df
+r.assign("gs_y_ro", gs_y_ro)         # Note: this is a matrix in R, not df
+r.assign("gs_xy_ro", gs_xy_ro)       # Note: this is a matrix in R, not df
+r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
 
-# theoretical_q, ordered_q = qqplot_uniform_pY_mean
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.uniform.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+r('''
+    gs_xy_df <- as.data.frame(gs_xy_ro)
+    colnames(gs_xy_df) <- c('x','y')
+    sites_xy_df <- as.data.frame(sites_xy_ro)
+    colnames(sites_xy_df) <- c('x','y')
+    ''')
 
-# # qqplot of gumbel pY_mean
-# gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean.ravel())
-# qqplot_gumbel_pY_mean = scipy.stats.probplot(gumbel_pY_mean.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Gumbel QQplot with post. mean $\mu$ $\sigma$ $\xi$')
-# plt.show()
+# Location mu_0(s) ----------------------------------------------------------------------------------------------
 
-# theoretical_q, ordered_q = qqplot_gumbel_pY_mean
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
+Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
+C_mu0_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations_holdout,     # elevation
+                                    C_mu0_splines)) # splines (excluding intercept)
+C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
-# # single site
-# random_site = scipy.stats.randint(0, 590).rvs()
-# print(random_site)
-# gumbel_pY = scipy.stats.gumbel_r.ppf(pY_mean[random_site,:].ravel())
-# qqplot_gumbel_pY = scipy.stats.probplot(gumbel_pY.ravel(), dist=scipy.stats.gumbel_r, fit=False, plot=plt)
-# plt.axline((0,0), slope = 1, color = 'black')
-# plt.title(r'Gumbel QQplot using GEV-fit $\mu$ $\sigma$ $\xi$')
-# plt.show()
-# theoretical_q, ordered_q = qqplot_gumbel_pY
-# notnanmask = np.where(~np.isnan(ordered_q))[0]
-# theoretical_q = theoretical_q[notnanmask]
-# ordered_q = ordered_q[notnanmask]
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+# Location mu_1(s) ----------------------------------------------------------------------------------------------
+
+Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
+Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+C_mu1_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations_holdout,     # elevation
+                                    C_mu1_splines)) # splines (excluding intercept)
+C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+# Scale logsigma(s) ----------------------------------------------------------------------------------------------
+
+Beta_logsigma_m   = 2 # just intercept and elevation
+C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+C_logsigma[0,:,:] = 1.0 
+C_logsigma[1,:,:] = np.tile(elevations_holdout, reps = (Nt, 1)).T
+
+# Shape ksi(s) ----------------------------------------------------------------------------------------------
+
+Beta_ksi_m   = 2 # just intercept and elevation
+C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi[0,:,:] = 1.0
+C_ksi[1,:,:] = np.tile(elevations_holdout, reps = (Nt, 1)).T
 
 
-
-# random_site = scipy.stats.randint(0, 590).rvs()
-# print(random_site)
-# gumbel_pY = scipy.stats.gumbel_r.ppf(pY_mean[random_site,:].ravel())
-# gumbel_pY.sort()
-# gumbel_pY = gumbel_pY[np.where(~np.isnan(gumbel_pY))[0]]
-# m = np.linspace(1, len(gumbel_pY), num = len(gumbel_pY))
-# emp_p = (m-0.5)/len(m)
-# emp_q = scipy.stats.gumbel_r.ppf(emp_p)
-# # plt.plot(emp_q, gumbel_pY)
-# n = len(gumbel_pY)
-# ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(emp_q, gumbel_pY, marker = '.', s = 1, color = 'blue')
-# ax.plot(emp_q, ci_l, '--')
-# ax.plot(emp_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
-
-
-# pY_ro = numpy2rpy(pY)
-# r.assign('pY_ro',pY_ro)
-# r("save(pY_ro, file='pY_ro.gzip', compress=TRUE)")
-
-
-
-# gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean.ravel())
-# gumbel_pY_mean_ro = numpy2rpy(gumbel_pY_mean)
-# r.assign("gumbel_pY_mean_ro", gumbel_pY_mean_ro)
-# r("save(gumbel_pY_mean_ro, file='gumbel_pY_mean_ro.gzip', compress=TRUE)")
-
-# load('gumbel_pY_mean_ro.gzip')
-# gumbel_pY_mean_ro <- sort(gumbel_pY_mean_ro)
-# library(extRemes)
-# emp_p <- ppoints(length(gumbel_pY_mean_ro))
-
-# library(ordinal)
-# emp_q <- qgumbel(emp_p)
-# extRemes::qqplot(emp_q, gumbel_pY_mean_ro)
-
-
-# gumbel_pY_mean = scipy.stats.gumbel_r.ppf(pY_mean.ravel())
-# gumbel_pY_mean = gumbel_pY_mean[np.where(~np.isnan(gumbel_pY_mean))[0]]
-# gumbel_pY_mean.sort()
-# gumbel_pY_mean_ro = numpy2rpy(gumbel_pY_mean)
-# r.assign("gumbel_pY_mean_ro", gumbel_pY_mean_ro)
-
-# importr('extRemes')
-# importr('ordinal')
-# r('''
-#     emp_p <- ppoints(length(gumbel_pY_mean_ro))
-#     emp_q <- qgumbel(emp_p)
-#     extRemes::qqplot(emp_q, gumbel_pY_mean_ro)
-#   ''')
+mu0_matrix_holdout = (C_mu0.T @ Beta_mu0_mean).T
+mu1_matrix_holdout = (C_mu1.T @ Beta_mu1_mean).T
+mu_matrix_holdout = mu0_matrix_holdout + mu1_matrix_holdout * Time
+sigma_matrix_holdout = np.exp((C_logsigma.T @ Beta_logsigma_mean).T)
+ksi_matrix_holdout = (C_ksi.T @ Beta_ksi_mean).T
 
 # %%
-# GEV_post_cov = np.cov(np.array([GEV_knots_trace[:,0,0].ravel(), # mu location
-#                                 GEV_knots_trace[:,1,0].ravel()])) # tau scale
+Y = JJA_maxima_holdout.copy()
+pY_holdout = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    pY_holdout[:,t] = pgev(Y[:,t], mu_matrix_holdout[:,t],
+                                   sigma_matrix_holdout[:,t],
+                                   ksi_matrix_holdout[:,t])
+pY_holdout_ro = numpy2rpy(pY_holdout)
+r.assign('pY_holdout_ro',pY_holdout_ro)
+r("save(pY_holdout_ro, file='pY_holdout_ro.gzip', compress=TRUE)")
 
-# phi_post_cov = np.cov(np.array([phi_knots_trace[:,i].ravel() for i in range(k)]))
-# range_post_cov = np.cov(np.array([range_knots_trace[:,i].ravel() for i in range(k)]))
+# transform to Gumbel
+gumbel_pY_holdout = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    gumbel_pY_holdout[:,t] = scipy.stats.gumbel_r.ppf(pY_holdout[:,t])
 
-# mu = GEV_knots_trace[:,0,0].ravel()
-# tau = GEV_knots_trace[:,1,0].ravel()
-# phi = [phi_knots_trace[:,i].ravel() for i in range(k)]
+gumbel_pY_holdout_ro = numpy2rpy(gumbel_pY_holdout)
+r.assign('gumbel_pY_holdout_ro',gumbel_pY_holdout_ro)
+r("save(gumbel_pY_holdout_ro, file='gumbel_pY_holdout_ro.gzip', compress=TRUE)")
 
-# np.corrcoef(np.insert(phi, 0, [mu,tau], 0))
-# # np.cov(np.vstack((mu, tau,phi)))
-# # np.corrcoef(np.vstack((mu, tau,phi)))
-
-# %%
-# norm_sample = scipy.stats.norm.rvs(size = 100)
-# qqplot_norm = scipy.stats.probplot(norm_sample, dist = scipy.stats.norm, fit = False, plot = plt)
-# theoretical_q, ordered_q = qqplot_norm
-# n = len(theoretical_q)
-# ci_l = [scipy.stats.norm.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# ci_h = [scipy.stats.norm.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = n + 1 - order_k)) for order_k in range(1, n+1)]
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-# ax.scatter(theoretical_q, ordered_q, marker = '.', s = 1, color = 'blue')
-# ax.plot(theoretical_q, ci_l, '--')
-# ax.plot(theoretical_q, ci_h, '--')
-# plt.axline((0,0), slope = 1, color = 'black')
+# Single Site Gumbel QQPlot
+# single site with GEV fit marginal parameter
+s = scipy.stats.randint(0, Ns).rvs()
+# print(s)
+gumbel_s = gumbel_pY_holdout[s,:].copy()
+gumbel_s.sort()
+gumbel_s = gumbel_s[np.where(~np.isnan(gumbel_s))[0]]
+nquants = len(gumbel_s)
+emp_p = np.linspace(1/nquants, 1-1/nquants, num = nquants)
+emp_q = scipy.stats.gumbel_r.ppf(emp_p)
+ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = nquants + 1 - order_k)) for order_k in range(1, nquants+1)]
+ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = nquants + 1 - order_k)) for order_k in range(1, nquants+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(6,6)
+ax.set_aspect('equal', 'box')
+ax.scatter(gumbel_s, emp_q, marker = 'o', s = 3, color = 'grey')
+ax.plot(emp_q, ci_l, 'b--', label = '95% CI')
+ax.plot(emp_q, ci_h, 'b--', label = '95% CI')
+ax.set_xlabel('Sorted Observed')
+ax.set_ylabel('Gumbel')
+ax.set_title('GEVfit-QQPlot of Site {}'.format(s))
+plt.axline((0,0), slope = 1, color = 'black', label = '1:1 line')
+legend_ci = mpl.lines.Line2D([0],[0], label = '95% CI', color = 'blue', linestyle='--')
+legend_11line = mpl.lines.Line2D([0],[0], label = '1:1 line', color = 'k', linestyle = '-')
+plt.legend(handles=[legend_ci, legend_11line])
+plt.savefig('GEVfit-QQPlot.pdf')
+plt.show()
+plt.close()
