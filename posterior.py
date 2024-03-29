@@ -1175,11 +1175,14 @@ JJA_maxima_holdout         = JJA_maxima_1034[holdout_idx]
 stations_holdout           = stations_1034[holdout_idx]
 elevations_holdout         = elevations_1034[holdout_idx]
 
+Y = JJA_maxima_holdout.copy()
+
 sites_xy = stations_holdout
 sites_x  = sites_xy[:,0]
 sites_y  = sites_xy[:,1]
 minX, maxX = (-102.0, -92.0)
 minY, maxY = (32.0, 45.0)
+
 
 # # 1. Station, Knots 
 # fig, ax = plt.subplots()
@@ -1290,8 +1293,8 @@ mu_matrix_holdout = mu0_matrix_holdout + mu1_matrix_holdout * Time
 sigma_matrix_holdout = np.exp((C_logsigma.T @ Beta_logsigma_mean).T)
 ksi_matrix_holdout = (C_ksi.T @ Beta_ksi_mean).T
 
-# %%
-Y = JJA_maxima_holdout.copy()
+# with Posterior mean estimated marginal parameters -------------------------------------------------------------------
+
 pY_holdout = np.full(shape = (Ns, Nt), fill_value = np.nan)
 for t in range(Nt):
     pY_holdout[:,t] = pgev(Y[:,t], mu_matrix_holdout[:,t],
@@ -1305,7 +1308,6 @@ r("save(pY_holdout_ro, file='pY_holdout_ro.gzip', compress=TRUE)")
 gumbel_pY_holdout = np.full(shape = (Ns, Nt), fill_value = np.nan)
 for t in range(Nt):
     gumbel_pY_holdout[:,t] = scipy.stats.gumbel_r.ppf(pY_holdout[:,t])
-
 gumbel_pY_holdout_ro = numpy2rpy(gumbel_pY_holdout)
 r.assign('gumbel_pY_holdout_ro',gumbel_pY_holdout_ro)
 r("save(gumbel_pY_holdout_ro, file='gumbel_pY_holdout_ro.gzip', compress=TRUE)")
@@ -1330,11 +1332,78 @@ ax.plot(emp_q, ci_l, 'b--', label = '95% CI')
 ax.plot(emp_q, ci_h, 'b--', label = '95% CI')
 ax.set_xlabel('Sorted Observed')
 ax.set_ylabel('Gumbel')
-ax.set_title('GEVfit-QQPlot of Site {}'.format(s))
+ax.set_title('ModelPred QQPlot of Site {}'.format(s))
 plt.axline((0,0), slope = 1, color = 'black', label = '1:1 line')
 legend_ci = mpl.lines.Line2D([0],[0], label = '95% CI', color = 'blue', linestyle='--')
 legend_11line = mpl.lines.Line2D([0],[0], label = '1:1 line', color = 'k', linestyle = '-')
 plt.legend(handles=[legend_ci, legend_11line])
-plt.savefig('GEVfit-QQPlot.pdf')
+plt.savefig('ModelPred QQPlot.pdf')
 plt.show()
 plt.close()
+
+# with MCMC iterations of marginal params -----------------------------------------------------------------------------
+n = Beta_mu0_trace_thin.shape[0]
+mu0_matrix_holdout_mcmc = (C_mu0.T @ Beta_mu0_trace_thin.T).T # shape (n, Ns, Nt)
+mu1_matrix_holdout_mcmc = (C_mu1.T @ Beta_mu1_trace_thin.T).T # shape (n, Ns, Nt)
+mu_matrix_holdout_mcmc  = mu0_matrix_holdout_mcmc + mu1_matrix_holdout_mcmc * Time
+sigma_matrix_holdout_mcmc = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin.T).T)
+ksi_matrix_holdout_mcmc = (C_ksi.T @ Beta_ksi_trace_thin.T).T
+
+pY_mcmc_holdout = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
+for i in range(n):
+    for t in range(Nt):
+        pY_mcmc_holdout[i,:,t] = pgev(Y[:,t], mu_matrix_holdout_mcmc[i,:,t],
+                                      sigma_matrix_holdout_mcmc[i,:,t],
+                                      ksi_matrix_holdout_mcmc[i,:,t])
+pY_mcmc_holdout_ro = numpy2rpy(pY_mcmc_holdout)
+r.assign('pY_mcmc_holdout_ro',pY_mcmc_holdout_ro)
+r("save(pY_mcmc_holdout_ro, file='pY_mcmc_holdout_ro.gzip', compress=TRUE)")
+
+gumbel_pY_mcmc_holdout = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
+for i in range(n):
+    for t in range(Nt):
+        gumbel_pY_mcmc_holdout[i,:,t] = scipy.stats.gumbel_r.ppf(pY_mcmc_holdout[i,:,t])
+gumbel_pY_mcmc_holdout_ro = numpy2rpy(gumbel_pY_mcmc_holdout)
+r.assign('gumbel_pY_mcmc_holdout_ro',gumbel_pY_mcmc_holdout_ro)
+r("save(gumbel_pY_mcmc_holdout_ro, file='gumbel_pY_mcmc_holdout_ro.gzip', compress=TRUE)")
+
+# single site with mean of MCMC param transformed gumbel
+s = scipy.stats.randint(0, Ns).rvs()
+# print(s)
+gumbel_s_mcmc_holdout = np.mean(gumbel_pY_mcmc_holdout[:,s,:], axis = 0)
+gumbel_s_mcmc_holdout.sort()
+gumbel_s_mcmc_holdout = gumbel_s_mcmc_holdout[np.where(~np.isnan(gumbel_s_mcmc_holdout))[0]]
+nquants = len(gumbel_s_mcmc_holdout)
+emp_p = np.linspace(1/nquants, 1-1/nquants, num = nquants)
+emp_q = scipy.stats.gumbel_r.ppf(emp_p)
+ci_l = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.025, a = order_k, b = nquants + 1 - order_k)) for order_k in range(1, nquants+1)]
+ci_h = [scipy.stats.gumbel_r.ppf(scipy.stats.beta.ppf(0.975, a = order_k, b = nquants + 1 - order_k)) for order_k in range(1, nquants+1)]
+fig, ax = plt.subplots()
+fig.set_size_inches(6,6)
+ax.set_aspect('equal', 'box')
+ax.scatter(gumbel_s_mcmc_holdout, emp_q, marker = 'o', s = 3, color = 'grey')
+ax.plot(emp_q, ci_l, 'b--', label = '95% CI')
+ax.plot(emp_q, ci_h, 'b--', label = '95% CI')
+ax.set_xlabel('Sorted Observed')
+ax.set_ylabel('Gumbel')
+ax.set_title('ModelPred QQPlot of Site {}'.format(s))
+plt.axline((0,0), slope = 1, color = 'black', label = '1:1 line')
+legend_ci = mpl.lines.Line2D([0],[0], label = '95% CI', color = 'blue', linestyle='--')
+legend_11line = mpl.lines.Line2D([0],[0], label = '1:1 line', color = 'k', linestyle = '-')
+plt.legend(handles=[legend_ci, legend_11line])
+plt.savefig('ModelPred QQPlot.pdf')
+plt.show()
+plt.close()
+
+# %%
+###############################################
+##### Approximate LOOCV loo::loo         ######
+###############################################
+loglik_trace = np.load(folder + 'loglik_trace.npy')
+loglik_trace = loglik_trace[1:]
+loglik_trace = loglik_trace[~np.isnan(loglik_trace)]
+loglik_trace_ro = numpy2rpy(loglik_trace)
+r.assign('loglik_trace_ro',loglik_trace_ro)
+r("save(loglik_trace_ro, file='loglik_trace_ro.gzip', compress=TRUE)")
+loo = importr('loo')
+r('loo(loglik_trace_ro)')
