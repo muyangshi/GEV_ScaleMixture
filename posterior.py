@@ -76,11 +76,14 @@ np.random.seed(data_seed)
 # folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
 # folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
 # folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
-folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
+# folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240320_realdata_t75_s590_fixGEV/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240321_realdata_t24_s500_k16/' # ran on Misspiggy, k = 16 + 9 = 25 Mark's Iso grid
 # folder = './data/20240321_sim2345sc2_t24s300_hasting_phi_Rt_100k_rangenoadaptive/'
 # folder = './data/20240326_sim2345sc2_t24s150_100k_standard_noadapt_phi_rho/'
+
+folder = './data/20240328_realdata_t75_s590_k25_r2/'
+# folder = './data/20240328_realdata_t75_s590_k25_r4/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
@@ -104,7 +107,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 # %%
 # burnins
 # burnin = 60000
-burnin = 4000
+burnin = 500
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
@@ -315,33 +318,10 @@ minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 # knots_x = knots_xy[:,0]
 # knots_y = knots_xy[:,1]    
 
-# isometric knot grid - Mark's
-N_outer_grid = 9
-x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
-x_outer_pos              = x_pos[0::2]
-x_inner_pos              = x_pos[1::2]
-y_outer_pos              = y_pos[0::2]
-y_inner_pos              = y_pos[1::2]
-X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-knots_xy                 = knots_xy[knots_id_in_domain]
-knots_x                  = knots_xy[:,0]
-knots_y                  = knots_xy[:,1]
-k                        = len(knots_id_in_domain)
-
-# # isometric knot grid - Muyang's
-# N_outer_grid = 16
-# h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
-# v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
-# x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
-#                                         num = int(2*np.sqrt(N_outer_grid)))
-# y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
-#                                         num = int(2*np.sqrt(N_outer_grid)))
+# # isometric knot grid - Mark's
+# N_outer_grid = 9
+# x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
+# y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
 # x_outer_pos              = x_pos[0::2]
 # x_inner_pos              = x_pos[1::2]
 # y_outer_pos              = y_pos[0::2]
@@ -356,6 +336,29 @@ k                        = len(knots_id_in_domain)
 # knots_x                  = knots_xy[:,0]
 # knots_y                  = knots_xy[:,1]
 # k                        = len(knots_id_in_domain)
+
+# isometric knot grid - Muyang's
+N_outer_grid = 16
+h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
+v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
+x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+                                        num = int(2*np.sqrt(N_outer_grid)))
+y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+                                        num = int(2*np.sqrt(N_outer_grid)))
+x_outer_pos              = x_pos[0::2]
+x_inner_pos              = x_pos[1::2]
+y_outer_pos              = y_pos[0::2]
+y_inner_pos              = y_pos[1::2]
+X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
+X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
+knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
+knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
+knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
+knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
+knots_xy                 = knots_xy[knots_id_in_domain]
+knots_x                  = knots_xy[:,0]
+knots_y                  = knots_xy[:,1]
+k                        = len(knots_id_in_domain)
 
 
 # ----------------------------------------------------------------------------------------------------------------
