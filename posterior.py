@@ -76,13 +76,13 @@ np.random.seed(data_seed)
 # folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
 # folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
 # folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
-# folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
+folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240320_realdata_t75_s590_fixGEV/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240321_realdata_t24_s500_k16/' # ran on Misspiggy, k = 16 + 9 = 25 Mark's Iso grid
 # folder = './data/20240321_sim2345sc2_t24s300_hasting_phi_Rt_100k_rangenoadaptive/'
 # folder = './data/20240326_sim2345sc2_t24s150_100k_standard_noadapt_phi_rho/'
 
-folder = './data/20240328_realdata_t75_s590_k25_r2/'
+# folder = './data/20240328_realdata_t75_s590_k25_r2/'
 # folder = './data/20240328_realdata_t75_s590_k25_r4/'
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
@@ -965,13 +965,14 @@ Note:
     This should be performed on misspiggy
     Once the CDF(Y) and Transformed Gumbel are generated, run local on R
 """
-##############################################################################
-##### QQplot of Y with GEV and Copula fitted marginal parameter          #####
-##############################################################################
+############################################################################
+##### QQplot of in-sample (590) with MLE, initial smooth, and per mcmc iter GEV
+############################################################################
+
 # %% QQPlot for Gumbel Transformed Y on Observed Sites
 # Calculate CDF(Y)
 
-# with GEV fitted marginal params
+# with MLE fitted marginal GEV params
 mu_matrix    = np.full(shape = (Ns, Nt), fill_value = np.nan)
 sigma_matrix = np.full(shape = (Ns, Nt), fill_value = np.nan)
 ksi_matrix   = np.full(shape = (Ns, Nt), fill_value = np.nan)
@@ -988,7 +989,24 @@ pY_ro = numpy2rpy(pY)
 r.assign('pY_ro',pY_ro)
 r("save(pY_ro, file='pY_ro.gzip', compress=TRUE)")
 
-# with MCMC iterations of marginal params
+# initial smoothed from MLE
+Beta_mu0_init      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+Beta_mu1_init      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+Beta_logsigma_init = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+Beta_ksi_init      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+mu0_init = (C_mu0.T @ Beta_mu0_init).T
+mu1_init = (C_mu1.T @ Beta_mu1_init).T
+mu_init  = mu0_init + mu1_init * Time
+sigma_init = np.exp((C_logsigma.T @ Beta_logsigma_init).T)
+ksi_init = (C_ksi.T @ Beta_ksi_init).T
+pY_smooth = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    pY_smooth[:,t] = pgev(Y[:,t], mu_init[:,t], sigma_init[:,t], ksi_init[:,t])
+pY_smooth_ro = numpy2rpy(pY_smooth)
+r.assign('pY_smooth_ro', pY_smooth_ro)
+r("save(pY_smooth_ro, file='pY_smooth_ro.gzip', compress=TRUE)")
+
+# with per MCMC iterations of marginal GEV params
 n = Beta_mu0_trace_thin.shape[0]
 mu0_matrix_mcmc = (C_mu0.T @ Beta_mu0_trace_thin.T).T # shape (n, Ns, Nt)
 mu1_matrix_mcmc = (C_mu1.T @ Beta_mu1_trace_thin.T).T # shape (n, Ns, Nt)
@@ -1006,8 +1024,6 @@ pY_mcmc_ro = numpy2rpy(pY_mcmc)
 r.assign('pY_mcmc_ro',pY_mcmc_ro)
 r("save(pY_mcmc_ro, file='pY_mcmc_ro.gzip', compress=TRUE)")
 
-# Plotting of the uniforms (F(Y)) ----------------------------------------------------------------------
-
 
 # Plotting the Gumbels --------------------------------------------------------------------------------
 
@@ -1015,22 +1031,27 @@ r("save(pY_mcmc_ro, file='pY_mcmc_ro.gzip', compress=TRUE)")
 gumbel_pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
 for t in range(Nt):
     gumbel_pY[:,t] = scipy.stats.gumbel_r.ppf(pY[:,t])
-
 gumbel_pY_ro = numpy2rpy(gumbel_pY)
 r.assign('gumbel_pY_ro',gumbel_pY_ro)
 r("save(gumbel_pY_ro, file='gumbel_pY_ro.gzip', compress=TRUE)")
+
+gumbel_pY_smooth = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    gumbel_pY_smooth[:,t] = scipy.stats.gumbel_r.ppf(pY_smooth[:,t])
+gumbel_pY_smooth_ro = numpy2rpy(gumbel_pY_smooth)
+r.assign('gumbel_pY_smooth_ro', gumbel_pY_smooth_ro)
+r("save(gumbel_pY_smooth_ro, file='gumbel_pY_smooth_ro.gzip', compress=TRUE)")
 
 gumbel_pY_mcmc = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
 for i in range(n):
     for t in range(Nt):
         gumbel_pY_mcmc[i,:,t] = scipy.stats.gumbel_r.ppf(pY_mcmc[i,:,t])
-
 gumbel_pY_mcmc_ro = numpy2rpy(gumbel_pY_mcmc)
 r.assign('gumbel_pY_mcmc_ro',gumbel_pY_mcmc_ro)
 r("save(gumbel_pY_mcmc_ro, file='gumbel_pY_mcmc_ro.gzip', compress=TRUE)")
 
 # Single Site Gumbel QQPlot
-# single site with GEV fit marginal parameter
+# single site with MLE fit marginal GEV parameter
 s = scipy.stats.randint(0, Ns).rvs()
 # print(s)
 gumbel_s = gumbel_pY[s,:].copy()
@@ -1410,3 +1431,117 @@ r.assign('loglik_trace_ro',loglik_trace_ro)
 r("save(loglik_trace_ro, file='loglik_trace_ro.gzip', compress=TRUE)")
 loo = importr('loo')
 r('loo(loglik_trace_ro)')
+
+# %%
+#################################################################################
+##### QQplot of Real Holdout with intial smooth and per iter GEV parameters #####
+#################################################################################
+Beta_mu0_init      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+Beta_mu1_init      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+Beta_logsigma_init = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+Beta_ksi_init      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+# constructing holdout set
+mgcv = importr('mgcv')
+
+r('''load('blockMax_JJA_centralUS_test.RData')''')
+r('''load('stations_test.RData')''')
+
+JJA_maxima_99  = np.array(r('blockMax_JJA_centralUS_test')).T
+stations_99    = np.array(r('stations_test')).T[:,[0,1]].astype('f')
+elevations_99  = np.array(r('stations_test')).T[:,3].astype('f')/200
+
+Y = JJA_maxima_99.copy()
+
+sites_xy = stations_99
+sites_x  = sites_xy[:,0]
+sites_y  = sites_xy[:,1]
+
+Ns = 99
+Nt = 75
+
+sites_xy_ro = numpy2rpy(sites_xy)    # Convert to R object
+r.assign('sites_xy_ro', sites_xy_ro) # Note: this is a matrix in R, not df
+r('''
+    sites_xy_df <- as.data.frame(sites_xy_ro)
+    colnames(sites_xy_df) <- c('x','y')
+    ''')
+C_mu0_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations_99,     # elevation
+                                    C_mu0_splines)) # splines (excluding intercept)
+C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+
+Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
+Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
+C_mu1_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = sites_xy_df)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+C_mu1_1t           = np.column_stack((np.ones(Ns),  # intercept
+                                    elevations_99,     # elevation
+                                    C_mu1_splines)) # splines (excluding intercept)
+C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+Beta_logsigma_m   = 2 # just intercept and elevation
+C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
+C_logsigma[0,:,:] = 1.0 
+C_logsigma[1,:,:] = np.tile(elevations_99, reps = (Nt, 1)).T
+
+Beta_ksi_m   = 2 # just intercept and elevation
+C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi[0,:,:] = 1.0
+C_ksi[1,:,:] = np.tile(elevations_99, reps = (Nt, 1)).T
+
+
+# initial smoothed from MLE
+mu0_init = (C_mu0.T @ Beta_mu0_init).T
+mu1_init = (C_mu1.T @ Beta_mu1_init).T
+mu_init  = mu0_init + mu1_init * Time
+sigma_init = np.exp((C_logsigma.T @ Beta_logsigma_init).T)
+ksi_init = (C_ksi.T @ Beta_ksi_init).T
+pY_smooth_test = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    pY_smooth_test[:,t] = pgev(Y[:,t], mu_init[:,t], sigma_init[:,t], ksi_init[:,t])
+pY_smooth_test_ro = numpy2rpy(pY_smooth_test)
+r.assign('pY_smooth_test_ro', pY_smooth_test_ro)
+r("save(pY_smooth_test_ro, file='pY_smooth_test_ro.gzip', compress=TRUE)")
+
+# with per MCMC iterations of marginal GEV params
+n = Beta_mu0_trace_thin.shape[0]
+mu0_matrix_mcmc = (C_mu0.T @ Beta_mu0_trace_thin.T).T # shape (n, Ns, Nt)
+mu1_matrix_mcmc = (C_mu1.T @ Beta_mu1_trace_thin.T).T # shape (n, Ns, Nt)
+mu_matrix_mcmc  = mu0_matrix_mcmc + mu1_matrix_mcmc * Time
+sigma_matrix_mcmc = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin.T).T)
+ksi_matrix_mcmc = (C_ksi.T @ Beta_ksi_trace_thin.T).T
+
+pY_mcmc_test = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
+for i in range(n):
+    for t in range(Nt):
+        pY_mcmc_test[i,:,t] = pgev(Y[:,t], mu_matrix_mcmc[i,:,t],
+                                      sigma_matrix_mcmc[i,:,t],
+                                      ksi_matrix_mcmc[i,:,t])
+pY_mcmc_test_ro = numpy2rpy(pY_mcmc_test)
+r.assign('pY_mcmc_test_ro',pY_mcmc_test_ro)
+r("save(pY_mcmc_test_ro, file='pY_mcmc_test_ro.gzip', compress=TRUE)")
+
+gumbel_pY_smooth_test = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    gumbel_pY_smooth_test[:,t] = scipy.stats.gumbel_r.ppf(pY_smooth_test[:,t])
+gumbel_pY_smooth_test_ro = numpy2rpy(gumbel_pY_smooth_test)
+r.assign('gumbel_pY_smooth_test_ro', gumbel_pY_smooth_test_ro)
+r("save(gumbel_pY_smooth_test_ro, file='gumbel_pY_smooth_test_ro.gzip', compress=TRUE)")
+
+gumbel_pY_mcmc_test = np.full(shape = (n, Ns, Nt), fill_value = np.nan)
+for i in range(n):
+    for t in range(Nt):
+        gumbel_pY_mcmc_test[i,:,t] = scipy.stats.gumbel_r.ppf(pY_mcmc_test[i,:,t])
+gumbel_pY_mcmc_test_ro = numpy2rpy(gumbel_pY_mcmc_test)
+r.assign('gumbel_pY_mcmc_test_ro',gumbel_pY_mcmc_test_ro)
+r("save(gumbel_pY_mcmc_test_ro, file='gumbel_pY_mcmc_test_ro.gzip', compress=TRUE)")
