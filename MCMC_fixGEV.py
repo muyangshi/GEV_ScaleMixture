@@ -526,19 +526,19 @@ if __name__ == "__main__":
     stations           = np.array(r('stations')).T
     elevations         = np.array(r('elev')).T/200
 
-    # truncate for easier run on misspiggy
-    Nt                 = 24
-    Ns                 = 125
-    times_subset       = np.arange(Nt)
-    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-    GEV_estimates      = GEV_estimates[sites_subset,:]
-    mu0_estimates      = GEV_estimates[:,0]
-    mu1_estimates      = GEV_estimates[:,1]
-    logsigma_estimates = GEV_estimates[:,2]
-    ksi_estimates      = GEV_estimates[:,3]
-    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-    stations           = stations[sites_subset]
-    elevations         = elevations[sites_subset]
+    # # truncate for easier run on misspiggy
+    # Nt                 = 24
+    # Ns                 = 125
+    # times_subset       = np.arange(Nt)
+    # sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    # GEV_estimates      = GEV_estimates[sites_subset,:]
+    # mu0_estimates      = GEV_estimates[:,0]
+    # mu1_estimates      = GEV_estimates[:,1]
+    # logsigma_estimates = GEV_estimates[:,2]
+    # ksi_estimates      = GEV_estimates[:,3]
+    # JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    # stations           = stations[sites_subset]
+    # elevations         = elevations[sites_subset]
 
     Y = JJA_maxima.copy()
     miss_matrix = np.isnan(Y)
@@ -596,9 +596,13 @@ if __name__ == "__main__":
     # knots_y = knots_xy[:,1]    
 
     # isometric knot grid
-    N_outer_grid = 9
-    x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-    y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
+    N_outer_grid = 16
+    h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
+    v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
+    x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+                                           num = int(2*np.sqrt(N_outer_grid)))
+    y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+                                           num = int(2*np.sqrt(N_outer_grid)))
     x_outer_pos              = x_pos[0::2]
     x_inner_pos              = x_pos[1::2]
     y_outer_pos              = y_pos[0::2]
