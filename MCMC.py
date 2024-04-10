@@ -65,12 +65,16 @@ More grid knots:
     isometric: 9 --> 16
     total: (9+4)=13 --> (16+9)=25
 Modify idx block size to indicate maximumm size of each block
+
+April 9, 2024
+Added effective range for gaussian kernel
+Added plotting for weights
 """
 # Require:
 #   - utilities.py
 #   - proposal_cov.py
 # Example Usage:
-# mpirun -n 2 -output-filename folder_name python3 MCMC.py > pyout.txt &
+# mpirun -n 2 --output-filename <put here: folder_name/filename> python3 MCMC.py > combinedoutput.txt &
 # mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
 if __name__ == "__main__":
     # %% for reading seed from bash
@@ -637,7 +641,6 @@ if __name__ == "__main__":
     # bandwidth = 4 # range for the gaussian kernel
     effective_range = radius # effective range for gaussian kernel: exp(-3) = 0.05
     bandwidth = effective_range**2/6
-
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
     # Generate the weight matrices
@@ -1194,7 +1197,7 @@ if __name__ == "__main__":
         plt.savefig('station_elevation.pdf')
         plt.close()       
     
-    
+
         # 3. phi surface
         # heatplot of phi surface
         phi_vec_for_plot = (gaussian_weight_matrix_for_plot @ phi_at_knots).round(3)
@@ -1207,7 +1210,7 @@ if __name__ == "__main__":
         plt.savefig('heatmap phi surface.pdf')
         plt.close()
 
-    
+
         # 4. Plot range surface
         # heatplot of range surface
         range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
@@ -1220,7 +1223,7 @@ if __name__ == "__main__":
         plt.savefig('heatmap range surface.pdf')
         plt.close()
     
-    
+
         # 5. GEV Surfaces
         mu0_matrix      = (C_mu0.T @ Beta_mu0).T  
         mu1_matrix      = (C_mu1.T @ Beta_mu1).T
@@ -1712,7 +1715,6 @@ if __name__ == "__main__":
     Beta_mu1_current      = comm.bcast(Beta_mu1_init, root = 0)
     Beta_logsigma_current = comm.bcast(Beta_logsigma_init, root = 0)
     Beta_ksi_current      = comm.bcast(Beta_ksi_init, root = 0)
-    # Loc_matrix_current    = (C_mu0.T @ Beta_mu0_current).T
     Loc_matrix_current    = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
     Scale_matrix_current  = np.exp((C_logsigma.T @ Beta_logsigma_current).T)
     Shape_matrix_current  = (C_ksi.T @ Beta_ksi_current).T
@@ -2795,7 +2797,7 @@ if __name__ == "__main__":
             sigma_Beta_ksi_current       = sigma_Beta_ksi_update
 
         # Broadcast the updated values
-        sigma_Beta_mu0_current = comm.bcast(sigma_Beta_mu0_current, root = 0)
+        sigma_Beta_mu0_current      = comm.bcast(sigma_Beta_mu0_current, root = 0)
         sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
         sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
         sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
