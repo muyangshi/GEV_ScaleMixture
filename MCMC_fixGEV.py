@@ -336,7 +336,7 @@ if __name__ == "__main__":
 
     # mu0_estimates = (C_mu0.T @ Beta_mu0).T[:,0]
     # mu1_estimates = (C_mu1.T @ Beta_mu1).T[:,0]
-    # logsigma_estimates = np.exp((C_logsigma.T @ Beta_logsigma).T)[:,0]
+    # logsigma_estimates = (C_logsigma.T @ Beta_logsigma).T[:,0]
     # ksi_estimates = (C_ksi.T @ Beta_ksi).T[:,0]
 
     # mu_matrix    = (C_mu0.T @ Beta_mu0).T + (C_mu1.T @ Beta_mu1).T * Time
@@ -623,8 +623,10 @@ if __name__ == "__main__":
     # Copula Splines
     
     # Basis Parameters - for the Gaussian and Wendland Basis
-    bandwidth = 4 # range for the gaussian kernel
-    radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    # bandwidth = 4 # range for the gaussian kernel
+    effective_range = radius # effective range for gaussian kernel: exp(-3) = 0.05
+    bandwidth = effective_range**2/6
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
     # Generate the weight matrices
