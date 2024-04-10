@@ -76,7 +76,7 @@ np.random.seed(data_seed)
 # folder = './data/20240301_data_t32_s300_shifted_impute_0.1/'
 # folder = './data/20240304_cross_t32_s225_shifteddata_standardchain/'
 # folder = './data/20240229_2345_sc2_t32_s300_standard_noimpute/'
-folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
+# folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240320_realdata_t75_s590_fixGEV/' # ran on Alpine, k = 9 + 4 = 13 Mark's Iso grid
 # folder = './data/20240321_realdata_t24_s500_k16/' # ran on Misspiggy, k = 16 + 9 = 25 Mark's Iso grid
 # folder = './data/20240321_sim2345sc2_t24s300_hasting_phi_Rt_100k_rangenoadaptive/'
@@ -84,6 +84,12 @@ folder = './data/20240306_realdata_t75_s590/' # ran on Alpine, k = 9 + 4 = 13 Ma
 
 # folder = './data/20240328_realdata_t75_s590_k25_r2/'
 # folder = './data/20240328_realdata_t75_s590_k25_r4/'
+
+# folder = './data/20240328_realdata_t75_s590_k25_r2/'
+# folder = './data/20240402_realdata_t75_s590_k25_r2_fixGEV/'
+
+folder = './data/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
 R_trace_log               = np.load(folder + 'R_trace_log.npy')
@@ -107,7 +113,7 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 # %%
 # burnins
 # burnin = 60000
-burnin = 500
+burnin = 4000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
