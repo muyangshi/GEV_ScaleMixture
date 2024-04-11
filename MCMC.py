@@ -2,10 +2,18 @@
 This is a MCMC sampler that constantly gets updated
 Scratch work and modifications are done in this file
 
+# Require:
+#   - utilities.py
+#   - proposal_cov.py
+# Example Usage:
+# mpirun -n 2 --output-filename <put here: folder_name/filename> python3 MCMC.py > combinedoutput.txt &
+# mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
+
 Notes on (installation of) Rpy2
 Work around of conda+rpy2: conda install rpy2 also installs an r-base
 use the conda installed R, don't use the default R on misspiggy to avoid issue (i.e. change the default R path to the end the $PATH)
 Alternatively, split the MCMC into three pieces: Python generate data --> R generate X design --> Python run MCMC
+in importr, lib_loc specifies where an R package is installed
 
 Note on heatmap:
 plotgrid_xy is meshgrid(order='xy') fills horizontally (x changes first, then y changes), so no need tranpose in imshow
@@ -69,13 +77,11 @@ Modify idx block size to indicate maximumm size of each block
 April 9, 2024
 Added effective range for gaussian kernel
 Added plotting for weights
+
+April 11, 2024
+Did a subset data analysis on fozzy using standard Pareto with effective range 2 gaussian kernel,
+    phi still underestimates
 """
-# Require:
-#   - utilities.py
-#   - proposal_cov.py
-# Example Usage:
-# mpirun -n 2 --output-filename <put here: folder_name/filename> python3 MCMC.py > combinedoutput.txt &
-# mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys
