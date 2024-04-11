@@ -540,19 +540,19 @@ if __name__ == "__main__":
     stations           = np.array(r('stations')).T
     elevations         = np.array(r('elev')).T/200
 
-    # truncate for easier run on misspiggy
-    Nt                 = 24
-    Ns                 = 225
-    times_subset       = np.arange(Nt)
-    sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
-    GEV_estimates      = GEV_estimates[sites_subset,:]
-    mu0_estimates      = GEV_estimates[:,0]
-    mu1_estimates      = GEV_estimates[:,1]
-    logsigma_estimates = GEV_estimates[:,2]
-    ksi_estimates      = GEV_estimates[:,3]
-    JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
-    stations           = stations[sites_subset]
-    elevations         = elevations[sites_subset]
+    # # truncate for easier run on misspiggy
+    # Nt                 = 24
+    # Ns                 = 125
+    # times_subset       = np.arange(Nt)
+    # sites_subset       = np.random.default_rng(data_seed).choice(JJA_maxima.shape[0],size=Ns,replace=False,shuffle=False)
+    # GEV_estimates      = GEV_estimates[sites_subset,:]
+    # mu0_estimates      = GEV_estimates[:,0]
+    # mu1_estimates      = GEV_estimates[:,1]
+    # logsigma_estimates = GEV_estimates[:,2]
+    # ksi_estimates      = GEV_estimates[:,3]
+    # JJA_maxima         = JJA_maxima[sites_subset,:][:,times_subset]
+    # stations           = stations[sites_subset]
+    # elevations         = elevations[sites_subset]
 
     Y = JJA_maxima.copy()
     miss_matrix = np.isnan(Y)
@@ -1067,62 +1067,62 @@ if __name__ == "__main__":
             # influence coming from each of the knots
             weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
             wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
-    
-        # weight from knot plots --------------------------------------------------------------------------------------
-        import geopandas as gpd
-        state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
 
-        # Define the colors for the colormap (white to red)
-        # Create a LinearSegmentedColormap
-        colors = ["#ffffff", "#ff0000"]
-        n_bins = 50  # Number of discrete color bins
-        cmap_name = "white_to_red"
-        colormap = matplotlib.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+        # # weight from knot plots --------------------------------------------------------------------------------------
+        # import geopandas as gpd
+        # state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
+
+        # # Define the colors for the colormap (white to red)
+        # # Create a LinearSegmentedColormap
+        # colors = ["#ffffff", "#ff0000"]
+        # n_bins = 50  # Number of discrete color bins
+        # cmap_name = "white_to_red"
+        # colormap = matplotlib.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
         
-        min_w = 0
-        max_w = 1
-        n_ticks = 11  # (total) number of ticks
-        ticks = np.linspace(min_w, max_w, n_ticks).round(3)
+        # min_w = 0
+        # max_w = 1
+        # n_ticks = 11  # (total) number of ticks
+        # ticks = np.linspace(min_w, max_w, n_ticks).round(3)
 
-        idx = 5
-        gaussian_weights_for_plot = gaussian_weight_matrix_for_plot[:,idx]
-        wendland_weights_for_plot = wendland_weight_matrix_for_plot[:,idx]
+        # idx = 5
+        # gaussian_weights_for_plot = gaussian_weight_matrix_for_plot[:,idx]
+        # wendland_weights_for_plot = wendland_weight_matrix_for_plot[:,idx]
 
-        fig, axes = plt.subplots(1,2)
-        state_map.boundary.plot(ax=axes[0], color = 'black', linewidth = 0.5)
-        heatmap = axes[0].imshow(wendland_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                            cmap = colormap, vmin = min_w, vmax = max_w,
-                            interpolation='nearest', 
-                            extent = [minX, maxX, maxY, minY])
-        axes[0].invert_yaxis()                    
-        # axes[0].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-        axes[0].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
-        axes[0].set_xlim(minX, maxX)
-        axes[0].set_ylim(minY, maxY)
-        axes[0].set_aspect('equal', 'box')
-        axes[0].title.set_text('wendland weights knot ' + str(idx))
+        # fig, axes = plt.subplots(1,2)
+        # state_map.boundary.plot(ax=axes[0], color = 'black', linewidth = 0.5)
+        # heatmap = axes[0].imshow(wendland_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        #                     cmap = colormap, vmin = min_w, vmax = max_w,
+        #                     interpolation='nearest', 
+        #                     extent = [minX, maxX, maxY, minY])
+        # axes[0].invert_yaxis()                    
+        # # axes[0].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+        # axes[0].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
+        # axes[0].set_xlim(minX, maxX)
+        # axes[0].set_ylim(minY, maxY)
+        # axes[0].set_aspect('equal', 'box')
+        # axes[0].title.set_text('wendland weights knot ' + str(idx))
 
-        state_map.boundary.plot(ax=axes[1], color = 'black', linewidth = 0.5)
-        heatmap = axes[1].imshow(gaussian_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                            cmap = colormap, vmin = min_w, vmax = max_w,
-                            interpolation='nearest', 
-                            extent = [minX, maxX, maxY, minY])
-        axes[1].invert_yaxis()                    
-        # axes[1].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-        axes[1].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
-        axes[1].set_xlim(minX, maxX)
-        axes[1].set_ylim(minY, maxY)
-        axes[1].set_aspect('equal', 'box')
-        axes[1].title.set_text('gaussian weights knot ' + str(idx))
+        # state_map.boundary.plot(ax=axes[1], color = 'black', linewidth = 0.5)
+        # heatmap = axes[1].imshow(gaussian_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        #                     cmap = colormap, vmin = min_w, vmax = max_w,
+        #                     interpolation='nearest', 
+        #                     extent = [minX, maxX, maxY, minY])
+        # axes[1].invert_yaxis()                    
+        # # axes[1].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+        # axes[1].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
+        # axes[1].set_xlim(minX, maxX)
+        # axes[1].set_ylim(minY, maxY)
+        # axes[1].set_aspect('equal', 'box')
+        # axes[1].title.set_text('gaussian weights knot ' + str(idx))
 
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-        fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-        plt.savefig('weights.pdf')
-        plt.show()
-        plt.close()
-        # -------------------------------------------------------------------------------------------------------------
-    
+        # fig.subplots_adjust(right=0.8)
+        # cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        # fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        # plt.savefig('weights.pdf')
+        # plt.show()
+        # plt.close()
+        # # -------------------------------------------------------------------------------------------------------------
+
         # 1. Station, Knots 
         fig, ax = plt.subplots()
         fig.set_size_inches(10,8)
