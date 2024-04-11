@@ -88,7 +88,9 @@ np.random.seed(data_seed)
 # folder = './data/20240328_realdata_t75_s590_k25_r2/'
 # folder = './data/20240402_realdata_t75_s590_k25_r2_fixGEV/'
 
-folder = './data/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+# folder = './data/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+
+folder = './data/20240409_realdatasubset_t24s225_k25_efr2/'
 
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
@@ -113,7 +115,8 @@ Beta_ksi_m      = Beta_ksi_trace.shape[1]
 # %%
 # burnins
 # burnin = 60000
-burnin = 4000
+burnin = 500
+# burnin = 4000
 
 phi_knots_trace           = phi_knots_trace[burnin:]
 R_trace_log               = R_trace_log[burnin:]
@@ -371,8 +374,10 @@ k                        = len(knots_id_in_domain)
 # Copula Splines
 
 # Basis Parameters - for the Gaussian and Wendland Basis
-bandwidth = 4 # range for the gaussian kernel
-radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+# bandwidth = 4 # range for the gaussian kernel
+effective_range = radius # effective range for gaussian kernel: exp(-3) = 0.05
+bandwidth = effective_range**2/6
 radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
 # Generate the weight matrices
