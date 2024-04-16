@@ -30,11 +30,11 @@ state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
 import matplotlib as mpl
 from matplotlib import colormaps
 import os
-os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
-os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
-os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
-os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+# os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+# os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+# os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+# os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+# os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -712,20 +712,23 @@ r('''
     dev.off()
     ''')
 
-# %% loglikelihood at Testing sample
+# %% loglikelihood at Testing sample ----------------------------------------------------------------------------------
 # loglikelihood at Testing sample
 
 """
 Calculate this with a single core and no need to parallelize
 We need:
-    - 1. Extract the non NA Y at the testing sites
-    - 2. Marginal Parameters. Get the Loc, Scale, Shape at the testing sites:
+    - 1 Extract the non NA Y at the testing sites
+    - 2 Marginal Parameters. Get the Loc, Scale, Shape at the testing sites:
             This can be done by directly applying the posterior mean estimates, because
             the thin-plate basis expansion is linear
-    - 3. Copula Parameters, Get the phi_vec, range_vec, gamma_vec, R_vec at the testing sites:
+    - 3 Copula Parameters, Get the phi_vec, range_vec, gamma_vec, R_vec at the testing sites:
             Using posterior mean, because basis expansion is linear
-    - 4. Using the range_vec, calculate the cholesky_U at the testing sites
-    - 5. X should be calculated from the Loc, Scale, and Shape at the testing sites
+    - 4 Using the range_vec, calculate the cholesky_U at the testing sites
+    - 5 X should be calculated from the Loc, Scale, and Shape at the testing sites
+        Note that in 5 the marginal transformation isn't linear, so take a sample of the Loc, Scale, Shape
+        and then we have a sample of the X
+        and then we make a sample of the ll using those X
 Finally, apply the marg_transform_data over each time replicate and sum
 If parallelize, can set the contribution of np.nan Y to be 0
 """
@@ -784,24 +787,109 @@ K_test    = ns_cov(range_vec = range_vec_test,
                    kappa     = nu, cov_model = "matern")
 cholesky_U_test = scipy.linalg.cholesky(K_test, lower = False)
 
-# 5. X, ~ 42 seconds on misspiggy
+# 5. Calculate X per iteration
 print('link function g:', norm_pareto)
-X_99 = np.full(shape = (test_Ns, 75), fill_value = np.nan)
-for t in range(Nt):
-    noNA = ~np.isnan(Y_99[:,t])
-    X_99[noNA,t] = qRW(pgev(Y_99[noNA,t], mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t]), 
-                    phi_vec_test[noNA], gamma_vec_test[noNA])
+
+# Calculate only one X using posterior mean
+# X_99 = np.full(shape = (test_Ns, 75), fill_value = np.nan)
+# for t in range(Nt): # single core takes ~ 45 seconds
+#     noNA = ~np.isnan(Y_99[:,t])
+#     X_99[noNA,t] = qRW(pgev(Y_99[noNA,t], mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t]), 
+#                     phi_vec_test[noNA], gamma_vec_test[noNA])
+
+
+# making the per iterations mu, sigma, ksi, and phi
+n_iter      = phi_knots_trace.shape[0]
+idx_thin100 = np.arange(n_iter)[0::100] # thin by 100
+n_thin100   = len(idx_thin100)
+idx_thin100 = np.arange(n_thin100)
+
+phi_knots_trace_thin100 = phi_knots_trace[0:iter:100,:]
+phi_vec_test_thin100    = (gaussian_weight_matrix_test @ phi_knots_trace_thin100.T).T
+
+if not fixGEV:
+    Beta_mu0_trace_thin100      = Beta_mu0_trace[0:iter:100,:]
+    Beta_mu1_trace_thin100      = Beta_mu1_trace[0:iter:100,:]
+    Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:iter:100,:]
+    Beta_ksi_trace_thin100      = Beta_ksi_trace[0:iter:100,:]
+
+    mu0_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
+    mu1_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
+    mu_matrix_thin100    = mu0_matrix_thin100 + mu1_matrix_thin100 * Time
+    sigma_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
+    ksi_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
+
+# could really use parallelization here...
+# ! Can use the python parallel module!
+# X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
+# for i in range(n_thin100): # single core calculation takes total ~ 30 minutes
+#     for t in range(Nt):
+#         noNA = ~np.isnan(Y_99[:,t])
+#         X_99_thin100[i,noNA,t] = qRW(pgev(Y_99[noNA,t], mu_matrix_thin100[i,noNA,t],sigma_matrix_thin100[i,noNA,t],ksi_matrix_thin100[i,noNA,t]),
+#                                   phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA])
+
+import multiprocessing
+# print(multiprocessing.cpu_count())
+def qRW_pgev(args):
+    Y     = args[:,0]
+    Loc   = args[:,1]
+    Scale = args[:,2]
+    Shape = args[:,3]
+    Phi   = args[:,4]
+    Gamma = args[:,5]
+    # Y, Loc, Scale, Shape, Phi, Gamma = args.T # args shaped (noNA, 6)
+    return qRW(pgev(Y, Loc, Scale, Shape), Phi, Gamma)
+
+X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
+for i in range(n_thin100):
+    print(i)
+    args_list = []
+    for t in range(Nt):
+        noNA = ~np.isnan(Y_99[:,t])
+        args = np.column_stack((Y_99[noNA, t], 
+                                mu_matrix_thin100[i, noNA, t], 
+                                sigma_matrix_thin100[i,noNA,t],
+                                ksi_matrix_thin100[i,noNA,t],
+                                phi_vec_test_thin100[i,noNA],
+                                gamma_vec_test[noNA]))
+        args_list.append(args)
+    with multiprocessing.Pool(processes=30) as pool:
+        results = pool.map(qRW_pgev, args_list)
+    for t in range(Nt):
+        noNA = ~np.isnan(Y_99[:,t])
+        X_99_thin100[i,noNA,t] = results[t]
+
+
 
 # ll
-ll_test = np.full((test_Ns, 75), fill_value = 0.0)
-for t in range(Nt):
-    noNA            = ~np.isnan(Y_99[:,t])
-    K_subset        = K_test[noNA,:][:,noNA]
-    cholesky_U      = scipy.linalg.cholesky(K_subset, lower = False)
-    ll_test[noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99[noNA,t],
-                                                                 mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-                                                                 phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-np.sum(ll_test)
+# 1.7 seconds for each likelihood evalutaion (on 99 sites and 75 times)
+# ll_test = np.full((test_Ns, 75), fill_value = 0.0)
+# for t in range(Nt):
+#     noNA            = ~np.isnan(Y_99[:,t])
+#     K_subset        = K_test[noNA,:][:,noNA]
+#     cholesky_U      = scipy.linalg.cholesky(K_subset, lower = False)
+#     ll_test[noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99[noNA,t],
+#                                                                  mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
+#                                                                  phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+# np.sum(ll_test)
 
-# %% Empirical Chi plot
+ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
+for i in range(n_thin100):
+    print(i)
+    for t in range(Nt):
+        noNA              = ~np.isnan(Y_99[:,t])
+        K_subset          = K_test[noNA,:][:,noNA]
+        cholesky_U        = scipy.linalg.cholesky(K_subset, lower = False)
+        ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
+                                                                    mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
+                                                                    phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+
+np.save(ll_test_thin100, 'll_k25_r2')
+
+plt.boxplot(np.sum(ll_test_thin100, axis = (1,2)))
+plt.xticks([1], ['k25_r2'])
+plt.xlabel('Knot Radius Configuration')
+plt.ylabel('log-likelihood @ test sites')
+
+# %% Empirical Chi plot -----------------------------------------------------------------------------------------------
 # Empirical Chi plot
