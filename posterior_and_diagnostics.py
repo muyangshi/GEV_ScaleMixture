@@ -87,13 +87,21 @@ def my_floor(a, precision=0):
 # %%
 # Specify which run
 
-# folder = './data_alpine/20240412_copy/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+# folder = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
 # name   = 'k25_r4_fixGEV'
 # fixGEV = True
 # radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
 # bandwidth = 4 # range for the gaussian kernel
 # N_outer_grid = 16
 # burnin = 5000
+
+folder = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
+name   = 'k25_r2_fixGEV'
+fixGEV = True
+radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+bandwidth = 2 # range for the gaussian kernel
+N_outer_grid = 16
+burnin = 6000
 
 # folder = './data_alpine/20240416_copy/20240406_realdata_t75_s590_k25_r4/'
 # name = 'k25_r4'
@@ -111,13 +119,13 @@ def my_floor(a, precision=0):
 # N_outer_grid = 16
 # burnin = 5000
 
-folder       = './data_alpine/20240416_copy/20240410_realdata_t75_s590_k25_efr2/'
-name         = 'k25_efr2'
-fixGEV       = False
-radius       = 2
-bandwidth    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-N_outer_grid = 16
-burnin       = 0
+# folder       = './data_alpine/20240416_copy/20240410_realdata_t75_s590_k25_efr2/'
+# name         = 'k25_efr2'
+# fixGEV       = False
+# radius       = 2
+# bandwidth    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
+# N_outer_grid = 16
+# burnin       = 0
 
 # %% load traceplots
 # load traceplots
@@ -389,24 +397,24 @@ C_ksi[0,:,:] = 1.0
 C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
 
-# %% Plot traceplot
+# # %% Plot traceplot
 
-for i in range(k):
-    plt.subplots()
-    plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label = 'knot'+str(i))
-    plt.title('traceplot for phi knot' + str(i))
-    plt.xlabel('iter thinned by 10')
-    plt.ylabel('phi')
-    plt.show()
-plt.close()
+# for i in range(k):
+#     plt.subplots()
+#     plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label = 'knot'+str(i))
+#     plt.title('traceplot for phi knot' + str(i))
+#     plt.xlabel('iter thinned by 10')
+#     plt.ylabel('phi')
+#     plt.show()
+# plt.close()
 
-for j in range(Beta_mu1_m):
-    plt.plot(xs_thin2, Beta_mu1_trace_thin[:,j], label = 'Beta_'+str(j))
-    plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu1_trace_thin[:,j][-1]))
-plt.title('traceplot for Beta_mu1')
-plt.xlabel('iter thinned by 10')
-plt.ylabel('Beta_mu1')
-plt.legend()  
+# for j in range(Beta_mu1_m):
+#     plt.plot(xs_thin2, Beta_mu1_trace_thin[:,j], label = 'Beta_'+str(j))
+#     plt.annotate('Beta_' + str(j), xy=(xs_thin2[-1], Beta_mu1_trace_thin[:,j][-1]))
+# plt.title('traceplot for Beta_mu1')
+# plt.xlabel('iter thinned by 10')
+# plt.ylabel('Beta_mu1')
+# plt.legend()  
 
 # %% marginal parameter surface
 # marginal parameter surface
@@ -797,28 +805,6 @@ gumbel_pY_initSmooth_test_ro = numpy2rpy(gumbel_pY_initSmooth_test)
 r.assign('gumbel_pY_initSmooth_test_ro', gumbel_pY_initSmooth_test_ro)
 r("save(gumbel_pY_initSmooth_test_ro, file='gumbel_pY_initSmooth_test_ro.gzip', compress=TRUE)")
 
-r('''
-    test_Ns <- 99
-    s <- floor(runif(1, min = 1, max = test_Ns + 1))
-    print(test_sites_xy_ro[s,]) # print coordinates
-    gumbel_s = sort(gumbel_pY_initSmooth_test_ro[s,])
-    nquants = length(gumbel_s)
-    emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
-    emp_q = qgumbel(emp_p)
-    qq_gumbel_s <- extRemes::qqplot(gumbel_s, emp_q, regress=FALSE, legend=NULL,
-                                    xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
-                                    lwd=3)
-    pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
-    par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
-    plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
-    points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
-    lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
-    lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$upper, lty=2, col="blue", lwd=3)
-    abline(a=0, b=1, lty=3, col="gray80", lwd=3)
-    legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
-    dev.off()
-  ''')
-
 # Gumbel QQPlot with mean(each MCMC iter GEV --> Gumbel) --------------------------------------------------------------
 
 if not fixGEV:
@@ -849,32 +835,60 @@ if not fixGEV:
     r.assign('gumbel_pY_mcmc_test_ro',gumbel_pY_mcmc_test_ro)
     r("save(gumbel_pY_mcmc_test_ro, file='gumbel_pY_mcmc_test_ro.gzip', compress=TRUE)")
 
-r('''
-    # s <- floor(runif(1, min = 1, max = test_Ns+1))
-    print(test_sites_xy_ro[s,]) # print coordinates
-    gumbel_s_mcmc = sort(apply(gumbel_pY_mcmc_test_ro[,s,],2, mean))
-    nquants = length(gumbel_s_mcmc)
-    emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
-    emp_q = qgumbel(emp_p)
-    qq_gumbel_s_mcmc <- extRemes::qqplot(gumbel_s_mcmc, emp_q, regress=FALSE, legend=NULL,
-                                    xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
-                                    lwd=3)
-    pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
-    par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
-    plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
-    points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
-    lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
-    lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)
-    abline(a=0, b=1, lty=3, col="gray80", lwd=3)
-    legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
-    dev.off()
+# Drawing the QQ Plots ------------------------------------------------------------------------------------------------
+
+for _ in range(10):
+    # with MLE initial smooth
+    r('''
+        test_Ns <- 99
+        s <- floor(runif(1, min = 1, max = test_Ns + 1))
+        print(test_sites_xy_ro[s,]) # print coordinates
+        gumbel_s = sort(gumbel_pY_initSmooth_test_ro[s,])
+        nquants = length(gumbel_s)
+        emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
+        emp_q = qgumbel(emp_p)
+        qq_gumbel_s <- extRemes::qqplot(gumbel_s, emp_q, regress=FALSE, legend=NULL,
+                                        xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
+                                        lwd=3)
+        pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
+        par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
+        plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
+        points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
+        lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
+        lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$upper, lty=2, col="blue", lwd=3)
+        abline(a=0, b=1, lty=3, col="gray80", lwd=3)
+        legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
+        dev.off()
     ''')
+    # with per MCMC iteration transformed
+    if not fixGEV:
+        r('''
+            # s <- floor(runif(1, min = 1, max = test_Ns+1))
+            print(test_sites_xy_ro[s,]) # print coordinates
+            gumbel_s_mcmc = sort(apply(gumbel_pY_mcmc_test_ro[,s,],2, mean))
+            nquants = length(gumbel_s_mcmc)
+            emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
+            emp_q = qgumbel(emp_p)
+            qq_gumbel_s_mcmc <- extRemes::qqplot(gumbel_s_mcmc, emp_q, regress=FALSE, legend=NULL,
+                                            xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
+                                            lwd=3)
+            pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
+            par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
+            plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
+            points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
+            lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
+            lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)
+            abline(a=0, b=1, lty=3, col="gray80", lwd=3)
+            legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
+            dev.off()
+            ''')
 
 # %% loglikelihood at Testing sample ----------------------------------------------------------------------------------
 # loglikelihood at Testing sample
 
 """
-Calculate this with a single core and no need to parallelize
+Calculate step 1-4 with a single core and no need to parallelize
+Calculate step 5 parallel, using multiprocessing (so one node)
 We need:
     - 1 Extract the non NA Y at the testing sites
     - 2 Marginal Parameters. Get the Loc, Scale, Shape at the testing sites:
@@ -887,7 +901,8 @@ We need:
         Note that in 5 the marginal transformation isn't linear, so take a sample of the Loc, Scale, Shape
         and then we have a sample of the X
         and then we make a sample of the ll using those X
-Finally, apply the marg_transform_data over each time replicate and sum
+Finally, 
+    - 6 apply the marg_transform_data over each time replicate and sum
 If parallelize, can set the contribution of np.nan Y to be 0
 """
 
@@ -945,7 +960,7 @@ K_test    = ns_cov(range_vec = range_vec_test,
                    kappa     = nu, cov_model = "matern")
 cholesky_U_test = scipy.linalg.cholesky(K_test, lower = False)
 
-# 5. Calculate X per iteration
+# 5. Calculate X per iteration -- could really use parallelization here...
 print('link function g:', norm_pareto)
 
 # Calculate only one X using posterior mean
@@ -977,7 +992,6 @@ if not fixGEV:
     sigma_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
     ksi_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
 
-# could really use parallelization here...
 # ! Can use the python parallel module!
 # X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
 # for i in range(n_thin100): # single core calculation takes total ~ 30 minutes
@@ -1000,9 +1014,9 @@ def qRW_pgev(args):
 
 X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
 for i in range(n_thin100):
-    print(i)
+    print('qRW_pgev:', i)
     args_list = []
-    for t in range(Nt):
+    for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
         noNA = ~np.isnan(Y_99[:,t])
         if not fixGEV:
             args = np.column_stack((Y_99[noNA, t], 
@@ -1027,7 +1041,8 @@ for i in range(n_thin100):
 
 
 
-# ll
+# 6. loglikelihood -- calculation can also be parallelized!
+
 # 1.7 seconds for each likelihood evalutaion (on 99 sites and 75 times)
 # ll_test = np.full((test_Ns, 75), fill_value = 0.0)
 # for t in range(Nt):
@@ -1039,27 +1054,58 @@ for i in range(n_thin100):
 #                                                                  phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
 # np.sum(ll_test)
 
+# ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
+# for i in range(n_thin100):
+#     print(i)
+#     for t in range(Nt):
+#         noNA              = ~np.isnan(Y_99[:,t])
+#         K_subset          = K_test[noNA,:][:,noNA]
+#         cholesky_U        = scipy.linalg.cholesky(K_subset, lower = False)
+#         if not fixGEV:
+#             ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
+#                                                                         mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
+#                                                                         phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+#         if fixGEV:
+#             ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
+#                                                                         mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
+#                                                                         phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+
+def ll(args):
+    Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol = args
+    return(marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol))
+
 ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
 for i in range(n_thin100):
-    print(i)
-    for t in range(Nt):
-        noNA              = ~np.isnan(Y_99[:,t])
-        K_subset          = K_test[noNA,:][:,noNA]
-        cholesky_U        = scipy.linalg.cholesky(K_subset, lower = False)
+    print('ll:', i)
+    args_list = []
+    for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
+        noNA       = ~np.isnan(Y_99[:,t])
+        K_subset   = K_test[noNA,:][:,noNA]
+        cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
         if not fixGEV:
-            ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
-                                                                        mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-                                                                        phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+            args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
+                    mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
+                    phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
         if fixGEV:
-            ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
-                                                                        mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-                                                                        phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-np.save(ll_test_thin100, 'll_'+name)
+            args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
+                    mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
+                    phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+        args_list.append(args)
+    with multiprocessing.Pool(processes=30) as pool:
+        results = pool.map(ll, args_list)
+    for t in range(Nt):
+        noNA = ~np.isnan(Y_99[:,t])
+        ll_test_thin100[i,noNA,t] = results[t]
+
+np.save('ll_'+name, ll_test_thin100)
 
 plt.boxplot(np.sum(ll_test_thin100, axis = (1,2)))
 plt.xticks([1], [name])
 plt.xlabel('Knot Radius Configuration')
 plt.ylabel('log-likelihood @ test sites')
+plt.savefig('ll_'+name+'_boxplot.pdf')
+plt.show()
+plt.close()
 
 # %%
 # Draw boxplots of loglikelihoods between different runs --------------------------------------------------------------
