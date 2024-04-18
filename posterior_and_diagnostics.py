@@ -42,6 +42,7 @@ from utilities import *
 from rpy2.robjects import r 
 from rpy2.robjects.numpy2ri import numpy2rpy
 from rpy2.robjects.packages import importr
+import multiprocessing
 
 # the training dataset
 mgcv = importr('mgcv')
@@ -579,12 +580,6 @@ def coord_to_dist(coord1: tuple, coord2: tuple):
 
     distance = R * c
     return distance
-def random_point_at_dist(coord1: tuple, h):
-    # random angle in radians
-    theta = np.random.uniform(0, 2*np.pi)
-
-    # calculate the coordinates of point B
-    return coord1 + h * np.array([cos(theta), sin(theta)])
 
 def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
     R = 6373.0
@@ -636,64 +631,158 @@ plt.ylim([30,50])
 plt.show()
 plt.close()
 
-# Engineer two points inside this window -- example at one knot_chi
-h = 75 # km
-point_A = knots_xy_chi[chi_i].copy()
-point_B = random_point_at_dist(point_A, h)
-sites_AB = np.row_stack([point_A, point_B])
-gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
-for site_id in np.arange(2):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
-wendland_weight_matrix_AB = np.full(shape = (2,k), fill_value = np.nan)
-for site_id in np.arange(2):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    wendland_weight_matrix_AB[site_id, :] = weight_from_knots
+# # Engineer two points inside this window -- example at one knot_chi
+# h = 75 # km
+# point_A = knots_xy_chi[chi_i].copy()
+# point_B = random_point_at_dist(point_A, h)
+# sites_AB = np.row_stack([point_A, point_B])
+# gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
+# for site_id in np.arange(2):
+#     # Compute distance between each pair of the two collections of inputs
+#     d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+#                                                 XB = knots_xy)
+#     # influence coming from each of the knots
+#     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+#     gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
+# wendland_weight_matrix_AB = np.full(shape = (2,k), fill_value = np.nan)
+# for site_id in np.arange(2):
+#     # Compute distance between each pair of the two collections of inputs
+#     d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+#                                                 XB = knots_xy)
+#     # influence coming from each of the knots
+#     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+#     wendland_weight_matrix_AB[site_id, :] = weight_from_knots
 
-# Need: R(s), phi(s), rho(s) --> K
-phi_vec_AB     = gaussian_weight_matrix_AB @ phi_mean
-range_vec_AB   = gaussian_weight_matrix_AB @ range_mean
-gamma_at_knots = np.repeat(0.5, k)
-alpha          = 0.5
-gamma_vec_AB   = np.sum(np.multiply(wendland_weight_matrix_AB, gamma_at_knots)**(alpha),
-                        axis = 1)**(1/alpha)
-R_matrix_AB    = wendland_weight_matrix_AB @ np.mean(np.exp(R_log_mean), axis = 1) # shape (k, Nt)
-sigsq_vec      = np.repeat(1.0, 2)
-nu             = 0.5
-K_AB           = ns_cov(range_vec = range_vec_AB,
-                        sigsq_vec = sigsq_vec,
-                        coords    = sites_AB,
-                        kappa     = nu, cov_model = "matern")
-cholesky_U_AB  = scipy.linalg.cholesky(K_AB, lower = False)
+# # Need: R(s), phi(s), rho(s) --> K
+# phi_vec_AB     = gaussian_weight_matrix_AB @ phi_mean
+# range_vec_AB   = gaussian_weight_matrix_AB @ range_mean
+# gamma_at_knots = np.repeat(0.5, k)
+# alpha          = 0.5
+# gamma_vec_AB   = np.sum(np.multiply(wendland_weight_matrix_AB, gamma_at_knots)**(alpha),
+#                         axis = 1)**(1/alpha)
+# R_matrix_AB    = wendland_weight_matrix_AB @ np.exp(R_log_mean) # shape (k, Nt)
+# sigsq_vec      = np.repeat(1.0, 2)
+# nu             = 0.5
+# K_AB           = ns_cov(range_vec = range_vec_AB,
+#                         sigsq_vec = sigsq_vec,
+#                         coords    = sites_AB,
+#                         kappa     = nu, cov_model = "matern")
+# cholesky_U_AB  = scipy.linalg.cholesky(K_AB, lower = False)
 
-# Draw a lot of bivariate Z --> X
-np.random.seed(417)
-n_draw  = 10000
-Z_bivar = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
-for i in range(Nt):
-    Z_bivar[:,:,i] = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_AB, size = n_draw)
-W_bivar  = norm_to_Pareto(Z_bivar)
-X_bivar  = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
-for i in range(n_draw):
-    X_bivar[i,:,:] = (R_matrix_AB.T ** phi_vec_AB).T * W_bivar[i,:,:]
+# # Draw a lot of bivariate Z --> X
+# np.random.seed(417)
+# n_draw  = 10000
+# Z_bivar = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
+# for i in range(Nt):
+#     Z_bivar[:,:,i] = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_AB, size = n_draw)
+# W_bivar  = norm_to_Pareto(Z_bivar)
+# X_bivar  = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
+# for i in range(n_draw):
+#     X_bivar[i,:,:] = (R_matrix_AB.T ** phi_vec_AB).T * W_bivar[i,:,:]
 
-# calculate chi
-#     Calculate F(X) is costly, just calculate threshold once and use threshold
+# # calculate chi
+# #     Calculate F(X) is costly, just calculate threshold once and use threshold
+# u = 0.95
+# u_AB = qRW(u, phi_vec_AB, gamma_vec_AB)
+
+# # using theoretical denominator
+# # chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / (1-u)
+# # using empirical denominator
+# chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / np.mean(X_bivar[:,1,:] > u_AB[1])
+# print('chi:',chi)
+
+# function to calculate chi for a knot_chi
+def calc_chi(args):
+    point_A, u, h = args
+    point_B = random_point_at_dist(point_A, h)
+    sites_AB = np.row_stack([point_A, point_B])
+    gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
+    for site_id in np.arange(2):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+        gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
+    wendland_weight_matrix_AB = np.full(shape = (2,k), fill_value = np.nan)
+    for site_id in np.arange(2):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy)
+        # influence coming from each of the knots
+        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+        wendland_weight_matrix_AB[site_id, :] = weight_from_knots
+
+    # Need: R(s), phi(s), rho(s) --> K
+    phi_vec_AB     = gaussian_weight_matrix_AB @ phi_mean
+    range_vec_AB   = gaussian_weight_matrix_AB @ range_mean
+    gamma_at_knots = np.repeat(0.5, k)
+    alpha          = 0.5
+    gamma_vec_AB   = np.sum(np.multiply(wendland_weight_matrix_AB, gamma_at_knots)**(alpha),
+                            axis = 1)**(1/alpha)
+    R_matrix_AB    = wendland_weight_matrix_AB @ np.exp(R_log_mean) # shape (k, Nt)
+    sigsq_vec      = np.repeat(1.0, 2)
+    nu             = 0.5
+    K_AB           = ns_cov(range_vec = range_vec_AB,
+                            sigsq_vec = sigsq_vec,
+                            coords    = sites_AB,
+                            kappa     = nu, cov_model = "matern")
+    # cholesky_U_AB  = scipy.linalg.cholesky(K_AB, lower = False)
+
+    # Draw a lot of bivariate Z --> X
+    n_draw  = 10000
+    Z_bivar = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
+    for i in range(Nt):
+        Z_bivar[:,:,i] = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_AB, size = n_draw)
+    W_bivar  = norm_to_Pareto(Z_bivar)
+    X_bivar  = np.full(shape = (n_draw, 2, Nt), fill_value = np.nan)
+    for i in range(n_draw):
+        X_bivar[i,:,:] = (R_matrix_AB.T ** phi_vec_AB).T * W_bivar[i,:,:]
+
+    # calculate chi
+    #     Calculate F(X) is costly, just calculate threshold once and use threshold
+    u = 0.95
+    u_AB = qRW(u, phi_vec_AB, gamma_vec_AB)
+
+    # using theoretical denominator
+    # chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / (1-u)
+    # using empirical denominator
+    chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / np.mean(X_bivar[:,1,:] > u_AB[1])
+    return chi
+
+# Parallel computation for chi at a threshold probability u and a distance h
 u = 0.95
-u_AB = qRW(u, phi_vec_AB, gamma_vec_AB)
-chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], 
-                             X_bivar[:,1,:] > u_AB[1])) / (1-u)
+h = 75 # km
+np.random.seed(417)
+args_list = []
+for i in range(knots_xy_chi.shape[0]):
+    args = (knots_xy_chi[i], u, h)
+    args_list.append(args)
+with multiprocessing.Pool(processes=30) as pool:
+    results = pool.map(calc_chi, args_list)
 
-# shall be parallelize(?) -- yes parallelize the calculation of chi for each knot_chi
+chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+for i in range(knots_xy_chi.shape[0]):
+    chi_mat2[-1 - i//len(x_pos_chi), i%len(x_pos_chi)] = results[i]
 
+# Make a heatplot of chi
+fig, ax = plt.subplots()
+fig.set_size_inches(6,8)
+ax.set_aspect('equal', 'box')
+state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+heatmap = ax.imshow(chi_mat2, cmap ='bwr', interpolation='nearest', 
+                    vmin = 0, vmax = 1,
+                    extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                              min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
+# ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+fig.colorbar(heatmap)
+plt.xlim([-105,-90])
+plt.ylim([30,50])
+plt.title(rf'empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
+plt.savefig('empirical_chi_u={}_h={}.pdf'.format(u,h))
+plt.show()
+plt.close()
 
 # %% Diagnostics and Model selection
 
