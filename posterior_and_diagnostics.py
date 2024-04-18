@@ -750,7 +750,7 @@ def calc_chi(args):
     chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / np.mean(X_bivar[:,1,:] > u_AB[1])
     return chi
 
-# Parallel computation for chi at a threshold probability u and a distance h
+# Parallelly compute chi at a threshold probability u and a distance h
 u = 0.95
 h = 75 # km
 np.random.seed(417)
@@ -783,6 +783,55 @@ plt.title(rf'empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
 plt.savefig('empirical_chi_u={}_h={}.pdf'.format(u,h))
 plt.show()
 plt.close()
+
+# Parallel compute chi across several values of threshold probability u = [0.9, 0.95, 0.99]
+np.random.seed(417)
+for h in [75, 150, 225]:
+    
+    # Define the colors for the colormap (white to red)
+    colors = ["#ffffff", "#ff0000"]
+    min_chi = 0.0
+    max_chi = 1.0
+
+    # Create a LinearSegmentedColormap
+    n_bins = 30  # Number of discrete bins
+    n_ticks = 10
+    cmap_name = "white_to_red"
+    colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+    ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+
+    fig, axes = plt.subplots(1,3)
+    fig.set_size_inches(10,6)
+    for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+        args_list = []
+        for i in range(knots_xy_chi.shape[0]):
+            args = (knots_xy_chi[i], u, h)
+            args_list.append(args)
+        with multiprocessing.Pool(processes=30) as pool:
+            results = pool.map(calc_chi, args_list)
+        
+        chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+        for i in range(knots_xy_chi.shape[0]):
+            chi_mat2[-1 - i//len(x_pos_chi), i%len(x_pos_chi)] = results[i]
+
+        ax = axes[ax_id]
+        ax.set_aspect('equal', 'box')
+        state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+        heatmap = ax.imshow(chi_mat2, cmap = colormap, interpolation = 'nearest',
+                            vmin = 0.0, vmax = 1.0,
+                            extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                    min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
+        # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+        ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+        ax.set_xlim(-101,-93)
+        ax.set_ylim(32.5, 45)
+        ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km')
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.2, 0.03, 0.6])
+    fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+    plt.savefig('model_empirical_chi_h={}.pdf'.format(h))
+    plt.show()
+    plt.close()
 
 # %% Diagnostics and Model selection
 
