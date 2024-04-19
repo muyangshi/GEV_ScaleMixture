@@ -135,13 +135,13 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
 # N_outer_grid = 16
 # burnin = 5000
 
-folder = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
-name   = 'k25_r2_fixGEV'
-fixGEV = True
-radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-bandwidth = 2 # range for the gaussian kernel
-N_outer_grid = 16
-burnin = 6000
+# folder = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
+# name   = 'k25_r2_fixGEV'
+# fixGEV = True
+# radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+# bandwidth = 2 # range for the gaussian kernel
+# N_outer_grid = 16
+# burnin = 6000
 
 # folder = './data_alpine/20240416_copy/20240406_realdata_t75_s590_k25_r4/'
 # name = 'k25_r4'
@@ -151,13 +151,13 @@ burnin = 6000
 # N_outer_grid = 16
 # burnin = 5000
 
-# folder = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
-# name = 'k25_r2'
-# fixGEV = False
-# radius = 2
-# bandwidth = 2
-# N_outer_grid = 16
-# burnin = 5000
+folder = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
+name = 'k25_r2'
+fixGEV = False
+radius = 2
+bandwidth = 2
+N_outer_grid = 16
+burnin = 6000
 
 # folder       = './data_alpine/20240416_copy/20240410_realdata_t75_s590_k25_efr2/'
 # name         = 'k25_efr2'
@@ -171,7 +171,7 @@ burnin = 6000
 # load traceplots
 
 phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
-R_trace_log               = np.load(folder + 'R_trace_log.npy')
+R_trace_log               = np.load(folder + 'R_trace_log.npy') # shape [niters, k, Nt]
 range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
 k               = R_trace_log.shape[1]
 Nt              = R_trace_log.shape[2]
@@ -584,7 +584,7 @@ fig, ax = plt.subplots()
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                     vmin = 0, vmax = 4, 
-                    cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.invert_yaxis()
 fig.colorbar(heatmap)
 plt.xlim([-105,-90])
@@ -727,6 +727,8 @@ def calc_chi(args):
     alpha          = 0.5
     gamma_vec_AB   = np.sum(np.multiply(wendland_weight_matrix_AB, gamma_at_knots)**(alpha),
                             axis = 1)**(1/alpha)
+    if any(np.isnan(gamma_vec_AB)):
+        print(wendland_weight_matrix_AB)
     sigsq_vec      = np.repeat(1.0, 2)
     nu             = 0.5
     K_AB           = ns_cov(range_vec = range_vec_AB,
@@ -753,22 +755,6 @@ def calc_chi(args):
     chi = np.mean(np.logical_and(X_bivar[:,0] > u_AB[0], X_bivar[:,1] > u_AB[1])) / np.mean(X_bivar[:,1] > u_AB[1])
     return chi
 
-# Parallelly compute chi at a threshold probability u and a distance h
-u = 0.95
-h = 75 # km
-np.random.seed(417)
-args_list = []
-for i in range(knots_xy_chi.shape[0]):
-    args = (knots_xy_chi[i], u, h)
-    args_list.append(args)
-with multiprocessing.Pool(processes=30) as pool:
-    results = pool.map(calc_chi, args_list)
-
-chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
-for i in range(knots_xy_chi.shape[0]):
-    chi_mat2[-1 - i//len(x_pos_chi), i%len(x_pos_chi)] = results[i]
-
-# Make a heatplot of chi
 # Create a LinearSegmentedColormap from white to red
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
@@ -779,23 +765,40 @@ cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
 ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
 
-fig, ax = plt.subplots()
-fig.set_size_inches(6,8)
-ax.set_aspect('equal', 'box')
-state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-heatmap = ax.imshow(chi_mat2, cmap =colormap, interpolation='nearest', 
-                    vmin = 0, vmax = 1,
-                    extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
-                              min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
-# ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
-fig.colorbar(heatmap)
-plt.xlim([-105,-90])
-plt.ylim([30,50])
-plt.title(rf'model empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
-plt.savefig('model_empirical_chi_u={}_h={}.pdf'.format(u,h))
-plt.show()
-plt.close()
+
+# Make a heatplot of chi single u h
+
+# u = 0.95
+# h = 75 # km
+# np.random.seed(417)
+# args_list = []
+# for i in range(knots_xy_chi.shape[0]):
+#     args = (knots_xy_chi[i], u, h)
+#     args_list.append(args)
+# with multiprocessing.Pool(processes=30) as pool:
+#     results = pool.map(calc_chi, args_list)
+
+# chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+# for i in range(knots_xy_chi.shape[0]):
+#     chi_mat2[-1 - i//len(x_pos_chi), i%len(x_pos_chi)] = results[i]
+
+# fig, ax = plt.subplots()
+# fig.set_size_inches(6,8)
+# ax.set_aspect('equal', 'box')
+# state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+# heatmap = ax.imshow(chi_mat2, cmap =colormap, interpolation='nearest', 
+#                     vmin = 0, vmax = 1,
+#                     extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+#                               min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
+# # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+# ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+# fig.colorbar(heatmap)
+# plt.xlim([-105,-90])
+# plt.ylim([30,50])
+# plt.title(rf'model empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
+# plt.savefig('model_empirical_chi_u={}_h={}.pdf'.format(u,h))
+# plt.show()
+# plt.close()
 
 # Parallel compute chi across several values of threshold probability u = [0.9, 0.95, 0.99]
 np.random.seed(417)
@@ -840,8 +843,8 @@ for h in [75, 150, 225]:
 #####               Diagnostics             #####
 #################################################
 
-# %% Testing sample
-# Testing sample
+# %% Testing sample and splines
+# Testing sample and splines
 
 Beta_mu0_initSmooth      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
 Beta_mu1_initSmooth      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
@@ -1025,101 +1028,51 @@ for _ in range(10):
 # %% loglikelihood at Testing sample ----------------------------------------------------------------------------------
 # loglikelihood at Testing sample
 
+
+# Calculate step 1-4 with a single core and no need to parallelize
+# Calculate step 5 parallel, using multiprocessing (so one node)
+# We need:
+#     - 1 Extract the non NA Y at the testing sites
+#     - 2 Marginal Parameters. Get the Loc, Scale, Shape at the testing sites:
+#             This can be done by directly applying the posterior mean estimates, because
+#             the thin-plate basis expansion is linear
+#     - 3 Copula Parameters, Get the phi_vec, range_vec, gamma_vec, R_vec at the testing sites:
+#             Using posterior mean, because basis expansion is linear
+#     - 4 Using the range_vec, calculate the cholesky_U at the testing sites
+#     - 5 X should be calculated from the Loc, Scale, and Shape at the testing sites
+#         Note that in 5 the marginal transformation isn't linear, so take a sample of the Loc, Scale, Shape
+#         and then we have a sample of the X
+#         and then we make a sample of the ll using those X
+# Finally, 
+#     - 6 apply the marg_transform_data over each time replicate and sum
+# If parallelize, can set the contribution of np.nan Y to be 0
+
 """
-Calculate step 1-4 with a single core and no need to parallelize
-Calculate step 5 parallel, using multiprocessing (so one node)
-We need:
+April 19, Ben: ll calculation is also non-linear, so really, should take per iteration parameters
     - 1 Extract the non NA Y at the testing sites
-    - 2 Marginal Parameters. Get the Loc, Scale, Shape at the testing sites:
-            This can be done by directly applying the posterior mean estimates, because
-            the thin-plate basis expansion is linear
-    - 3 Copula Parameters, Get the phi_vec, range_vec, gamma_vec, R_vec at the testing sites:
-            Using posterior mean, because basis expansion is linear
-    - 4 Using the range_vec, calculate the cholesky_U at the testing sites
-    - 5 X should be calculated from the Loc, Scale, and Shape at the testing sites
-        Note that in 5 the marginal transformation isn't linear, so take a sample of the Loc, Scale, Shape
-        and then we have a sample of the X
-        and then we make a sample of the ll using those X
-Finally, 
-    - 6 apply the marg_transform_data over each time replicate and sum
-If parallelize, can set the contribution of np.nan Y to be 0
+    - 2 Marginal Parameters: 
+            initSmooth if fixGEV
+            per iteration if not fixGEV
+    - 3 Copula Parameters per iteration
+    - 4 Calculate X_star using the per iteration transformation -- parallelize this
+    - 5 Likelihood using the per iteration parameter values -- parallelize this
 """
 
 # marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi_vec, gamma_vec, R_vec, cholesky_U)
 
-# 1. Y_99
+# 1. Y_99 -------------------------------------------------------------------------------------------------------------
+
 Y_99_noNA = Y_99[~np.isnan(Y_99)]
 
-# 2. Marginal Parameters
+# 2. Marginal Parameters ----------------------------------------------------------------------------------------------
+
 mu0_initSmooth = (C_mu0.T @ Beta_mu0_initSmooth).T
 mu1_initSmooth = (C_mu1.T @ Beta_mu1_initSmooth).T
 mu_initSmooth  = mu0_initSmooth + mu1_initSmooth * Time
 sigma_initSmooth = np.exp((C_logsigma.T @ Beta_logsigma_initSmooth).T)
 ksi_initSmooth = (C_ksi.T @ Beta_ksi_initSmooth).T
-if not fixGEV:
-    mu0_matrix_test = (C_mu0.T @ Beta_mu0_mean.T).T
-    mu1_matrix_test = (C_mu1.T @ Beta_mu1_mean.T).T
-    mu_matrix_test  = mu0_matrix_test + mu1_matrix_test * Time
-    sigma_matrix_test = np.exp((C_logsigma.T @ Beta_logsigma_mean.T).T)
-    ksi_matrix_test = (C_ksi.T @ Beta_ksi_mean.T).T
 
-# 3. Copula Parameters
-gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
-for site_id in np.arange(test_Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix_test[site_id, :] = weight_from_knots
-
-wendland_weight_matrix_test = np.full(shape = (test_Ns,k), fill_value = np.nan)
-for site_id in np.arange(test_Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    wendland_weight_matrix_test[site_id, :] = weight_from_knots
-
-phi_vec_test   = gaussian_weight_matrix_test @ phi_mean
-range_vec_test = gaussian_weight_matrix_test @ range_mean
-gamma_at_knots = np.repeat(0.5, k)
-alpha          = 0.5
-gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
-                        axis = 1)**(1/alpha)
-R_matrix_test     = wendland_weight_matrix_test @ np.exp(R_log_mean) # shape (k, Nt)
-
-# 4. K or Cholesky_U
-sigsq_vec = np.repeat(1.0, test_Ns)
-nu        = 0.5
-K_test    = ns_cov(range_vec = range_vec_test,
-                   sigsq_vec = sigsq_vec,
-                   coords    = test_sites_xy,
-                   kappa     = nu, cov_model = "matern")
-cholesky_U_test = scipy.linalg.cholesky(K_test, lower = False)
-
-# 5. Calculate X per iteration -- could really use parallelization here...
-print('link function g:', norm_pareto)
-
-# Calculate only one X using posterior mean
-# X_99 = np.full(shape = (test_Ns, 75), fill_value = np.nan)
-# for t in range(Nt): # single core takes ~ 45 seconds
-#     noNA = ~np.isnan(Y_99[:,t])
-#     X_99[noNA,t] = qRW(pgev(Y_99[noNA,t], mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t]), 
-#                     phi_vec_test[noNA], gamma_vec_test[noNA])
-
-
-# making the per iterations mu, sigma, ksi, and phi
-n_iter      = phi_knots_trace.shape[0]
-idx_thin100 = np.arange(n_iter)[0::100] # thin by 100
-n_thin100   = len(idx_thin100)
-idx_thin100 = np.arange(n_thin100)
-
-phi_knots_trace_thin100 = phi_knots_trace[0:iter:100,:]
-phi_vec_test_thin100    = (gaussian_weight_matrix_test @ phi_knots_trace_thin100.T).T
-
-if not fixGEV:
+if not fixGEV: # these are the per iteration marginal parameters
     Beta_mu0_trace_thin100      = Beta_mu0_trace[0:iter:100,:]
     Beta_mu1_trace_thin100      = Beta_mu1_trace[0:iter:100,:]
     Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:iter:100,:]
@@ -1131,16 +1084,81 @@ if not fixGEV:
     sigma_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
     ksi_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
 
-# ! Can use the python parallel module!
-# X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
-# for i in range(n_thin100): # single core calculation takes total ~ 30 minutes
-#     for t in range(Nt):
-#         noNA = ~np.isnan(Y_99[:,t])
-#         X_99_thin100[i,noNA,t] = qRW(pgev(Y_99[noNA,t], mu_matrix_thin100[i,noNA,t],sigma_matrix_thin100[i,noNA,t],ksi_matrix_thin100[i,noNA,t]),
-#                                   phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA])
+# if not fixGEV: # these are the posterior mean estimates, which we shouldn't use
+#     mu0_matrix_test = (C_mu0.T @ Beta_mu0_mean.T).T
+#     mu1_matrix_test = (C_mu1.T @ Beta_mu1_mean.T).T
+#     mu_matrix_test  = mu0_matrix_test + mu1_matrix_test * Time
+#     sigma_matrix_test = np.exp((C_logsigma.T @ Beta_logsigma_mean.T).T)
+#     ksi_matrix_test = (C_ksi.T @ Beta_ksi_mean.T).T
 
-import multiprocessing
-# print(multiprocessing.cpu_count())
+# 3. Copula Parameters - should also be per iterations ----------------------------------------------------------------
+
+# weight matrices at the testing sites
+gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
+for site_id in np.arange(test_Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+                                    XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    gaussian_weight_matrix_test[site_id, :] = weight_from_knots
+wendland_weight_matrix_test = np.full(shape = (test_Ns,k), fill_value = np.nan)
+for site_id in np.arange(test_Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+                                    XB = knots_xy)
+    # influence coming from each of the knots
+    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
+    wendland_weight_matrix_test[site_id, :] = weight_from_knots
+
+# constants
+gamma_at_knots = np.repeat(0.5, k)
+alpha          = 0.5
+gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
+                        axis = 1)**(1/alpha)
+sigsq_vec      = np.repeat(1.0, test_Ns)
+nu             = 0.5
+
+# making the per iterations parameters (chains thinned by 100) at testing sites
+#   - mu, sigma, ksi, and 
+#   - phi, range, R
+n_iter      = phi_knots_trace.shape[0]
+idx_thin100 = np.arange(n_iter)[0::100] # thin by 100
+n_thin100   = len(idx_thin100)
+idx_thin100 = np.arange(n_thin100)
+
+phi_knots_trace_thin100 = phi_knots_trace[0:n_iter:100,:]
+phi_vec_test_thin100    = (gaussian_weight_matrix_test @ phi_knots_trace_thin100.T).T
+
+range_knots_trace_thin100 = range_knots_trace[0:n_iter:100,:]
+range_vec_test_thin100    = (gaussian_weight_matrix_test @ range_knots_trace_thin100.T).T
+
+R_trace_log_thin100 = R_trace_log[0:n_iter:100,:,:]
+R_vec_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
+for t in range(Nt):
+    R_vec_test_thin100[:,:,t]  = (wendland_weight_matrix_test @ np.exp(R_trace_log_thin100[:,:,t]).T).T
+
+# # Posterior mean of these parameters at the testing sites
+# phi_vec_test   = gaussian_weight_matrix_test @ phi_mean
+# range_vec_test = gaussian_weight_matrix_test @ range_mean
+# gamma_at_knots = np.repeat(0.5, k)
+# alpha          = 0.5
+# gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
+#                         axis = 1)**(1/alpha)
+# R_matrix_test     = wendland_weight_matrix_test @ np.exp(R_log_mean) # shape (k, Nt)
+
+# # 4. K or Cholesky_U
+# sigsq_vec = np.repeat(1.0, test_Ns)
+# nu        = 0.5
+# K_test    = ns_cov(range_vec = range_vec_test,
+#                    sigsq_vec = sigsq_vec,
+#                    coords    = test_sites_xy,
+#                    kappa     = nu, cov_model = "matern")
+# cholesky_U_test = scipy.linalg.cholesky(K_test, lower = False)
+
+# 4. Calculate X per iteration -- could really use parallelization here... --------------------------------------------
+print('link function g:', norm_pareto)
+
 def qRW_pgev(args):
     Y     = args[:,0]
     Loc   = args[:,1]
@@ -1178,63 +1196,63 @@ for i in range(n_thin100):
         noNA = ~np.isnan(Y_99[:,t])
         X_99_thin100[i,noNA,t] = results[t]
 
-
-
-# 6. loglikelihood -- calculation can also be parallelized!
-
-# 1.7 seconds for each likelihood evalutaion (on 99 sites and 75 times)
-# ll_test = np.full((test_Ns, 75), fill_value = 0.0)
-# for t in range(Nt):
-#     noNA            = ~np.isnan(Y_99[:,t])
-#     K_subset        = K_test[noNA,:][:,noNA]
-#     cholesky_U      = scipy.linalg.cholesky(K_subset, lower = False)
-#     ll_test[noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99[noNA,t],
-#                                                                  mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-#                                                                  phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-# np.sum(ll_test)
-
-# ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
-# for i in range(n_thin100):
-#     print(i)
-#     for t in range(Nt):
-#         noNA              = ~np.isnan(Y_99[:,t])
-#         K_subset          = K_test[noNA,:][:,noNA]
-#         cholesky_U        = scipy.linalg.cholesky(K_subset, lower = False)
-#         if not fixGEV:
-#             ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
-#                                                                         mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-#                                                                         phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-#         if fixGEV:
-#             ll_test_thin100[i,noNA,t] = marg_transform_data_mixture_likelihood_1t(Y_99[noNA,t], X_99_thin100[i,noNA,t],
-#                                                                         mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-#                                                                         phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+# 5. loglikelihood -- calculation can also be parallelized! -----------------------------------------------------------
 
 def ll(args):
     Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol = args
     return(marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol))
 
+# Using per iteration for the parameters
 ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
 for i in range(n_thin100):
     print('ll:', i)
     args_list = []
     for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
         noNA       = ~np.isnan(Y_99[:,t])
+        K_test     = ns_cov(range_vec = range_vec_test_thin100[i,:],
+                            sigsq_vec = sigsq_vec,
+                            coords    = test_sites_xy,
+                            kappa     = nu, cov_model = "matern")
         K_subset   = K_test[noNA,:][:,noNA]
         cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
         if not fixGEV:
             args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
-                    mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-                    phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+                    mu_matrix_thin100[i, noNA, t], sigma_matrix_thin100[i,noNA,t], ksi_matrix_thin100[i,noNA,t],
+                    phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
         if fixGEV:
             args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
                     mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-                    phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+                    phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
         args_list.append(args)
     with multiprocessing.Pool(processes=30) as pool:
         results = pool.map(ll, args_list)
     for t in range(Nt):
         noNA = ~np.isnan(Y_99[:,t])
         ll_test_thin100[i,noNA,t] = results[t]
+
+# # Using the posterior mean for the parameters
+# ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, 75), fill_value = 0.0)
+# for i in range(n_thin100):
+#     print('ll:', i)
+#     args_list = []
+#     for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
+#         noNA       = ~np.isnan(Y_99[:,t])
+#         K_subset   = K_test[noNA,:][:,noNA]
+#         cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
+#         if not fixGEV:
+#             args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
+#                     mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
+#                     phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+#         if fixGEV:
+#             args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
+#                     mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
+#                     phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
+#         args_list.append(args)
+#     with multiprocessing.Pool(processes=30) as pool:
+#         results = pool.map(ll, args_list)
+#     for t in range(Nt):
+#         noNA = ~np.isnan(Y_99[:,t])
+#         ll_test_thin100[i,noNA,t] = results[t]
 
 np.save('ll_'+name, ll_test_thin100)
 
@@ -1248,16 +1266,44 @@ plt.close()
 
 # %%
 # Draw boxplots of loglikelihoods between different runs --------------------------------------------------------------
+try:
+    ll_k25_r2 = np.sum(np.load('results/CONVERGED/k25_r2/ll_k25_r2.npy'), axis = (1,2))
+except:
+    ll_k25_r2 = []
+try:
+    ll_k25_r4 = np.sum(np.load('results/CONVERGED/k25_r4/ll_k25_r4.npy'), axis = (1,2))
+except:
+    ll_k25_r4 = []
+try:
+    ll_k25_efr2 = np.sum(np.load('results/CONVERGED/k25_efr2/ll_k25_efr2.npy'), axis = (1,2))
+except:
+    ll_k25_efr2 = []
+try: 
+    ll_k25_r4_fixGEV = np.sum(np.load('results/CONVERGED/k25_r4_fixGEV/ll_k25_r4_fixGEV.npy'), axis = (1,2))
+except:
+    ll_k25_r4_fixGEV = []
+try:
+    ll_k25_r2_fixGEV = np.sum(np.load('results/CONVERGED/k25_r2_fixGEV/ll_k25_r2_fixGEV.npy'), axis = (1,2))
+except:
+    ll_k25_r2_fixGEV = []
+try:
+    ll_k25_efr2_fixksi = np.sum(np.load('results/CONVERGED/k25_efr2_fixksi/ll_k25_efr2_fixksi.npy'), axis = (1,2))
+except:
+    ll_k25_efr2_fixksi = []
 
-ll_k25_r2   = np.load('ll_k25_r2.npy')
-ll_k25_r4   = np.load('ll_k25_r4.npy')
-ll_k25_efr2 = np.load('ll_k25_efr2.npy')
 
-plt.boxplot([ll_k25_r2, ll_k25_r4, ll_k25_efr2])
-plt.xticks([1,2,3],['ll_k25_r2', 'll_k25_r4', 'll_k25_efr2'])
-plt.title('Boxplots of Log-Likelihoods')
-plt.ylabel('ll at (observed) test sites')
-plt.savefig('ll_boxplot.pdf')
+ll_list = [ll_k25_r2,ll_k25_r4,ll_k25_efr2,ll_k25_r4_fixGEV,ll_k25_r2_fixGEV,ll_k25_efr2_fixksi]
+
+fig, ax = plt.subplots()
+ax.boxplot(ll_list)
+
+ax.set_xticklabels(['ll_k25_r2', 'll_k25_r4', 'll_k25_efr2','ll_k25_r4_fixGEV', 'll_k25_r2_fixGEV', r'll_k25_efr2_fix$\xi$'],
+                   rotation = 45)
+ax.set_ylabel('loglike at (observed) test sites')
+plt.title('Boxplots of loglikelihood @ test sites')
+plt.savefig('ll_boxplot_all.pdf')
 plt.show()
 plt.close()
 
+
+# %%
