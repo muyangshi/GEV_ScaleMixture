@@ -616,7 +616,7 @@ if __name__ == "__main__":
     # knots_y = knots_xy[:,1]    
 
     # isometric knot grid
-    N_outer_grid = 16
+    N_outer_grid = 25
     h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
     v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
     x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
