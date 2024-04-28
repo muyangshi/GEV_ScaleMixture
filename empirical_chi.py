@@ -270,14 +270,15 @@ e_abs = 0.2
 
 # Define the colors for the colormap (white to red)
 colors = ["#ffffff", "#ff0000"]
-min_chi = 0
-max_chi = 0.5
+min_chi = 0.0
+max_chi = 1.0
 
 # Create a LinearSegmentedColormap
-n_bins = 12  # Number of discrete bins
+n_colors = 84 # number of color patches
+n_bins = 21  # Number of ticks
 cmap_name = "white_to_red"
-colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-ticks = np.linspace(min_chi, max_chi, n_bins+1).round(3)
+colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_colors)
+ticks = np.linspace(min_chi, max_chi, n_bins).round(3)
 
 for h in [75, 150, 225]:
 
@@ -342,7 +343,7 @@ for h in [75, 150, 225]:
         ax = axes[ax_id]
         ax.set_aspect('equal', 'box')
         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-        heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0, vmax = 0.5,
+        heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0.0, vmax = 1.0,
                             interpolation='nearest', 
                             extent = [min(x_pos - rect_width/8), max(x_pos + rect_width/8), 
                                     min(y_pos - rect_height/8), max(y_pos+rect_height/8)])
