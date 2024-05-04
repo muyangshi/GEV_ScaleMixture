@@ -81,6 +81,9 @@ Added plotting for weights
 April 11, 2024
 Did a subset data analysis on fozzy using standard Pareto with effective range 2 gaussian kernel,
     phi still underestimates
+
+May 4, 2024
+Separate knots for phi and rho (de-couple them)
 """
 if __name__ == "__main__":
     # %% for reading seed from bash
@@ -638,6 +641,28 @@ if __name__ == "__main__":
     knots_y                  = knots_xy[:,1]
     k                        = len(knots_id_in_domain)
 
+    # isometric grid for rho (de-coupled from phi)
+    N_outer_grid_rho = 9
+    h_dist_between_knots_rho     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_rho))-1)
+    v_dist_between_knots_rho     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_rho))-1)
+    x_pos_rho                    = np.linspace(minX + h_dist_between_knots_rho/2, maxX + h_dist_between_knots_rho/2, 
+                                           num = int(2*np.sqrt(N_outer_grid_rho)))
+    y_pos_rho                    = np.linspace(minY + v_dist_between_knots_rho/2, maxY + v_dist_between_knots_rho/2, 
+                                           num = int(2*np.sqrt(N_outer_grid_rho)))
+    x_outer_pos_rho              = x_pos_rho[0::2]
+    x_inner_pos_rho              = x_pos_rho[1::2]
+    y_outer_pos_rho              = y_pos_rho[0::2]
+    y_inner_pos_rho              = y_pos_rho[1::2]
+    X_outer_pos_rho, Y_outer_pos_rho = np.meshgrid(x_outer_pos_rho, y_outer_pos_rho)
+    X_inner_pos_rho, Y_inner_pos_rho = np.meshgrid(x_inner_pos_rho, y_inner_pos_rho)
+    knots_outer_xy_rho           = np.vstack([X_outer_pos_rho.ravel(), Y_outer_pos_rho.ravel()]).T
+    knots_inner_xy_rho           = np.vstack([X_inner_pos_rho.ravel(), Y_inner_pos_rho.ravel()]).T
+    knots_xy_rho                 = np.vstack((knots_outer_xy_rho, knots_inner_xy_rho))
+    knots_id_in_domain_rho       = [row for row in range(len(knots_xy_rho)) if (minX < knots_xy_rho[row,0] < maxX and minY < knots_xy_rho[row,1] < maxY)]
+    knots_xy_rho                 = knots_xy_rho[knots_id_in_domain_rho]
+    knots_x_rho                  = knots_xy_rho[:,0]
+    knots_y_rho                  = knots_xy_rho[:,1]
+    k_rho                        = len(knots_id_in_domain_rho)
 
     # ----------------------------------------------------------------------------------------------------------------
     # Copula Splines
@@ -648,6 +673,8 @@ if __name__ == "__main__":
     effective_range = radius # effective range for gaussian kernel: exp(-3) = 0.05
     bandwidth = effective_range**2/6
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
+
+    bandwidth_rho = 4
 
     # Generate the weight matrices
     # Weight matrix generated using Gaussian Smoothing Kernel
@@ -669,6 +696,16 @@ if __name__ == "__main__":
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix[site_id, :] = weight_from_knots
+    
+    # Gaussian weight matrix specific to the rho/range surface
+    gaussian_weight_matrix_rho = np.full(shape = (Ns, k_rho), fill_value = np.nan)
+    for site_id in np.arange(Ns):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy_rho)
+        # influence coming from each of the knots
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+        gaussian_weight_matrix_rho[site_id, :] = weight_from_knots
     
     # # constant weight matrix
     # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
@@ -797,16 +834,16 @@ if __name__ == "__main__":
 
         # Estimate range: using sites within the radius of each knot
         range_at_knots = np.array([])
-        distance_matrix = np.full(shape=(Ns, k), fill_value=np.nan)
+        distance_matrix = np.full(shape=(Ns, k_rho), fill_value=np.nan)
         # distance from knots
         for site_id in np.arange(Ns):
-            d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), XB = knots_xy)
+            d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), XB = knots_xy_rho)
             distance_matrix[site_id,:] = d_from_knots
         # each knot's "own" sites
         sites_within_knots = {}
-        for knot_id in np.arange(k):
+        for knot_id in np.arange(k_rho):
             knot_name = 'knot_' + str(knot_id)
-            sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= radius_from_knots[knot_id])[0]
+            sites_within_knots[knot_name] = np.where(distance_matrix[:,knot_id] <= bandwidth_rho)[0]
 
         # empirical variogram estimates
         for key in sites_within_knots.keys():
@@ -1711,7 +1748,7 @@ if __name__ == "__main__":
 
     ## ---- range_vec (length_scale) ---------------------------------------------------------------------------
     range_knots_current = comm.bcast(range_knots_init, root = 0)
-    range_vec_current   = gaussian_weight_matrix @ range_knots_current
+    range_vec_current   = gaussian_weight_matrix_rho @ range_knots_current
     K_current           = ns_cov(range_vec = range_vec_current,
                                  sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
     cholesky_matrix_current = scipy.linalg.cholesky(K_current, lower = False)
@@ -2237,7 +2274,7 @@ if __name__ == "__main__":
             else:
                 range_knots_proposal = None
             range_knots_proposal     = comm.bcast(range_knots_proposal, root = 0)
-            range_vec_proposal       = gaussian_weight_matrix @ range_knots_proposal
+            range_vec_proposal       = gaussian_weight_matrix_rho @ range_knots_proposal
 
             # Conditional log likelihood at proposal
             if any(range <= 0 for range in range_knots_proposal):
