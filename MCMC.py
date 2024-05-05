@@ -1101,6 +1101,15 @@ if __name__ == "__main__":
             # influence coming from each of the knots
             weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
             gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
+        
+        gaussian_weight_matrix_for_plot_rho = np.full(shape = (plotgrid_res_xy, k_rho), fill_value = np.nan)
+        for site_id in np.arange(plotgrid_res_xy):
+            # Compute distance between each pair of the two collections of inputs
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                                        XB = knots_xy_rho)
+            # influence coming from each of the knots
+            weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+            gaussian_weight_matrix_for_plot_rho[site_id, :] = weight_from_knots
 
         wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k), fill_value = np.nan)
         for site_id in np.arange(plotgrid_res_xy):
@@ -1256,7 +1265,7 @@ if __name__ == "__main__":
 
         # 4. Plot range surface
         # heatplot of range surface
-        range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+        range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_at_knots
         graph, ax = plt.subplots()
         heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
                             cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
@@ -1385,8 +1394,8 @@ if __name__ == "__main__":
 
     ## range
     range_block_idx_dict = {}
-    lst = list(range(k))
-    for i in range(0, k, range_block_idx_size):
+    lst = list(range(k_rho))
+    for i in range(0, k_rho, range_block_idx_size):
         start_index = i
         end_index   = i + range_block_idx_size
         key         = 'range_block_idx_'+str(i//range_block_idx_size+1)
@@ -1632,7 +1641,7 @@ if __name__ == "__main__":
             loglik_detail_trace       = np.full(shape = (n_iters, 5), fill_value = np.nan) # detail likelihood
             R_trace_log               = np.full(shape = (n_iters, k, Nt), fill_value = np.nan) # log(R)
             phi_knots_trace           = np.full(shape = (n_iters, k), fill_value = np.nan) # phi_at_knots
-            range_knots_trace         = np.full(shape = (n_iters, k), fill_value = np.nan) # range_at_knots
+            range_knots_trace         = np.full(shape = (n_iters, k_rho), fill_value = np.nan) # range_at_knots
             Beta_mu0_trace            = np.full(shape = (n_iters, Beta_mu0_m), fill_value = np.nan) # mu0 Covariate Coefficients
             Beta_mu1_trace            = np.full(shape = (n_iters, Beta_mu1_m), fill_value = np.nan) # mu1 covariate Coefficients
             Beta_logsigma_trace       = np.full(shape = (n_iters, Beta_logsigma_m), fill_value = np.nan) # logsigma Covariate Coefficients
@@ -3117,7 +3126,7 @@ if __name__ == "__main__":
 
                 # ---- range ----
                 plt.subplots()
-                for i in range(k):
+                for i in range(k_rho):
                     plt.plot(xs_thin2, range_knots_trace_thin[:,i], label='knot ' + str(i))
                     plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], range_knots_trace_thin[:,i][-1]))
                 plt.title('traceplot for range')
