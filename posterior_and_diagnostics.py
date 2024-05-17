@@ -126,95 +126,126 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
 # %%
 # Specify which chain
 
-# folder       = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-# name         = 'k13_r4'
-# fixGEV       = False
-# radius       = 4
-# bandwidth    = 4
-# N_outer_grid = 9
-# mark         = True
-# burnin       = 5000
+# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
+# name             = 'k13_r4'
+# fixGEV           = False
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 9
+# N_outer_grid_rho = 9
+# mark             = True
+# burnin           = 5000
 
-# folder       = './data_alpine/CONVERGED/20240320_realdata_t75_s590_k13_r4_fixGEV/'
-# name         = 'k13_r4_fixGEV'
-# fixGEV       = True
-# radius       = 4
-# bandwidth    = 4
-# N_outer_grid = 9
-# mark         = True
-# burnin       = 5000
+# folder           = './data_alpine/CONVERGED/20240320_realdata_t75_s590_k13_r4_fixGEV/'
+# name             = 'k13_r4_fixGEV'
+# fixGEV           = True
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 9
+# N_outer_grid_rho = 9
+# mark             = True
+# burnin           = 5000
 
-# folder       = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
-# name         = 'k25_r2'
-# fixGEV       = False
-# radius       = 2
-# bandwidth    = 2
-# N_outer_grid = 16
-# mark         = False
-# burnin       = 6000
+# folder           = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
+# name             = 'k25_r2'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = 2
+# bandwidth_rho    = 2
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 6000
 
-# folder       = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
-# name         = 'k25_r2_fixGEV'
-# fixGEV       = True
-# radius       = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-# bandwidth    = 2 # range for the gaussian kernel
-# N_outer_grid = 16
-# mark         = False
-# burnin       = 6000
+# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
+# name             = 'k25_r2_fixGEV'
+# fixGEV           = True
+# radius           = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+# bandwidth_phi    = 2 # range for the gaussian kernel
+# bandwidth_rho    = 2
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 6000
 
-# folder       = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
-# name         = 'k25_r4_fixGEV'
-# fixGEV       = True
-# radius       = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-# bandwidth    = 4 # range for the gaussian kernel
-# N_outer_grid = 16
-# mark         = False
-# burnin       = 5000
+# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+# name             = 'k25_r4_fixGEV'
+# fixGEV           = True
+# radius           = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+# bandwidth_phi    = 4 # range for the gaussian kernel
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 5000
 
-folder       = './data_alpine/CONVERGED/20240406_realdata_t75_s590_k25_r4/'
-name         = 'k25_r4'
-fixGEV       = False
-radius       = 4
-bandwidth    = 4
-N_outer_grid = 16
-mark         = False
-burnin       = 5000
+# folder           = './data_alpine/CONVERGED/20240406_realdata_t75_s590_k25_r4/'
+# name             = 'k25_r4'
+# fixGEV           = False
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 5000
 
-# folder       = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2_fixksi/'
-# name         = 'k25_efr2_fixksi'
-# fixGEV       = False
-# radius       = 2
-# bandwidth    = radius**2/6
-# N_outer_grid = 16
-# mark         = False
-# burnin       = 5000
+# folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2_fixksi/'
+# name             = 'k25_efr2_fixksi'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = radius**2/6
+# bandwidth_rho    = radius**2/6
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 5000
 
-# folder       = './data_alpine/20240428_copy/20240410_realdata_t75_s590_k25_efr2/'
-# name         = 'k25_efr2'
-# fixGEV       = False
-# radius       = 2
-# bandwidth    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-# N_outer_grid = 16
-# mark         = False
-# burnin       = 0
+# folder           = './data_alpine/20240428_copy/20240410_realdata_t75_s590_k25_efr2/'
+# name             = 'k25_efr2'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
+# bandwidth_rho    = radius**2/6
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 0
 
-# folder       = './data_alpine/20240428_copy/20240419_realdata_t75_s590_k41_efr2/'
-# name         = 'k41_efr2'
-# fixGEV       = False
-# radius       = 2
-# bandwidth    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-# N_outer_grid = 25
-# mark         = False
-# burnin       = 0
+# folder           = './data_alpine/20240428_copy/20240419_realdata_t75_s590_k41_efr2/'
+# name             = 'k41_efr2'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
+# bandwidth_rho    = radius**2/6
+# N_outer_grid_phi = 25
+# N_outer_grid_rho = 25
+# mark             = False
+# burnin           = 0
+
+folder           = './data_alpine/20240517_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
+name             = 'phik41efr2_rhok13r4'
+fixGEV           = False
+radius           = 2
+bandwidth_phi    = radius**2/6
+bandwidth_rho    = 4
+N_outer_grid_phi = 25
+N_outer_grid_rho = 9
+mark             = False
+burnin           = 0
 
 # %% load traceplots
 # load traceplots
 
-phi_knots_trace           = np.load(folder + 'phi_knots_trace.npy')
-R_trace_log               = np.load(folder + 'R_trace_log.npy') # shape [niters, k, Nt]
-range_knots_trace         = np.load(folder + 'range_knots_trace.npy')
-k               = R_trace_log.shape[1]
-Nt              = R_trace_log.shape[2]
+phi_knots_trace   = np.load(folder + 'phi_knots_trace.npy')
+R_trace_log       = np.load(folder + 'R_trace_log.npy') # shape [niters, k, Nt]
+range_knots_trace = np.load(folder + 'range_knots_trace.npy')
+Nt                = R_trace_log.shape[2]
+k_phi             = phi_knots_trace.shape[1]
+k_rho             = range_knots_trace.shape[1]
+k_R               = R_trace_log.shape[1]
 
 if not fixGEV:
     Beta_mu0_trace            = np.load(folder + 'Beta_mu0_trace.npy')
@@ -240,9 +271,9 @@ if not fixGEV:
 phi_knots_trace   = phi_knots_trace[burnin:]
 R_trace_log       = R_trace_log[burnin:]
 range_knots_trace = range_knots_trace[burnin:]
-R_trace_log       = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k,Nt))
-phi_knots_trace   = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k))
-range_knots_trace = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k))
+R_trace_log       = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k_R,Nt))
+phi_knots_trace   = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k_phi))
+range_knots_trace = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k_rho))
 if not fixGEV:
     Beta_mu0_trace            = Beta_mu0_trace[burnin:]
     Beta_mu1_trace            = Beta_mu1_trace[burnin:]
@@ -267,7 +298,7 @@ if not fixGEV:
 
 # posterior mean
 phi_mean                 = np.mean(phi_knots_trace, axis = 0)
-R_log_mean               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
+R_log_mean               = np.full(shape=(k_R,R_trace_log.shape[2]), fill_value = np.nan)
 for t in range(R_trace_log.shape[2]):
     # R_log_mean[:,t] = np.mean(R_trace_log[:,:,t], axis = 0)
     R_log_mean[:,t] = np.log(np.mean(np.exp(R_trace_log[:,:,t]), axis = 0))
@@ -287,7 +318,7 @@ if not fixGEV:
 
 # posterior median
 phi_median                 = np.median(phi_knots_trace, axis = 0)
-R_log_median               = np.full(shape=(k,R_trace_log.shape[2]), fill_value = np.nan)
+R_log_median               = np.full(shape=(k_R,R_trace_log.shape[2]), fill_value = np.nan)
 for t in range(R_trace_log.shape[2]):
     R_log_median[:,t] = np.median(R_trace_log[:,:,t], axis = 0)
 range_median               = np.median(range_knots_trace, axis = 0)
@@ -343,72 +374,125 @@ minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 # ----------------------------------------------------------------------------------------------------------------
 # Knots
 
-# isometric knot grid - Muyang's
-h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
-v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
-x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
-                                        num = int(2*np.sqrt(N_outer_grid)))
-y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
-                                        num = int(2*np.sqrt(N_outer_grid)))
-x_outer_pos              = x_pos[0::2]
-x_inner_pos              = x_pos[1::2]
-y_outer_pos              = y_pos[0::2]
-y_inner_pos              = y_pos[1::2]
-X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-knots_xy                 = knots_xy[knots_id_in_domain]
-knots_x                  = knots_xy[:,0]
-knots_y                  = knots_xy[:,1]
-k                        = len(knots_id_in_domain)
+if not mark:
+    # isometric grid for phi (de-coupled from rho)
+    h_dist_between_knots_phi     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_phi))-1)
+    v_dist_between_knots_phi     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_phi))-1)
+    x_pos_phi                    = np.linspace(minX + h_dist_between_knots_phi/2, 
+                                                maxX + h_dist_between_knots_phi/2, 
+                                                num = int(2*np.sqrt(N_outer_grid_phi)))
+    y_pos_phi                    = np.linspace(minY + v_dist_between_knots_phi/2, 
+                                                maxY + v_dist_between_knots_phi/2, 
+                                                num = int(2*np.sqrt(N_outer_grid_phi)))
+    x_outer_pos_phi              = x_pos_phi[0::2]
+    x_inner_pos_phi              = x_pos_phi[1::2]
+    y_outer_pos_phi              = y_pos_phi[0::2]
+    y_inner_pos_phi              = y_pos_phi[1::2]
+    X_outer_pos_phi, Y_outer_pos_phi = np.meshgrid(x_outer_pos_phi, y_outer_pos_phi)
+    X_inner_pos_phi, Y_inner_pos_phi = np.meshgrid(x_inner_pos_phi, y_inner_pos_phi)
+    knots_outer_xy_phi           = np.vstack([X_outer_pos_phi.ravel(), Y_outer_pos_phi.ravel()]).T
+    knots_inner_xy_phi           = np.vstack([X_inner_pos_phi.ravel(), Y_inner_pos_phi.ravel()]).T
+    knots_xy_phi                 = np.vstack((knots_outer_xy_phi, knots_inner_xy_phi))
+    knots_id_in_domain_phi       = [row for row in range(len(knots_xy_phi)) if (minX < knots_xy_phi[row,0] < maxX and minY < knots_xy_phi[row,1] < maxY)]
+    knots_xy_phi                 = knots_xy_phi[knots_id_in_domain_phi]
+    knots_x_phi                  = knots_xy_phi[:,0]
+    knots_y_phi                  = knots_xy_phi[:,1]
+    k_phi                        = len(knots_id_in_domain_phi)
+
+    # isometric grid for rho (de-coupled from phi)
+    h_dist_between_knots_rho     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_rho))-1)
+    v_dist_between_knots_rho     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_rho))-1)
+    x_pos_rho                    = np.linspace(minX + h_dist_between_knots_rho/2, 
+                                                maxX + h_dist_between_knots_rho/2, 
+                                                num = int(2*np.sqrt(N_outer_grid_rho)))
+    y_pos_rho                    = np.linspace(minY + v_dist_between_knots_rho/2, 
+                                                maxY + v_dist_between_knots_rho/2, 
+                                                num = int(2*np.sqrt(N_outer_grid_rho)))
+    x_outer_pos_rho              = x_pos_rho[0::2]
+    x_inner_pos_rho              = x_pos_rho[1::2]
+    y_outer_pos_rho              = y_pos_rho[0::2]
+    y_inner_pos_rho              = y_pos_rho[1::2]
+    X_outer_pos_rho, Y_outer_pos_rho = np.meshgrid(x_outer_pos_rho, y_outer_pos_rho)
+    X_inner_pos_rho, Y_inner_pos_rho = np.meshgrid(x_inner_pos_rho, y_inner_pos_rho)
+    knots_outer_xy_rho           = np.vstack([X_outer_pos_rho.ravel(), Y_outer_pos_rho.ravel()]).T
+    knots_inner_xy_rho           = np.vstack([X_inner_pos_rho.ravel(), Y_inner_pos_rho.ravel()]).T
+    knots_xy_rho                 = np.vstack((knots_outer_xy_rho, knots_inner_xy_rho))
+    knots_id_in_domain_rho       = [row for row in range(len(knots_xy_rho)) if (minX < knots_xy_rho[row,0] < maxX and minY < knots_xy_rho[row,1] < maxY)]
+    knots_xy_rho                 = knots_xy_rho[knots_id_in_domain_rho]
+    knots_x_rho                  = knots_xy_rho[:,0]
+    knots_y_rho                  = knots_xy_rho[:,1]
+    k_rho                        = len(knots_id_in_domain_rho)
 
 if mark == True:
-    x_pos                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid)))
-    y_pos                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid)))
-    x_outer_pos              = x_pos[0::2]
-    x_inner_pos              = x_pos[1::2]
-    y_outer_pos              = y_pos[0::2]
-    y_inner_pos              = y_pos[1::2]
-    X_outer_pos, Y_outer_pos = np.meshgrid(x_outer_pos, y_outer_pos)
-    X_inner_pos, Y_inner_pos = np.meshgrid(x_inner_pos, y_inner_pos)
-    knots_outer_xy           = np.vstack([X_outer_pos.ravel(), Y_outer_pos.ravel()]).T
-    knots_inner_xy           = np.vstack([X_inner_pos.ravel(), Y_inner_pos.ravel()]).T
-    knots_xy                 = np.vstack((knots_outer_xy, knots_inner_xy))
-    knots_id_in_domain       = [row for row in range(len(knots_xy)) if (minX < knots_xy[row,0] < maxX and minY < knots_xy[row,1] < maxY)]
-    knots_xy                 = knots_xy[knots_id_in_domain]
-    knots_x                  = knots_xy[:,0]
-    knots_y                  = knots_xy[:,1]
-    k                        = len(knots_id_in_domain)    
+    # isometric knot grid - Mark's
+    x_pos_phi                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid_phi)))
+    y_pos_phi                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid_phi)))
+    x_outer_pos_phi              = x_pos_phi[0::2]
+    x_inner_pos_phi              = x_pos_phi[1::2]
+    y_outer_pos_phi              = y_pos_phi[0::2]
+    y_inner_pos_phi              = y_pos_phi[1::2]
+    X_outer_pos_phi, Y_outer_pos_phi = np.meshgrid(x_outer_pos_phi, y_outer_pos_phi)
+    X_inner_pos_phi, Y_inner_pos_phi = np.meshgrid(x_inner_pos_phi, y_inner_pos_phi)
+    knots_outer_xy_phi           = np.vstack([X_outer_pos_phi.ravel(), Y_outer_pos_phi.ravel()]).T
+    knots_inner_xy_phi           = np.vstack([X_inner_pos_phi.ravel(), Y_inner_pos_phi.ravel()]).T
+    knots_xy_phi                 = np.vstack((knots_outer_xy_phi, knots_inner_xy_phi))
+    knots_id_in_domain_phi       = [row for row in range(len(knots_xy_phi)) if (minX < knots_xy_phi[row,0] < maxX and minY < knots_xy_phi[row,1] < maxY)]
+    knots_xy_phi                 = knots_xy_phi[knots_id_in_domain_phi]
+    knots_x_phi                  = knots_xy_phi[:,0]
+    knots_y_phi                  = knots_xy_phi[:,1]
+    k_phi                        = len(knots_id_in_domain_phi)
+
+    x_pos_rho                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid_rho)))
+    y_pos_rho                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid_rho)))
+    x_outer_pos_rho              = x_pos_rho[0::2]
+    x_inner_pos_rho              = x_pos_rho[1::2]
+    y_outer_pos_rho              = y_pos_rho[0::2]
+    y_inner_pos_rho              = y_pos_rho[1::2]
+    X_outer_pos_rho, Y_outer_pos_rho = np.meshgrid(x_outer_pos_rho, y_outer_pos_rho)
+    X_inner_pos_rho, Y_inner_pos_rho = np.meshgrid(x_inner_pos_rho, y_inner_pos_rho)
+    knots_outer_xy_rho           = np.vstack([X_outer_pos_rho.ravel(), Y_outer_pos_rho.ravel()]).T
+    knots_inner_xy_rho           = np.vstack([X_inner_pos_rho.ravel(), Y_inner_pos_rho.ravel()]).T
+    knots_xy_rho                 = np.vstack((knots_outer_xy_rho, knots_inner_xy_rho))
+    knots_id_in_domain_rho       = [row for row in range(len(knots_xy_rho)) if (minX < knots_xy_rho[row,0] < maxX and minY < knots_xy_rho[row,1] < maxY)]
+    knots_xy_rho                 = knots_xy_rho[knots_id_in_domain_rho]
+    knots_x_rho                  = knots_xy_rho[:,0]
+    knots_y_rho                  = knots_xy_rho[:,1]
+    k_rho                        = len(knots_id_in_domain_rho)
 
 # ----------------------------------------------------------------------------------------------------------------
-# Copula Splines
+# Copula Splines - Generate the weight matrices
 
-# Basis Parameters - for the Gaussian and Wendland Basis
-radius_from_knots = np.repeat(radius, k) # influence radius from a knot
+radius_from_knots = np.repeat(radius, k_phi) # influence radius from a knot
 
-# Generate the weight matrices
-# Weight matrix generated using Gaussian Smoothing Kernel
-gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
+# Weight matrix using wendland basis
+wendland_weight_matrix = np.full(shape = (Ns,k_phi), fill_value = np.nan)
 for site_id in np.arange(Ns):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix[site_id, :] = weight_from_knots
-
-# Weight matrix generated using wendland basis
-wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
-for site_id in np.arange(Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix[site_id, :] = weight_from_knots
+
+# Weight matrix using Gaussian Smoothing Kernel
+gaussian_weight_matrix_phi = np.full(shape = (Ns, k_phi), fill_value = np.nan)
+for site_id in np.arange(Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_phi)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
+    gaussian_weight_matrix_phi[site_id, :] = weight_from_knots
+
+gaussian_weight_matrix_rho = np.full(shape = (Ns, k_rho), fill_value = np.nan)
+for site_id in np.arange(Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_rho)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+    gaussian_weight_matrix_rho[site_id, :] = weight_from_knots
+
 
 plotgrid_res_x = 150
 plotgrid_res_y = 275
@@ -418,23 +502,37 @@ plotgrid_y = np.linspace(minY,maxY,plotgrid_res_y)
 plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
 plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
 
-gaussian_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy, k), fill_value = np.nan)
+wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k_phi), fill_value = np.nan)
 for site_id in np.arange(plotgrid_res_xy):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
-
-wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k), fill_value = np.nan)
-for site_id in np.arange(plotgrid_res_xy):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
+
+gaussian_weight_matrix_for_plot_phi = np.full(shape = (plotgrid_res_xy, k_phi), 
+                                              fill_value = np.nan)
+for site_id in np.arange(plotgrid_res_xy):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_phi)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
+    gaussian_weight_matrix_for_plot_phi[site_id, :] = weight_from_knots
+
+gaussian_weight_matrix_for_plot_rho = np.full(shape = (plotgrid_res_xy, k_rho), 
+                                                fill_value = np.nan)
+for site_id in np.arange(plotgrid_res_xy):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_rho)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+    gaussian_weight_matrix_for_plot_rho[site_id, :] = weight_from_knots        
+
+# gaussian_weight_matrix_for_plot = gaussian_weight_matrix_for_plot_phi
+
 
 # ----------------------------------------------------------------------------------------------------------------
 # Setup For the Marginal Model - GEV(mu, sigma, ksi)
@@ -647,7 +745,7 @@ if not fixGEV:
 # copula parameter surface
 
 # phi surface
-phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_mean
+phi_vec_for_plot = gaussian_weight_matrix_for_plot_phi @ phi_mean
 fig, ax = plt.subplots()
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
@@ -663,7 +761,7 @@ plt.show()
 plt.close()
 
 # range surface
-range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_mean
+range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_mean
 fig, ax = plt.subplots()
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
@@ -788,27 +886,43 @@ def calc_chi(args):
     sites_AB = np.row_stack([point_A, point_B])
 
     # new weight matrices
-    gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
+    # gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
+    # for site_id in np.arange(2):
+    #     # Compute distance between each pair of the two collections of inputs
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+    #                                                 XB = knots_xy)
+    #     # influence coming from each of the knots
+    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+    #     gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
+    gaussian_weight_matrix_AB_phi = np.full(shape = (2, k_phi), fill_value = np.nan)
     for site_id in np.arange(2):
         # Compute distance between each pair of the two collections of inputs
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy)
+                                                    XB = knots_xy_phi)
         # influence coming from each of the knots
-        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-        gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
-    wendland_weight_matrix_AB = np.full(shape = (2,k), fill_value = np.nan)
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
+        gaussian_weight_matrix_AB_phi[site_id, :] = weight_from_knots
+    gaussian_weight_matrix_AB_rho = np.full(shape = (2, k_rho), fill_value = np.nan)
     for site_id in np.arange(2):
         # Compute distance between each pair of the two collections of inputs
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy)
+                                                    XB = knots_xy_rho)
+        # influence coming from each of the knots
+        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+        gaussian_weight_matrix_AB_rho[site_id, :] = weight_from_knots
+    wendland_weight_matrix_AB = np.full(shape = (2,k_phi), fill_value = np.nan)
+    for site_id in np.arange(2):
+        # Compute distance between each pair of the two collections of inputs
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy_phi)
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix_AB[site_id, :] = weight_from_knots
 
     # Need: R(s), phi(s), rho(s) --> K
-    phi_vec_AB     = gaussian_weight_matrix_AB @ phi_mean
-    range_vec_AB   = gaussian_weight_matrix_AB @ range_mean
-    gamma_at_knots = np.repeat(0.5, k)
+    phi_vec_AB     = gaussian_weight_matrix_AB_phi @ phi_mean
+    range_vec_AB   = gaussian_weight_matrix_AB_rho @ range_mean
+    gamma_at_knots = np.repeat(0.5, k_phi)
     alpha          = 0.5
     gamma_vec_AB   = np.sum(np.multiply(wendland_weight_matrix_AB, gamma_at_knots)**(alpha),
                             axis = 1)**(1/alpha)
@@ -823,7 +937,7 @@ def calc_chi(args):
     # cholesky_U_AB  = scipy.linalg.cholesky(K_AB, lower = False)
 
     # Draw R and bivariate Z
-    S_vec   = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k) for _ in range(n_draw)])
+    S_vec   = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)])
     Z_bivar = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_AB, size = n_draw)
 
     # calculate X
@@ -885,7 +999,7 @@ ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
 # plt.show()
 # plt.close()
 
-# Parallel compute chi across several values of threshold probability u = [0.9, 0.95, 0.99]
+# Parallel compute chi across several values of u h 
 np.random.seed(417)
 for h in [75, 150, 225]:
 
@@ -1178,25 +1292,41 @@ if not fixGEV: # these are the per iteration marginal parameters
 # 3. Copula Parameters - should also be per iterations ----------------------------------------------------------------
 
 # weight matrices at the testing sites
-gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
+# gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
+# for site_id in np.arange(test_Ns):
+#     # Compute distance between each pair of the two collections of inputs
+#     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+#                                     XB = knots_xy)
+#     # influence coming from each of the knots
+#     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+#     gaussian_weight_matrix_test[site_id, :] = weight_from_knots
+gaussian_weight_matrix_test_phi = np.full(shape = (test_Ns, k_phi), fill_value = np.nan)
 for site_id in np.arange(test_Ns):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix_test[site_id, :] = weight_from_knots
-wendland_weight_matrix_test = np.full(shape = (test_Ns,k), fill_value = np.nan)
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
+    gaussian_weight_matrix_test_phi[site_id, :] = weight_from_knots
+gaussian_weight_matrix_test_rho = np.full(shape = (test_Ns, k_rho), fill_value = np.nan)
 for site_id in np.arange(test_Ns):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_rho)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+    gaussian_weight_matrix_test_rho[site_id, :] = weight_from_knots
+wendland_weight_matrix_test = np.full(shape = (test_Ns,k_phi), fill_value = np.nan)
+for site_id in np.arange(test_Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix_test[site_id, :] = weight_from_knots
 
 # constants
-gamma_at_knots = np.repeat(0.5, k)
+gamma_at_knots = np.repeat(0.5, k_phi)
 alpha          = 0.5
 gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
                         axis = 1)**(1/alpha)
@@ -1212,10 +1342,10 @@ n_thin100   = len(idx_thin100)
 idx_thin100 = np.arange(n_thin100)
 
 phi_knots_trace_thin100 = phi_knots_trace[0:n_iter:100,:]
-phi_vec_test_thin100    = (gaussian_weight_matrix_test @ phi_knots_trace_thin100.T).T
+phi_vec_test_thin100    = (gaussian_weight_matrix_test_phi @ phi_knots_trace_thin100.T).T
 
 range_knots_trace_thin100 = range_knots_trace[0:n_iter:100,:]
-range_vec_test_thin100    = (gaussian_weight_matrix_test @ range_knots_trace_thin100.T).T
+range_vec_test_thin100    = (gaussian_weight_matrix_test_rho @ range_knots_trace_thin100.T).T
 
 R_trace_log_thin100 = R_trace_log[0:n_iter:100,:,:]
 R_vec_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
@@ -1347,6 +1477,12 @@ plt.ylabel('log-likelihood @ test sites')
 plt.savefig('ll_'+name+'_boxplot.pdf')
 plt.show()
 plt.close()
+
+# %%
+
+######################################
+#### fixksi QQPlot and Likelihood ####
+######################################
 
 # %% Gumbel QQPlot fix only ksi
 # Gumbel QQPlot fix only ksi
@@ -1488,25 +1624,41 @@ if not fixGEV: # these are the per iteration marginal parameters
 # 3. Copula Parameters - should also be per iterations ----------------------------------------------------------------
 
 # weight matrices at the testing sites
-gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
+# gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
+# for site_id in np.arange(test_Ns):
+#     # Compute distance between each pair of the two collections of inputs
+#     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+#                                     XB = knots_xy)
+#     # influence coming from each of the knots
+#     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
+#     gaussian_weight_matrix_test[site_id, :] = weight_from_knots
+gaussian_weight_matrix_test_phi = np.full(shape = (test_Ns, k_phi), fill_value = np.nan)
 for site_id in np.arange(test_Ns):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    gaussian_weight_matrix_test[site_id, :] = weight_from_knots
-wendland_weight_matrix_test = np.full(shape = (test_Ns,k), fill_value = np.nan)
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
+    gaussian_weight_matrix_test_phi[site_id, :] = weight_from_knots
+gaussian_weight_matrix_test_rho = np.full(shape = (test_Ns, k_rho), fill_value = np.nan)
 for site_id in np.arange(test_Ns):
     # Compute distance between each pair of the two collections of inputs
     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                    XB = knots_xy)
+                                                XB = knots_xy_rho)
+    # influence coming from each of the knots
+    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
+    gaussian_weight_matrix_test_rho[site_id, :] = weight_from_knots
+wendland_weight_matrix_test = np.full(shape = (test_Ns,k_phi), fill_value = np.nan)
+for site_id in np.arange(test_Ns):
+    # Compute distance between each pair of the two collections of inputs
+    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
+                                                XB = knots_xy_phi)
     # influence coming from each of the knots
     weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
     wendland_weight_matrix_test[site_id, :] = weight_from_knots
 
 # constants
-gamma_at_knots = np.repeat(0.5, k)
+gamma_at_knots = np.repeat(0.5, k_phi)
 alpha          = 0.5
 gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
                         axis = 1)**(1/alpha)
@@ -1522,10 +1674,10 @@ n_thin100   = len(idx_thin100)
 idx_thin100 = np.arange(n_thin100)
 
 phi_knots_trace_thin100 = phi_knots_trace[0:n_iter:100,:]
-phi_vec_test_thin100    = (gaussian_weight_matrix_test @ phi_knots_trace_thin100.T).T
+phi_vec_test_thin100    = (gaussian_weight_matrix_test_phi @ phi_knots_trace_thin100.T).T
 
 range_knots_trace_thin100 = range_knots_trace[0:n_iter:100,:]
-range_vec_test_thin100    = (gaussian_weight_matrix_test @ range_knots_trace_thin100.T).T
+range_vec_test_thin100    = (gaussian_weight_matrix_test_rho @ range_knots_trace_thin100.T).T
 
 R_trace_log_thin100 = R_trace_log[0:n_iter:100,:,:]
 R_vec_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
@@ -1695,13 +1847,16 @@ try:
     ll_k41_efr2        = np.sum(np.load('results/CONVERGED/k41_efr2/ll_k41_efr2.npy'), axis = (1,2))
 except:
     ll_k41_efr2        = []
-
+try:
+    ll_phik41efr2_rhok13r4 = np.sum(np.load('results/CONVERGED/phik41efr2_rhok13r4/ll_phik41efr2_rhok13r4.npy'), axis = (1,2))
+except:
+    ll_phik41efr2_rhok13r4 = []
 
 ll_list = [ll_k13_r4, ll_k13_r4_fixGEV,
            ll_k25_r2, ll_k25_r2_fixGEV,
            ll_k25_r4, ll_k25_r4_fixGEV,
            ll_k25_efr2, ll_k25_efr2_fixksi,
-           ll_k41_efr2]
+           ll_k41_efr2, ll_phik41efr2_rhok13r4]
 
 fig, ax = plt.subplots()
 fig.set_size_inches((10,8))
@@ -1711,7 +1866,7 @@ ax.set_xticklabels(['k13_r4', 'k13_r4_fixGEV',
                     'k25_r2', 'k25_r2_fixGEV',
                     'k25_r4', 'k25_r4_fixGEV',
                     'k25_efr2', r'k25_efr2_fix$\xi$',
-                    'k41_efr2'],
+                    'k41_efr2', r'$\phi$k41efr2_$\rho$k13r4'],
                    rotation = 45)
 ax.set_ylabel('loglike at (observed) test sites')
 plt.title('Boxplots of loglikelihood @ test sites')
