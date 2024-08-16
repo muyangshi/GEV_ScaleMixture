@@ -619,7 +619,7 @@ if __name__ == "__main__":
     # knots_y = knots_xy[:,1]    
 
     # isometric knot grid
-    N_outer_grid = 25
+    N_outer_grid = 9
     h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
     v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
     x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
@@ -668,10 +668,11 @@ if __name__ == "__main__":
     # Copula Splines
     
     # Basis Parameters - for the Gaussian and Wendland Basis
-    radius = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+    radius = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
     # bandwidth = 4 # range for the gaussian kernel
     effective_range = radius # effective range for gaussian kernel: exp(-3) = 0.05
-    bandwidth = effective_range**2/6
+    # bandwidth = effective_range**2/6
+    bandwidth = radius
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
 
     bandwidth_rho = 4
