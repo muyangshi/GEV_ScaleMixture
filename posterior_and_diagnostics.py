@@ -1078,6 +1078,24 @@ plt.xlabel('longitude')
 plt.ylabel('latitude')
 plt.show()
 
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal', 'box')
+state_map.boundary.plot(ax=ax, color = 'black')
+ax.scatter(test_sites_xy[(23, 41, 42, 82, 94), 0], test_sites_xy[(23, 41, 42, 82, 94), 1], color='blue')  # Scatter plot of points
+labels = (23, 41, 42, 82, 94)
+# for index, (x, y) in enumerate(test_sites_xy[(23, 41, 42, 82, 94),:]):
+#     ax.text(x, y, f'{labels[index]}', fontsize=12, ha='right')
+plt.xlim([-102,-92])
+plt.ylim([32,45])
+ax.set_xticks(np.linspace(-102, -92,num=3))
+ax.set_yticks(np.linspace(32, 45,num=5))
+# plt.title('Scatter Plot with Labels')
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.savefig('out-of-sample stations.pdf',bbox_inches="tight")
+plt.show()
+
 # Create GEV Splines --------------------------------------------------------------------------------------------------
 
 test_sites_xy_ro = numpy2rpy(test_sites_xy)    # Convert to R object
