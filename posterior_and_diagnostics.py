@@ -126,16 +126,16 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
 # %%
 # Specify which chain
 
-# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-# name             = 'k13_r4'
-# fixGEV           = False
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 9
-# N_outer_grid_rho = 9
-# mark             = True
-# burnin           = 5000
+folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
+name             = 'k13_r4'
+fixGEV           = False
+radius           = 4
+bandwidth_phi    = 4
+bandwidth_rho    = 4
+N_outer_grid_phi = 9
+N_outer_grid_rho = 9
+mark             = True
+burnin           = 5000
 
 # folder           = './data_alpine/CONVERGED/20240320_realdata_t75_s590_k13_r4_fixGEV/'
 # name             = 'k13_r4_fixGEV'
@@ -225,16 +225,16 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
 # mark             = False
 # burnin           = 0
 
-folder           = './data_alpine/20240517_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
-name             = 'phik41efr2_rhok13r4'
-fixGEV           = False
-radius           = 2
-bandwidth_phi    = radius**2/6
-bandwidth_rho    = 4
-N_outer_grid_phi = 25
-N_outer_grid_rho = 9
-mark             = False
-burnin           = 0
+# folder           = './data_alpine/20240517_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
+# name             = 'phik41efr2_rhok13r4'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = radius**2/6
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 25
+# N_outer_grid_rho = 9
+# mark             = False
+# burnin           = 0
 
 # %% load traceplots
 # load traceplots
@@ -747,15 +747,24 @@ if not fixGEV:
 # phi surface
 phi_vec_for_plot = gaussian_weight_matrix_for_plot_phi @ phi_mean
 fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    vmin = 0, vmax = 1,
+                    vmin = 0, vmax = 0.5,
                     cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
-fig.colorbar(heatmap)
-plt.xlim([-105,-90])
-plt.ylim([30,50])
-plt.title(r'smoothed $\phi$ surface')
+cbar = fig.colorbar(heatmap, ax=ax)
+cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\phi$ surface', fontsize = 20)
 plt.savefig('Surface:phi.pdf')
 plt.show()
 plt.close()
@@ -763,15 +772,24 @@ plt.close()
 # range surface
 range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_mean
 fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
-                    vmin = 0, vmax = 4, 
+                    vmin = 0, vmax = 2, 
                     cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
-fig.colorbar(heatmap)
-plt.xlim([-105,-90])
-plt.ylim([30,50])
-plt.title(r'smoothed $\rho$ surface')
+cbar = fig.colorbar(heatmap, ax=ax)
+cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\rho$ surface', fontsize = 20)
 plt.savefig('Surface:range.pdf')
 plt.show()
 plt.close()
@@ -1082,10 +1100,10 @@ fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
-ax.scatter(test_sites_xy[(23, 41, 42, 82, 94), 0], test_sites_xy[(23, 41, 42, 82, 94), 1], color='blue')  # Scatter plot of points
-labels = (23, 41, 42, 82, 94)
-# for index, (x, y) in enumerate(test_sites_xy[(23, 41, 42, 82, 94),:]):
-#     ax.text(x, y, f'{labels[index]}', fontsize=12, ha='right')
+ax.scatter(test_sites_xy[(23, 41, 82, 94), 0], test_sites_xy[(23, 41, 82, 94), 1], color='blue')  # Scatter plot of points
+labels = (23, 41, 82, 94)
+for index, (x, y) in enumerate(test_sites_xy[(23, 41, 82, 94),:]):
+    ax.text(x, y, f'{labels[index]}', fontsize=12, ha='right')
 plt.xlim([-102,-92])
 plt.ylim([32,45])
 ax.set_xticks(np.linspace(-102, -92,num=3))
