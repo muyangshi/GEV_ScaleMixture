@@ -335,6 +335,13 @@ if not fixGEV:
     except:
         pass
 
+# posterior CI
+phi_lb = np.percentile(phi_knots_trace, 2.5, axis = 0)
+phi_ub = np.percentile(phi_knots_trace, 97.5, axis = 0)
+
+rho_lb = np.percentile(range_knots_trace, 2.5, axis = 0)
+rho_ub = np.percentile(range_knots_trace, 97.5, axis = 0)
+
 # thinned by 10
 iter = phi_knots_trace.shape[0]
 xs       = np.arange(iter)
