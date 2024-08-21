@@ -257,7 +257,7 @@ for h in [75, 150, 225]:
         plt.xlim([-105,-90])
         plt.ylim([30,50])
         plt.title(rf'empirical $\chi_{{{u}}}$, h $\approx$ {h}km')
-        plt.savefig('empirical_chi_u={}_h={}.pdf'.format(u,h))
+        plt.savefig('empirical_chi_u={}_h={}.pdf'.format(u,h), bbox_inches='tight')
         plt.show()
         plt.close()
 
@@ -268,17 +268,28 @@ u = 0.99 # 0.9, 0.95, 0.99
 h = 225 # 75, 150, 225
 e_abs = 0.2
 
-# Define the colors for the colormap (white to red)
+# # Define the colors for the colormap (white to red)
+# colors = ["#ffffff", "#ff0000"]
+# min_chi = 0.0
+# max_chi = 1.0
+# # Create a LinearSegmentedColormap
+# n_colors = 84 # number of color patches
+# n_bins = 21  # Number of ticks
+# cmap_name = "white_to_red"
+# colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_colors)
+# ticks = np.linspace(min_chi, max_chi, n_bins).round(3)
+
+# Create a LinearSegmentedColormap from white to red
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
 max_chi = 1.0
-
-# Create a LinearSegmentedColormap
-n_colors = 84 # number of color patches
-n_bins = 21  # Number of ticks
+n_bins = 30  # Number of discrete bins
+n_ticks = 10
 cmap_name = "white_to_red"
-colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_colors)
-ticks = np.linspace(min_chi, max_chi, n_bins).round(3)
+colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+
+
 
 for h in [75, 150, 225]:
 
@@ -351,12 +362,22 @@ for h in [75, 150, 225]:
         ax.scatter(knots_x, knots_y, s = 15, color = 'white', marker = '+')
         ax.set_xlim(-101,-93)
         ax.set_ylim(32.5, 45)
-        ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km')
+        ax.tick_params(axis='both', which='major', labelsize=14)
+
+        ax.title.set_text(rf'$\chi_{{{u}}}$')
+        ax.title.set_fontsize(20)
+        # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
 
     fig.subplots_adjust(right=0.8)
+    fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+    fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+    fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-    fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-    plt.savefig('empirical_chi_h={}.pdf'.format(h))
+    colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+    colorbar.ax.tick_params(labelsize=14)
+    # plt.xlabel('Longitude')
+    # plt.ylabel('Latitude')
+    plt.savefig('empirical_chi_h={}.pdf'.format(h), bbox_inches='tight')
     plt.show()
     plt.close()      
 
