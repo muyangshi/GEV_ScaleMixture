@@ -1176,34 +1176,55 @@ if __name__ == "__main__":
         # plt.close()
         # # -------------------------------------------------------------------------------------------------------------
 
-        # 1. Station, Knots 
+        # 1. Station, Knots
+        import geopandas as gpd
+        state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp').to_crs(epsg=4326)
         fig, ax = plt.subplots()
-        fig.set_size_inches(10,8)
-        ax.set_aspect('equal', 'box')
+        fig.set_size_inches(10, 8)
+
+        # Plot knots and circles
         for i in range(k):
-            circle_i = plt.Circle((knots_xy[i,0], knots_xy[i,1]), radius_from_knots[i],
-                                  color='r', fill=True, fc='grey', ec='None', alpha = 0.2)
+            circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
+                                color='r', fill=True, fc='grey', ec='None', alpha=0.2)
             ax.add_patch(circle_i)
-        ax.scatter(sites_x, sites_y, marker = '.', c = 'blue', label='sites')
-        ax.scatter(knots_x, knots_y, marker = '+', c = 'red', label = 'knot', s = 300)
+
+        # Scatter plot for sites and knots
+        ax.scatter(sites_x, sites_y, marker='.', c='blue', label='sites')
+        ax.scatter(knots_x, knots_y, marker='+', c='red', label='knot', s=300)
+
+        # Plot spatial domain rectangle
         space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
-                                        fill = False, color = 'black')
+                                        fill=False, color='black')
         ax.add_patch(space_rectangle)
-        ax.set_xticks(np.linspace(minX, maxX,num=3))
-        ax.set_yticks(np.linspace(minY, maxY,num=5))
+
+        # Set ticks and labels
+        ax.set_xticks(np.linspace(minX, maxX, num=3))
+        ax.set_yticks(np.linspace(minY, maxY, num=5))
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.xlabel('Longitude', fontsize=20)
+        plt.ylabel('Latitude', fontsize=20)
+
+        # Set limits to match the exact range of your data
+        plt.xlim([-106, -88])
+        plt.ylim([28,48])
+
+        # Plot boundary
+        state_map.boundary.plot(ax=ax, color='black')
+        ax.set_aspect('equal', 'box')  # Ensures 1:1 ratio for data units
+
+
+        # Adjust the position of the legend to avoid overlap with the plot
         box = ax.get_position()
         legend_elements = [matplotlib.lines.Line2D([0], [0], marker= '.', linestyle='None', color='b', label='Site'),
                         matplotlib.lines.Line2D([0], [0], marker='+', linestyle = "None", color='red', label='Knot Center',  markersize=20),
                         matplotlib.lines.Line2D([0], [0], marker = 'o', linestyle = 'None', label = 'Knot Radius', markerfacecolor = 'grey', markersize = 20, alpha = 0.2),
                         matplotlib.lines.Line2D([], [], color='None', marker='s', linestyle='None', markeredgecolor = 'black', markersize=20, label='Spatial Domain')]
         plt.legend(handles = legend_elements, bbox_to_anchor=(1.01,1.01), fontsize = 20)
-        plt.xticks(fontsize = 20)
-        plt.yticks(fontsize = 20)
-        plt.xlabel('longitude', fontsize = 20)
-        plt.ylabel('latitude', fontsize = 20)
-        plt.subplots_adjust(right=0.6)
-        plt.savefig('stations.pdf',bbox_inches="tight")
-        plt.close()
+
+        # Save or show plot
+        plt.savefig('stations.pdf', bbox_inches="tight")
+        plt.show()
 
         # fig, ax = plt.subplots()
         # fig.set_size_inches(10,8)
