@@ -1176,6 +1176,40 @@ if __name__ == "__main__":
         # plt.close()
         # # -------------------------------------------------------------------------------------------------------------
 
+        # 0. USMap
+        import geopandas as gpd
+        state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp').to_crs(epsg=4326)
+        fig, ax = plt.subplots()
+        fig.set_size_inches(10, 8)
+
+        # Plot boundary
+        state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
+        # ax.set_aspect('equal', 'box')  # Ensures 1:1 ratio for data units
+
+        # Scatter plot for sites and knots
+        ax.scatter(sites_x, sites_y, marker='.', c='blue', edgecolor = 'white', label='sites', zorder = 2)
+
+        # Plot spatial domain rectangle
+        space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+                                        fill=False, color='black')
+        ax.add_patch(space_rectangle)
+
+        # Set ticks and labels
+        # ax.set_xticks(np.linspace(minX, maxX, num=3))
+        # ax.set_yticks(np.linspace(minY, maxY, num=5))
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        plt.xlabel('Longitude', fontsize=20)
+        plt.ylabel('Latitude', fontsize=20)
+
+        # Set limits to match the exact range of your data
+        plt.xlim([-130, -65])
+        plt.ylim([25,50])
+
+        # Save or show plot
+        plt.savefig('US.pdf', bbox_inches="tight")
+        plt.show()
+
         # 1. Station, Knots
         import geopandas as gpd
         state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp').to_crs(epsg=4326)
