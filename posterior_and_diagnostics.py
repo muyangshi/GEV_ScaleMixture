@@ -765,6 +765,15 @@ ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
 cbar = fig.colorbar(heatmap, ax=ax)
 cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
+# Plot knots and circles
+for i in range(k_phi):
+    circle_i = plt.Circle((knots_xy_phi[i, 0], knots_xy_phi[i, 1]), radius_from_knots[i],
+                        color='r', fill=False, fc='None', ec='lightgrey', alpha=0.5)
+    ax.add_patch(circle_i)
+# Scatter plot for sites and knots
+ax.scatter(knots_x_phi, knots_y_phi, marker='+', c='white', label='knot', s=300)
+for index, (x, y) in enumerate(knots_xy_phi):
+    ax.text(x+0.05, y+0.1, f'{index}', fontsize=12, ha='left')
 plt.xlim([-104,-90])
 plt.ylim([30,47])
 plt.xticks(fontsize = 20)
@@ -772,7 +781,7 @@ plt.yticks(fontsize = 20)
 plt.xlabel('longitude', fontsize = 20)
 plt.ylabel('latitude', fontsize = 20)
 plt.title(r'Posterior mean $\phi$ surface', fontsize = 20)
-plt.savefig('Surface:phi.pdf')
+plt.savefig('Surface:phi.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
@@ -790,6 +799,15 @@ ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
 cbar = fig.colorbar(heatmap, ax=ax)
 cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
+# Plot knots and circles
+for i in range(k_phi):
+    circle_i = plt.Circle((knots_xy_rho[i, 0], knots_xy_rho[i, 1]), radius_from_knots[i],
+                        color='r', fill=False, fc='None', ec='lightgrey', alpha=0.5)
+    ax.add_patch(circle_i)
+# Scatter plot for sites and knots
+ax.scatter(knots_x_rho, knots_y_rho, marker='+', c='white', label='knot', s=300)
+for index, (x, y) in enumerate(knots_xy_phi):
+    ax.text(x+0.05, y+0.1, f'{index}', fontsize=12, ha='left')
 plt.xlim([-104,-90])
 plt.ylim([30,47])
 plt.xticks(fontsize = 20)
@@ -797,7 +815,7 @@ plt.yticks(fontsize = 20)
 plt.xlabel('longitude', fontsize = 20)
 plt.ylabel('latitude', fontsize = 20)
 plt.title(r'Posterior mean $\rho$ surface', fontsize = 20)
-plt.savefig('Surface:range.pdf')
+plt.savefig('Surface:range.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
@@ -1228,11 +1246,16 @@ if not fixGEV:
 
 # Drawing the QQ Plots ------------------------------------------------------------------------------------------------
 
-for _ in range(10):
+# r('''set.seed(822)''')
+
+for s in range(99):
+
+    r.assign('s', int(s+1))
+
     # with MLE initial smooth
     r('''
         test_Ns <- 99
-        s <- floor(runif(1, min = 1, max = test_Ns + 1))
+        # s <- floor(runif(1, min = 1, max = test_Ns + 1))
         print(test_sites_xy_ro[s,]) # print coordinates
         gumbel_s = sort(gumbel_pY_initSmooth_test_ro[s,])
         nquants = length(gumbel_s)
@@ -1242,7 +1265,7 @@ for _ in range(10):
                                         xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
                                         lwd=3)
         pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
-        par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
+        par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
         plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
         points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
         lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
@@ -1264,13 +1287,15 @@ for _ in range(10):
                                             xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
                                             lwd=3)
             pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
-            par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
-            plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
+            par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
+            plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, 
+                pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 2, cex.axis = 1.25)
             points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)
             abline(a=0, b=1, lty=3, col="gray80", lwd=3)
-            legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
+            legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n",
+                    cex = 1.5)
             dev.off()
             ''')
 
