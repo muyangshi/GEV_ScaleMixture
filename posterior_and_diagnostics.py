@@ -1910,7 +1910,7 @@ ll_list = [ll_k13_r4, ll_k13_r4_fixGEV,
            ll_k41_efr2, ll_phik41efr2_rhok13r4]
 
 fig, ax = plt.subplots()
-fig.set_size_inches((10,8))
+fig.set_size_inches((14,10))
 ax.boxplot(ll_list)
 
 ax.set_xticklabels(['k13_r4', 'k13_r4_fixGEV',
@@ -1919,9 +1919,12 @@ ax.set_xticklabels(['k13_r4', 'k13_r4_fixGEV',
                     'k25_efr2', r'k25_efr2_fix$\xi$',
                     'k41_efr2', r'$\phi$k41efr2_$\rho$k13r4'],
                    rotation = 45)
-ax.set_ylabel('loglike at (observed) test sites')
-plt.title('Boxplots of loglikelihood @ test sites')
-plt.savefig('ll_boxplot_all.pdf')
+ax.set_ylabel('log-likelihood', fontsize = 20)
+ax.set_xlabel('models', fontsize = 20)
+ax.yaxis.offsetText.set_fontsize(14)
+ax.tick_params(axis='both', which='major', labelsize=14)
+plt.title('Boxplots of log-likelihood at out-of-sample test sites', fontsize = 20)
+plt.savefig('ll_boxplot_all.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 

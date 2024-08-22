@@ -12,6 +12,7 @@ data/*
 *.RData
 *.pages
 *.csv
+plots/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
