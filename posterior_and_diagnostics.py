@@ -1063,8 +1063,9 @@ for h in [75, 150, 225]:
     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)    
     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-    fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-    plt.savefig('Surface:model_empirical_chi_h={}.pdf'.format(h))
+    colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+    colorbar.ax.tick_params(labelsize=14)
+    plt.savefig('Surface:model_empirical_chi_h={}.pdf'.format(h), bbox_inches='tight')
     plt.show()
     plt.close()
 
