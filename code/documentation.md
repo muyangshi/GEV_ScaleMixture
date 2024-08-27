@@ -1,8 +1,22 @@
 # Documentation
 
-This is to document the files in the `/code` folder, along with any preparation that needs to be down to run the sampler.
+This is to document the files in the `/code` folder, along with any preparation that needs to be down to run the sampler. All files should be placed under the same directory.
 
-
+```
+code/
+  │
+  ├── cb_2018_us_state_20m/
+  ├── RW_inte_cpp.cpp
+  ├── RW_inte_cpp.so
+  ├── RW_inte.py
+  ├── utilities.py
+  │
+  ├── JJA_precip_maxima_nonimputed.RData
+  ├── simulate_data.py
+  ├── MCMC.py
+  │
+  └── posterior_and_diagnostics.py
+```
 
 
 ---
@@ -62,26 +76,32 @@ File:
 
 - `JJA_precip_maxima_nonimputed.RData`
 
-**Format**: 
+This is an example real dataset of central US summer time block-maxima precipitation. This `.RData` file contains the following items:
 
-- What items in this RData
+- `JJA_maxima_nonimputed`: an ($N_s$, $N_t$) matrix of the non-imputed (contains NA) summer time block-maxima precipitation at the $N_s$ stations across $N_t$ times. Each column $t$ represents the $N_s$ observations at time $t$.
+- `GEV_estimates`: an ($N_s$ $\times$ 4) matrix of the marginal parameter estimates (by fitting a simple GEV) at each station. Each of the four columns represents the estimates for $\mu_0$, $\mu_1$, $\log(\sigma)$, and $\xi$ for each station. 
+- `stations`: an ($N_s$ $\times$ 2) matrix of the coordinates of each station. The first column is longitude and the second column represents latitude.
+- `elev`: an ($N_s$,) vector of the elevation of the geographic location of each station.
 
-- What shape is each datachart
+where $N_s$ denotes the number of stations and $N_t$ denotes the number of years recorded in the dataset.
 
 #### Generating a Simulated Dataset:
 
+If we are not performing an application on a real dataset, we could simulate a dataset to test the model.
+
 File:
 
-- `simulation.py`
+- `simulate_data.py`
 
 This is a python script to generate a simulated dataset. Some details in the file on how to change the generation specifications. What files does it produce?
 
 To run this file:
 
 ```
-python3 bla bla simulation.py
+python3 simulate_data.py <random_seed>
 ```
-
+where `<random_seed>` is a seed used to randomly generate the data;
+ e.g. `python3 simulate_data.py 2345` can be used to generate a simulated dataset using the random seed of 2345.
 
 
 
