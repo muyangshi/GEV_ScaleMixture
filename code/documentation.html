@@ -432,10 +432,10 @@ code {
 </ul>
 <p>This is an example real dataset of central US summer time block-maxima precipitation. This <code>.RData</code> file contains the following items:</p>
 <ul>
-<li><code>JJA_maxima_nonimputed</code>: an ($N_s$, $N_t$) matrix of the non-imputed (contains NA) summer time block-maxima precipitation at the $N_s$ stations across $N_t$ times. Each column $t$ represents the $N_s$ observations at time $t$.</li>
-<li><code>GEV_estimates</code>: an ($N_s$ $\times$ 4) matrix of the marginal parameter estimates (by fitting a simple GEV) at each station. Each of the four columns represents the estimates for $\mu_0$, $\mu_1$, $\log(\sigma)$, and $\xi$ for each station.</li>
-<li><code>stations</code>: an ($N_s$ $\times$ 2) matrix of the coordinates of each station. The first column is longitude and the second column represents latitude.</li>
-<li><code>elev</code>: an ($N_s$,) vector of the elevation of the geographic location of each station.</li>
+<li><code>JJA_maxima_nonimputed</code>: an ($N_s$, $N_t$) matrix of type <code>double</code> of the non-imputed (contains NA) summer time block-maxima precipitation at the $N_s$ stations across $N_t$ times. Each column $t$ represents the $N_s$ observations at time $t$.</li>
+<li><code>GEV_estimates</code>: an ($N_s$ $\times$ 4) <code>dataframe</code> of the marginal parameter estimates (by fitting a simple GEV) at each station. Each of the four columns represents the estimates for $\mu_0$, $\mu_1$, $\log(\sigma)$, and $\xi$ for each station.</li>
+<li><code>stations</code>: an ($N_s$ $\times$ 2) <code>dataframe</code> of the coordinates of each station. The first column is longitude and the second column represents latitude.</li>
+<li><code>elev</code>: an ($N_s$,) vector of type <code>double</code> of the elevation of the geographic location of each station.</li>
 </ul>
 <p>where $N_s$ denotes the number of stations and $N_t$ denotes the number of years recorded in the dataset.</p>
 <h4 id="generating-a-simulated-dataset">Generating a Simulated Dataset:</h4>
@@ -444,12 +444,32 @@ code {
 <ul>
 <li><code>simulate_data.py</code></li>
 </ul>
-<p>This is a python script to generate a simulated dataset. Some details in the file on how to change the generation specifications. What files does it produce?</p>
+<p>This is a python script to generate a simulated dataset.
+Within this file, specifies $N_s$, $N_t$, $\phi$ and/or $\rho$ surfaces as well as the marginal parameters ($\Beta's$ for the $\mu_0, \mu1$ as well as $\sigma$ and $\xi$) surfaces to fine tune the truth parameter setup. Some additional comments in the script might be helpful.</p>
 <p>To run this file:</p>
 <pre class="hljs"><code><div>python3 simulate_data.py &lt;random_seed&gt;
 </div></code></pre>
 <p>where <code>&lt;random_seed&gt;</code> is a seed used to randomly generate the data;
 e.g. <code>python3 simulate_data.py 2345</code> can be used to generate a simulated dataset using the random seed of 2345.</p>
+<p>Outputs:</p>
+<p>Running this script will generate the following dataset and/or plots:
+(assuming we have simulated a dataset of $N_t=24$ time replicates at $N_s = 300$ sites using simulate scenario $sc = 2$)</p>
+<ul>
+<li><code>simulated_data.RData</code>: The generated dataset, which consists of the 4 items matching those described in the real dataset above.</li>
+<li>Additional formats/pieces of the same simulated dataset (for easier checking):
+<ul>
+<li><code>Y_full_sim_sc2_t24_s300.npy</code>: simulated observation $Y$ with all observations (no missing)</li>
+<li><code>miss_matrix_bool.npy</code>: simulated missing indicator matrix</li>
+<li><code>Y_miss_sim_sc2_t24_s300.npy</code>: simulated observation $Y$ after applying the <code>miss_matrix</code> (some observation become <code>NA</code>s as mimicing missing at random in data)</li>
+</ul>
+</li>
+<li><code>.png</code> Plots (for checking generated dataset):
+<ul>
+<li>QQPlots: QQplots will be generated for the Levy variables at the knots, the Pareto $W=g(Z)$ at the sites, and the process $X^<em>$ across the sites $s$ or time $t$. All qqplots are transformed to the uniform margin. Other than the QQPlot for $X^</em>$ across all sites at a specific time $t$ should deviates from 1:1 line (because of spatial correlation), the others should all approximately be linearly following diagonal line.</li>
+<li>Histogram: MLE fitted GEV models on the dataset at each site $s$ across all time $t$ is pooled together into a histogram; the values of the $\mu, \sigma, \xi$ should roughly reflect that in the parameter surface setting. (Not precise but should/could serve as a quick check)</li>
+</ul>
+</li>
+</ul>
 <hr>
 <h2 id="sampler">Sampler</h2>
 <p>File:</p>

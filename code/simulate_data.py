@@ -61,8 +61,6 @@ if __name__ == "__main__":
     for t in range(Nt):
         miss_matrix[:,t] = np.random.choice([0, 1], size=(Ns,), p=[0.9, 0.1])
     miss_matrix = miss_matrix.astype(bool) # matrix of True/False indicating missing, True means missing
-    if rank == 0:
-        np.save('miss_matrix_bool', miss_matrix)
     
     # Sites - random uniformly (x,y) generate site locations ------------------
     
@@ -242,13 +240,15 @@ if __name__ == "__main__":
     range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y)/2 # range for spatial Matern Z
 
     ### scenario 1
+    # sim_case     = 1
     # phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
     ### scenario 2
+    sim_case   = 2
     phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
     ### scenario 3
+    # sim_case     = 3
     # phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
     #                          scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
-
 
     # Marginal Parameters - GEV(mu, sigma, ksi) -------------------------------
 
@@ -300,113 +300,140 @@ if __name__ == "__main__":
     Y            = np.full(shape = (Ns, Nt), fill_value = np.nan)
     for t in np.arange(Nt):
         Y[:,t] = qgev(pRW(X_star[:,t], phi_vec, gamma_vec), mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t])
-    if rank == 0:
-        np.save('Y_sim_sc2_t'+str(Nt)+'_s'+str(Ns)+'_truth', Y)
-    for t in range(Nt):
-        Y[:,t][miss_matrix[:,t]] = np.nan
 
-    # %% Load Simulation Data -----------------------------------------------------------------------------------------
-    # Load Simulation Data --------------------------------------------------------------------------------------------
+
+    # %% Save Simulated Dataset ---------------------------------------------------------------------------------------
     
-    # cross check
-    if norm_pareto == 'shifted':
-        Y_file_name = 'Y_standard_t32_s225_nomiss.npy'
-    else: # norm_pareto == 'standard'
-        Y_file_name = 'Y_shifted_t32_s225_nomiss.npy'
-    print('loading data file:', Y_file_name)
-        
-    miss_matrix = np.load('miss_matrix_bool.npy')
-    Y = np.load(Y_file_name)
+    # original dataset
+    
+    if rank == 0: np.save('Y_truth_full_sim_sc'+str(sim_case)+'_t'+str(Nt)+'_s'+str(Ns), Y)
+   
+    # missing at random indicator matrix
+    if rank == 0: np.save('miss_matrix_bool', miss_matrix)
+    
+    # dataset with NAs
+
     for t in range(Nt):
         Y[:,t][miss_matrix[:,t]] = np.nan
+    if rank == 0: np.save('Y_truth_NA_sim_sc'+str(sim_case)+'_t'+str(Nt)+'_s'+str(Ns), Y)
+    
+    # complete dataset in .RData format
+    #   - JJA_maxima_nonimputed
+    #   - GEV_estimates
+    #   - stations
+    #   - elev
 
-    if norm_pareto == 'standard':
-        R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-        phi_vec    = gaussian_weight_matrix @ phi_at_knots
-        for t in np.arange(Nt):
-            # only use non-missing values
-            miss_index_1t = np.where(miss_matrix[:,t] == True)[0]
-            obs_index_1t  = np.where(miss_matrix[:,t] == False)[0]
-            R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t], 
-                                               mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]), 
-                                        phi_vec[obs_index_1t], gamma_vec[obs_index_1t]))/1.5)**2
-            
-    elif norm_pareto == 'shifted':
-        # use the truth
-        R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-        for t in np.arange(Nt):
-            R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
+    JJA_maxima_nonimputed_ro = numpy2rpy(Y)
+    GEV_estimates            = np.column_stack(((C_mu0.T @ Beta_mu0).T[:,0],
+                                                (C_mu1.T @ Beta_mu1).T[:,0],
+                                                (C_logsigma.T @ Beta_logsigma).T[:,0],
+                                                (C_ksi.T @ Beta_ksi).T[:,0]))
+    GEV_estimates_ro         = numpy2rpy(GEV_estimates)
+    stations_ro              = numpy2rpy(sites_xy)
+    elev_ro                  = numpy2rpy(elevations)
 
-        # # Calculate Rt in Parallel, only use non-missing values
-        # comm.Barrier()
-        # miss_index_1t = np.where(miss_matrix[:,rank] == True)[0]
-        # obs_index_1t  = np.where(miss_matrix[:,rank] == False)[0]
-        # X_1t       = qRW(pgev(Y[obs_index_1t,rank], mu_matrix[obs_index_1t,rank], sigma_matrix[obs_index_1t,rank], ksi_matrix[obs_index_1t,rank]),
-        #                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t])
-        # R_1t       = np.array([np.median(X_1t)**2] * k)
-        # R_gathered = comm.gather(R_1t, root = 0)
-        # R_at_knots = np.array(R_gathered).T if rank == 0 else None
-        # R_at_knots = comm.bcast(R_at_knots, root = 0)
+    r.assign('JJA_maxima_nonimputed', JJA_maxima_nonimputed_ro)
+    r.assign('GEV_estimates', GEV_estimates_ro)
+    r.assign('stations', stations_ro)
+    r.assign('elev', elev_ro)
+
+    r('''
+      GEV_estimates <- as.data.frame(GEV_estimates)
+      colnames(GEV_estimates) <- c('mu0','mu1','logsigma','xi')
+
+      stations <- as.data.frame(stations)
+      colnames(stations) <- c('x','y')
+
+      elev <- c(elev)
+
+      save(JJA_maxima_nonimputed, GEV_estimates, stations, elev,
+           file = 'simulated_data.RData')
+      ''')
 
 
-    # %% Checks on Data Generation
-    # Checks on Data Generation -------------------------------------------------------------------------------------
+    # %% Checks on Data Generation ------------------------------------------------------------------------------------
 
-    # Check stable variables S -------------------------------------------------------------------------------------
+    # Check stable variables S ------------------------------------------------
 
     # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
+    
     for i in range(k):
         scipy.stats.probplot(scipy.stats.levy.cdf(R_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
         plt.axline((0,0), slope = 1, color = 'black')
+        plt.savefig(f'QQPlot_levy_knot_{i}.png')
         plt.show()
+        plt.close()
 
-    # Check Pareto distribution -------------------------------------------------------------------------------------
+    # Check Pareto distribution -----------------------------------------------
 
     # shifted pareto.cdf(W[site_i,:] + 1, b = 1, loc = 0, scale = 1) shoud look uniform
-    for site_i in range(Ns):
-        if site_i % 10 == 0: # don't print all sites
-            scipy.stats.probplot(scipy.stats.pareto.cdf(W[site_i,:]+1, b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
-            plt.axline((0,0), slope = 1, color = 'black')
-            plt.show()
+    
+    if norm_pareto == 'shifted':
+        for site_i in range(Ns):
+            if site_i % 10 == 0: # don't print all sites
+                scipy.stats.probplot(scipy.stats.pareto.cdf(W[site_i,:]+1, b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+                plt.axline((0,0), slope = 1, color = 'black')
+                plt.savefig(f'QQPlot_Pareto_site_{site_i}.png')
+                plt.show()
+                plt.close()
 
     # standard pareto.cdf(W[site_i,:], b = 1, loc = 0, scale = 1) shoud look uniform
-    for site_i in range(Ns):
-        if site_i % 10 == 0:
-            scipy.stats.probplot(scipy.stats.pareto.cdf(W[site_i,:], b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
-            plt.axline((0,0), slope = 1, color = 'black')
-            plt.show()
+    if norm_pareto == 'standard':
+        for site_i in range(Ns):
+            if site_i % 10 == 0:
+                scipy.stats.probplot(scipy.stats.pareto.cdf(W[site_i,:], b = 1, loc = 0, scale = 1), dist='uniform', fit=False, plot=plt)
+                plt.axline((0,0), slope = 1, color = 'black')
+                plt.savefig(f'QQPlot_Pareto_site_{site_i}.png')
+                plt.show()
+                plt.close()
 
-    # Check model X_star -------------------------------------------------------------------------------------
-
-    theo_quantiles = qRW(np.linspace(1e-2,1-1e-2,num=500), phi_vec, gamma_vec)
-    plt.plot(sorted(X_star[:,0].ravel()), theo_quantiles)
-    plt.hist(pRW(X_star[:,0], phi_vec, gamma_vec))
+    # Check model X_star ------------------------------------------------------
 
     # pRW(X_star) should look uniform (at each site with Nt time replicates)
     for site_i in range(Ns):
-        if site_i % 10 == 0:
+        if site_i % 20 == 0:
             unif = pRW(X_star[site_i,:], phi_vec[site_i], gamma_vec[site_i])
             scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
             plt.axline((0,0), slope=1, color='black')
+            plt.savefig(f'QQPlot_Xstar_site_{site_i}.png')
             plt.show()
+            plt.close()
             
-    # pRW(X_star) should look uniform (at each time t?)
-    # but it should deviates from uniform b/c spatial correlation
+    # pRW(X_star) at each time t should deviates from uniform b/c spatial correlation
     for t in range(Nt):
-        # fig, ax = plt.subplots()
-        unif = pRW(X_star[:,t], phi_vec, gamma_vec[t])
-        scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
-        # plt.plot([0,1],[0,1], transform=ax.transAxes, color = 'black')
-        plt.axline((0,0), slope=1, color='black')
-        plt.show()
+        if t % 5 == 0:
+            unif = pRW(X_star[:,t], phi_vec, gamma_vec[t])
+            scipy.stats.probplot(unif, dist="uniform", fit = False, plot=plt)
+            plt.axline((0,0), slope=1, color='black')
+            plt.savefig(f'QQPlot_Xstar_time_{t}.png')
+            plt.show()
+            plt.close()
 
-    unifs = scipy.stats.uniform.rvs(0,1,size=10000)
-    Y_from_unifs = qgev(unifs, 0, 1, 0.2)
-    scipy.stats.genextreme.fit(Y_from_unifs) # this is unbiased
+    # Check Marginal Y --------------------------------------------------------
 
-    a = np.flip(sorted(X_star.ravel())) # check a from Jupyter variables
+    # A simple GEV MLE-fit should roughly reflects values around truth
 
-    myfits = [scipy.stats.genextreme.fit(Y[site,:]) for site in range(500)]
-    plt.hist([fit[1] for fit in myfits]) # loc
-    plt.hist([fit[2] for fit in myfits]) # scale
-    plt.hist([fit[0] for fit in myfits]) # -shape
+    myfits = [scipy.stats.genextreme.fit(Y[site,:][~np.isnan(Y[site,:])]) for site in range(300)]
+
+    color_loc = 'blue'
+    color_scale = 'green'
+    color_shape = 'red'
+
+    plt.hist([fit[1] for fit in myfits], bins=15, alpha=0.7, color=color_loc, label='Location')
+    plt.hist([fit[2] for fit in myfits], bins=15, alpha=0.7, color=color_scale, label='Scale')
+    plt.hist([fit[0] for fit in myfits], bins=15, alpha=0.7, color=color_shape, label='Shape')
+    plt.hist([fit[1] for fit in myfits], bins=15, alpha=1.0, histtype='step', edgecolor='black')
+    plt.hist([fit[2] for fit in myfits], bins=15, alpha=1.0, histtype='step', edgecolor='black')
+    plt.hist([fit[0] for fit in myfits], bins=15, alpha=1.0, histtype='step', edgecolor='black')
+
+    legend_handles = [
+        matplotlib.patches.Patch(facecolor=color_loc, edgecolor='black', label='Location'),
+        matplotlib.patches.Patch(facecolor=color_scale, edgecolor='black', label='Scale'),
+        matplotlib.patches.Patch(facecolor=color_shape, edgecolor='black', label='Shape')
+    ]
+
+    plt.legend(handles=legend_handles)
+    plt.title('MLE-fitted GEV')
+    plt.savefig('Histogram_MLE_fitted_GEV.png')
+    plt.show()
+    plt.close()
