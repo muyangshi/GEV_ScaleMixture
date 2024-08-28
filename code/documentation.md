@@ -13,13 +13,13 @@ code/
   │
   ├── JJA_precip_maxima_nonimputed.RData
   ├── simulate_data.py
+  ├── proposal_cov.py
   ├── MCMC.py
   │
   └── posterior_and_diagnostics.py
 ```
 
 
----
 ## Preparation
 
 This section includes some dependencies packages/modules to be downloaded and imported, instructions on a function library to be built, and specification on the dataset that feeds into the `MCMC.py` sampler. 
@@ -119,26 +119,64 @@ Running this script will generate the following dataset and/or plots:
     - Histogram: MLE fitted GEV models on the dataset at each site $s$ across all time $t$ is pooled together into a histogram; the values of the $\mu, \sigma, \xi$ should roughly reflect that in the parameter surface setting. (Not precise but should/could serve as a quick check)
 
 
----
 ## Sampler
 
-File:
+Required File:
 
+- `proposal_cov.py`
 - `MCMC.py`
 
-This is the main sampler file. What does it do. How to run it. What does it produce.
+<!-- What does it do. How to run it. What does it produce. -->
 
-To run this file:
+
+`MCMC.py` is the main sampler file, and it uses a random-walk Metropolis algorithm using Log-Adaptive Proposal (LAP) as an adaptive tuning strategy (Shaby and Wells, 2010).
+It takes in ...., creates, .... , run.... daisy chain.....
+
+
+The `proposal_cov.py` is the initial proposal covariance matrix $\Sigma_0$ for this LAP tuning strategy. 
+Without specific knowledge on the covariance of the proposals, one can set the variables in the `proposal_cov.py` script to `None`, as this would make the sampler default to initialize with identity $I$ proposals.
+This is only used when starting the chains fresh, as the later continuance/"daisychain" will load the proposal scalar variance and covariance from `.pickle` files saved from previous runs.
+
+Optional Files:
+
+- `iter.pkl`
+- `XXX.pkl`
+
+These are blah blah blah, saving the X, Y, Z states of running the chain. 
+
+To run this sampler script:
 
 ```
 mpirun -n 75 python3 MCMC.py
 ```
 
+Output:
+
+Running the sampler will generate the following results files
+
+- Plots
+    - Geo/spatial informations on the dataset:
+        - `Plot_US.pdf`, `Plot_stations.pdf`: scatterplots of the stations (longitude, latitude) with overlaying state boundary
+        - `Plot_station_elevation.pdf`: scatterplots of the stations with color coding their elevations
+    - Initial Parameter Estimates:
+        - `Plot_initial_heatmap_phi_surface.pdf`, `Plot_initial_heatmap_rho_surface.pdf`: heatmaps of the $\phi$ and $\rho$ surfaces coming from initial parameter estimation.
+        - `Plot_initial_mu0_estimates.pdf`, `Plot_initial_mu1_estimates.pdf`, `Plot_initial_logsigma_estimates.pdf`, `Plot_initial_ksi_estimates.pdf`: Comparison of the intial GEV fitted parameters at the locations versus the spline smoothed GEV parameters at the locations (color represents value)
+
+- Traceplot `.npy` Matrix
+    - The traceplot items are periodically saved (currently after every 50 iterations), including
+        - log-likelihood trace: `loglik_trace.npy`, `loglik_detail_trace.npy`
+        - copula parameter trace: `R_trace_log.npy`, `phi_knots_trace.npy`, `range_knots_trace.npy`, 
+        - marginal model parameter trace: `Beta_mu0_trace.npy`, `Beta_mu1_trace.npy`, `Beta_logsigma_trace.npy`, `Beta_ksi_trace.npy` and their regularization hyper parameter trace `sigma_Beta_mu0_trace.npy`, `sigma_Beta_mu1_trace.npy`, `sigma_Beta_logsigma_trace.npy`
+        - records on imputation (conditional gaussian draws) on `Y_trace.npy`
+
+- Saved model/chain states in `.pkl` pickles
+    - sometimes (on clusters) we can't afford to have the sampler be continuously running and have to "chop" it into pieces or "daisychaining" the runs. The following information are periodically saved to be picked up at each consecutive run: 
+    - `iter.pkl`: the number of iteration this chain has reached; a consecutive run will "restart" the chain at the last saved `iter.pkl` iteration)
+    - Adapted proposal scalar variance and/or covariance matrix
+        - the proposal scalar variance for the stable variables $R_t$'s: `sigma_m_sq_Rt_list.pkl`
+        - the proposal scalar variance and covariance matrix for any other parameters: `sigma_m_sq.pkl`, `Sigma_0.pkl`
 
 
-
-
----
 ## Posterior Summary
 
 File:
