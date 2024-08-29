@@ -46,6 +46,7 @@ from rpy2.robjects.packages import importr
 import multiprocessing
 from math import sin, cos, sqrt, atan2, radians, asin
 import math
+import requests
 
 # the training dataset
 mgcv = importr('mgcv')
@@ -122,6 +123,18 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
     lon_b = math.degrees(lon_b_rad)
 
     return np.array([lon_b, lat_b])
+
+def get_elevation(latitude, longitude):
+    url = 'https://api.open-elevation.com/api/v1/lookup'
+    params = {
+        'locations': f'{latitude},{longitude}'
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        elevation = response.json()['results'][0]['elevation']
+        return elevation
+    else:
+        return None
 
 # %%
 # Specify which chain
@@ -749,8 +762,7 @@ if not fixGEV:
     except:
         pass
 
-# %% Smooth GEV Surface
-# Smooth GEV Surface
+# %% Externally Smooth GEV Surface
 
 # mu0
 vmin = np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0]))
@@ -908,6 +920,27 @@ try:
     plt.close()
 except:
     pass
+
+# %% Predicted Smooth GEV Surface
+
+# https://likun-stat.shinyapps.io/lab4/#section-retrieve-elevation-values-on-a-grid
+# installation error for `elevatr` -- cannot install terra & raster due to lack of gdal
+
+# resolution for plotting the fitted marginal surface
+#   b/c we need the elevation and its API is expensive
+
+elev_res_x = int(maxX - minX) * 3
+elev_res_y = int(maxY - minY) * 3
+# elev_res_xy = elev_res_x * elev_res_y
+elevgrid_x = np.linspace(minX, maxX, elev_res_x)
+elevgrid_y = np.linspace(minY, maxY, elev_res_y)
+elevgrid_X, elevgrid_Y = np.meshgrid(elevgrid_x, elevgrid_y)
+elevgrid_xy = np.vstack([elevgrid_X.ravel(), elevgrid_Y.ravel()]).T
+
+
+
+
+
 
 # %% Copula Posterior Surface Plotting
 # copula parameter surface
@@ -1426,8 +1459,10 @@ for s in range(99):
                                         xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
                                         lwd=3)
         pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
-        par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
-        plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
+        par(mgp=c(1.75,0.75,0), mar=c(3,1,1,0), pty = "s")
+        plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y,
+            xlim = c(-2, 5), ylim = c(-2, 5),
+            pch = 20, xlab="Observed", ylab="Gumbel", asp = 1)
         points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
         lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
         lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$upper, lty=2, col="blue", lwd=3)
@@ -1448,9 +1483,13 @@ for s in range(99):
                                             xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
                                             lwd=3)
             pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
-            par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
-            plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, 
-                pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 2, cex.axis = 1.25)
+            par(mgp=c(1.75,0.75,0), mar=c(3,1,1,0), pty = "s")
+            # plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, asp = 1,
+            #     xlim = c(-2, 5), ylim = c(-2, 5),
+            #     pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 1.75, cex.axis = 1.25)
+            plot(type="n", x = c(0), y = c(0), asp = 1,
+                xlim = c(-2, 5), ylim = c(-2, 5),
+                pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 1.75, cex.axis = 1.25)            
             points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)
