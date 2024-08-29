@@ -2332,13 +2332,6 @@ if __name__ == "__main__":
                 sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
                 num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
-                # r_hat              = num_accepted_Rt/adapt_size
-                # num_accepted_Rt    = 0
-                # log_sigma_m_sq_hat = np.log(sigma_m_sq_Rt) + gamma2 * (r_hat - r_opt)
-                # sigma_m_sq_Rt      = np.exp(log_sigma_m_sq_hat)
-                # comm.Barrier()
-                # sigma_m_sq_Rt_list = comm.gather(sigma_m_sq_Rt, root = 0)
-
             if norm_pareto == 'standard':
                 for i in range(k):
                     r_hat              = num_accepted_Rt[i]/adapt_size
@@ -2510,7 +2503,7 @@ if __name__ == "__main__":
                 plt.title('traceplot for log-likelihood')
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('loglikelihood')
-                plt.savefig('loglik.pdf')
+                plt.savefig('Traceplot_loglik.pdf')
                 plt.close()
 
                 # ---- log-likelihood in details ----
@@ -2523,7 +2516,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('log likelihood')
                 plt.legend()
-                plt.savefig('loglik_detail.pdf')
+                plt.savefig('Traceplot_loglik_detail.pdf')
                 plt.close()
 
                 # ---- R_t ----
@@ -2536,7 +2529,7 @@ if __name__ == "__main__":
                     plt.title('traceplot for log(Rt) at t=' + str(t))
                     plt.xlabel('iter thinned by 10')
                     plt.ylabel('log(Rt)s')
-                    plt.savefig('Rt'+str(t)+'.pdf')
+                    plt.savefig('Traceplot_Rt'+str(t)+'.pdf')
                     plt.close()
 
                 # ---- phi ----
@@ -2549,7 +2542,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('phi')
                 plt.legend()
-                plt.savefig('phi.pdf')
+                plt.savefig('Traceplot_phi.pdf')
                 plt.close()
 
                 # ---- range ----
@@ -2562,7 +2555,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('range')
                 plt.legend()
-                plt.savefig('range.pdf')
+                plt.savefig('Traceplot_range.pdf')
                 plt.close()
 
                 # ---- GEV ----
@@ -2578,7 +2571,7 @@ if __name__ == "__main__":
                     plt.xlabel('iter thinned by 10')
                     plt.ylabel('Beta_mu0')
                     plt.legend()
-                    plt.savefig(str(key)+'.pdf')
+                    plt.savefig('Traceplot_'+str(key)+'.pdf')
                     plt.close()
                 
                 ## location Beta_mu1 in blocks:
@@ -2592,7 +2585,7 @@ if __name__ == "__main__":
                     plt.xlabel('iter thinned by 10')
                     plt.ylabel('Beta_mu1')
                     plt.legend()
-                    plt.savefig(str(key) + '.pdf')
+                    plt.savefig('Traceplot_'+str(key) + '.pdf')
                     plt.close()
 
                 ## scale coefficients
@@ -2605,7 +2598,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('Beta_logsigma')
                 plt.legend()
-                plt.savefig('Beta_logsigma.pdf')
+                plt.savefig('Traceplot_Beta_logsigma.pdf')
                 plt.close()
 
                 ## shape coefficients
@@ -2618,7 +2611,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('Beta_ksi')
                 plt.legend()
-                plt.savefig('Beta_ksi.pdf')
+                plt.savefig('Traceplot_Beta_ksi.pdf')
                 plt.close()
         
                 ## location Beta_xx prior variances combined on one plot (since they're updated togeter)
@@ -2636,7 +2629,7 @@ if __name__ == "__main__":
                 plt.xlabel('iter thinned by 10')
                 plt.ylabel('sigma')
                 plt.legend()
-                plt.savefig('sigma_Beta_xx.pdf')
+                plt.savefig('Traceplot_sigma_Beta_xx.pdf')
                 plt.close()
 
         comm.Barrier() # block for drawing
