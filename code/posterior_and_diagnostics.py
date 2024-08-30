@@ -31,6 +31,11 @@ state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
 import matplotlib as mpl
 from matplotlib import colormaps
 import os
+# os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
+# os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
+# os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
+# os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
+# os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -41,6 +46,7 @@ from rpy2.robjects.packages import importr
 import multiprocessing
 from math import sin, cos, sqrt, atan2, radians, asin
 import math
+import requests
 
 # the training dataset
 mgcv = importr('mgcv')
@@ -117,6 +123,18 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
     lon_b = math.degrees(lon_b_rad)
 
     return np.array([lon_b, lat_b])
+
+def get_elevation(longitude, latitude):
+    url = 'https://api.open-elevation.com/api/v1/lookup'
+    params = {
+        'locations': f'{np.round(latitude,7)},{np.round(longitude,7)}'
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        elevation = response.json()['results'][0]['elevation']
+        return float(elevation)
+    else:
+        return None
 
 # %%
 # Specify which chain
@@ -744,8 +762,7 @@ if not fixGEV:
     except:
         pass
 
-# %% Smooth GEV Surface
-# Smooth GEV Surface
+# %% Externally Smooth GEV Surface
 
 # mu0
 vmin = np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0]))
@@ -825,7 +842,7 @@ plt.savefig('Surface:mu1_smooth.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
-# side by side logsigma
+# logsigma
 vmin = my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
 vmax = my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
 divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
@@ -903,6 +920,205 @@ try:
     plt.close()
 except:
     pass
+
+# %% Predicted Smooth GEV Surface
+
+# https://likun-stat.shinyapps.io/lab4/#section-retrieve-elevation-values-on-a-grid
+# installation error for `elevatr` -- cannot install terra & raster due to lack of gdal
+
+# resolution for plotting the fitted marginal surface -------------------------
+#   b/c we need the elevation and its API is expensive
+
+predGEV_res_x = int(maxX - minX) * 3
+predGEV_res_y = int(maxY - minY) * 3
+predGEV_res_xy = predGEV_res_x * predGEV_res_y
+predGEV_grid_x = np.linspace(minX, maxX, predGEV_res_x)
+predGEV_grid_y = np.linspace(minY, maxY, predGEV_res_y)
+predGEV_grid_X, predGEV_grid_Y = np.meshgrid(predGEV_grid_x, predGEV_grid_y)
+predGEV_grid_xy = np.vstack([predGEV_grid_X.ravel(), predGEV_grid_Y.ravel()]).T
+
+# Download the elevation information as covariate -----------------------------
+
+try:
+    predGEV_grid_elev = np.load('predGEV_grid_elev.npy')
+except Exception as e:
+    print(e) 
+    predGEV_grid_elev = np.array([get_elevation(long, lat) for long, lat in predGEV_grid_xy]).astype(float)
+    NA_elev_id = np.where(np.isnan(np.array(predGEV_grid_elev).astype(float)))[0]
+    predGEV_grid_elev[NA_elev_id]
+    np.save('predGEV_grid_elev', predGEV_grid_elev)
+
+
+# Prepare the Splines ---------------------------------------------------------
+
+predGEV_grid_xy_ro = numpy2rpy(predGEV_grid_xy)
+r.assign("predGEV_grid_xy", predGEV_grid_xy_ro)
+r('''
+    predGEV_grid_xy <- as.data.frame(predGEV_grid_xy)
+    colnames(predGEV_grid_xy) <- c('x','y')
+  ''')
+
+# Location mu_0
+
+Beta_mu0_splines_m = 12 - 1
+Beta_mu0_m         = Beta_mu0_splines_m + 2
+C_mu0_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t           = np.column_stack((np.ones(predGEV_res_xy),
+                                      predGEV_grid_elev/200,
+                                      C_mu0_splines))
+C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+
+
+# Location mu_1
+
+Beta_mu1_splines_m = 12 - 1
+Beta_mu1_m         = Beta_mu1_splines_m + 2
+C_mu1_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+C_mu1_1t           = np.column_stack((np.ones(predGEV_res_xy),  # intercept
+                                    predGEV_grid_elev/200,     # elevation
+                                    C_mu1_splines)) # splines (excluding intercept)
+C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+
+# Scale logsigma
+
+Beta_logsigma_m   = 2
+C_logsigma        = np.full(shape = (Beta_logsigma_m, predGEV_res_xy, Nt), fill_value = np.nan)
+C_logsigma[0,:,:] = 1.0 
+C_logsigma[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
+
+# Shape xi
+
+Beta_ksi_m   = 2 # just intercept and elevation
+C_ksi        = np.full(shape = (Beta_ksi_m, predGEV_res_xy, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi[0,:,:] = 1.0
+C_ksi[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
+
+# Plotting Predicted GEV Surface ----------------------------------------------
+
+# mu0
+
+predmu0 = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+vmin    = np.floor(min(predmu0))
+vmax    = np.ceil(max(predmu0))
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\mu_0$ surface', fontsize = 20)
+plt.savefig('Surface:mu0_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# mu1
+
+predmu1   = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+vmin      = np.floor(min(predmu1))
+vmax      = np.ceil(max(predmu1))
+tmp_bound = max(np.abs(vmin), np.abs(vmax))
+divnorm   = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
+fig, ax   = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\mu_1$ surface', fontsize = 20)
+plt.savefig('Surface:mu1_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# logsigma
+
+predlogsigma = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+vmin    = my_floor(min(predlogsigma), 2)
+vmax    = my_ceil(max(predlogsigma), 2)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\log(\sigma)$ surface', fontsize = 20)
+plt.savefig('Surface:logsigma_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# xi
+
+predksi = (C_ksi.T @ Beta_ksi_mean).T[:,0]
+vmin    = my_floor(min(predksi), 2)
+vmax    = my_ceil(max(predksi), 2)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
+plt.savefig('Surface:xi_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
 
 # %% Copula Posterior Surface Plotting
 # copula parameter surface
@@ -1421,8 +1637,10 @@ for s in range(99):
                                         xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
                                         lwd=3)
         pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
-        par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
-        plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
+        par(mgp=c(1.75,0.75,0), mar=c(3,1,1,0), pty = "s")
+        plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y,
+            xlim = c(-2, 5), ylim = c(-2, 5),
+            pch = 20, xlab="Observed", ylab="Gumbel", asp = 1)
         points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
         lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
         lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$upper, lty=2, col="blue", lwd=3)
@@ -1443,9 +1661,13 @@ for s in range(99):
                                             xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
                                             lwd=3)
             pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
-            par(mgp=c(1.75,0.75,0), mar=c(3,3,1,1))
-            plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, 
-                pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 2, cex.axis = 1.25)
+            par(mgp=c(1.75,0.75,0), mar=c(3,1,1,0), pty = "s")
+            # plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, asp = 1,
+            #     xlim = c(-2, 5), ylim = c(-2, 5),
+            #     pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 1.75, cex.axis = 1.25)
+            plot(type="n", x = c(0), y = c(0), asp = 1,
+                xlim = c(-2, 5), ylim = c(-2, 5),
+                pch = 20, xlab="Observed", ylab="Gumbel", cex.lab = 1.75, cex.axis = 1.25)            
             points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
             lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)

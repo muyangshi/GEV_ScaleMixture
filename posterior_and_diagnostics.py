@@ -976,11 +976,37 @@ C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
 # Location mu_1
 
+Beta_mu1_splines_m = 12 - 1
+Beta_mu1_m         = Beta_mu1_splines_m + 2
+C_mu1_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+                                '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
+C_mu1_1t           = np.column_stack((np.ones(predGEV_res_xy),  # intercept
+                                    predGEV_grid_elev/200,     # elevation
+                                    C_mu1_splines)) # splines (excluding intercept)
+C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+
+
 # Scale logsigma
+
+Beta_logsigma_m   = 2
+C_logsigma        = np.full(shape = (Beta_logsigma_m, predGEV_res_xy, Nt), fill_value = np.nan)
+C_logsigma[0,:,:] = 1.0 
+C_logsigma[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
 
 # Shape xi
 
-# mu0 -------------------------------------------------------------------------
+Beta_ksi_m   = 2 # just intercept and elevation
+C_ksi        = np.full(shape = (Beta_ksi_m, predGEV_res_xy, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi[0,:,:] = 1.0
+C_ksi[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
+
+# Plotting Predicted GEV Surface ----------------------------------------------
+
+# mu0
 
 predmu0 = (C_mu0.T @ Beta_mu0_mean).T[:,0]
 vmin    = np.floor(min(predmu0))
@@ -1005,6 +1031,91 @@ plt.xlabel('longitude', fontsize = 20)
 plt.ylabel('latitude', fontsize = 20)
 plt.title(r'Posterior mean $\mu_0$ surface', fontsize = 20)
 plt.savefig('Surface:mu0_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# mu1
+
+predmu1   = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+vmin      = np.floor(min(predmu1))
+vmax      = np.ceil(max(predmu1))
+tmp_bound = max(np.abs(vmin), np.abs(vmax))
+divnorm   = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
+fig, ax   = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\mu_1$ surface', fontsize = 20)
+plt.savefig('Surface:mu1_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# logsigma
+
+predlogsigma = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+vmin    = my_floor(min(predlogsigma), 2)
+vmax    = my_ceil(max(predlogsigma), 2)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\log(\sigma)$ surface', fontsize = 20)
+plt.savefig('Surface:logsigma_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
+
+# xi
+
+predksi = (C_ksi.T @ Beta_ksi_mean).T[:,0]
+vmin    = my_floor(min(predksi), 2)
+vmax    = my_ceil(max(predksi), 2)
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
+plt.savefig('Surface:xi_pred.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
