@@ -124,15 +124,15 @@ def random_point_at_dist(coord1: tuple, h): # return the longitude and latitudes
 
     return np.array([lon_b, lat_b])
 
-def get_elevation(latitude, longitude):
+def get_elevation(longitude, latitude):
     url = 'https://api.open-elevation.com/api/v1/lookup'
     params = {
-        'locations': f'{latitude},{longitude}'
+        'locations': f'{np.round(latitude,7)},{np.round(longitude,7)}'
     }
     response = requests.get(url, params=params)
     if response.status_code == 200:
         elevation = response.json()['results'][0]['elevation']
-        return elevation
+        return float(elevation)
     else:
         return None
 
@@ -842,7 +842,7 @@ plt.savefig('Surface:mu1_smooth.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
-# side by side logsigma
+# logsigma
 vmin = my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
 vmax = my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
 divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
@@ -926,20 +926,87 @@ except:
 # https://likun-stat.shinyapps.io/lab4/#section-retrieve-elevation-values-on-a-grid
 # installation error for `elevatr` -- cannot install terra & raster due to lack of gdal
 
-# resolution for plotting the fitted marginal surface
+# resolution for plotting the fitted marginal surface -------------------------
 #   b/c we need the elevation and its API is expensive
 
-elev_res_x = int(maxX - minX) * 3
-elev_res_y = int(maxY - minY) * 3
-# elev_res_xy = elev_res_x * elev_res_y
-elevgrid_x = np.linspace(minX, maxX, elev_res_x)
-elevgrid_y = np.linspace(minY, maxY, elev_res_y)
-elevgrid_X, elevgrid_Y = np.meshgrid(elevgrid_x, elevgrid_y)
-elevgrid_xy = np.vstack([elevgrid_X.ravel(), elevgrid_Y.ravel()]).T
+predGEV_res_x = int(maxX - minX) * 3
+predGEV_res_y = int(maxY - minY) * 3
+predGEV_res_xy = predGEV_res_x * predGEV_res_y
+predGEV_grid_x = np.linspace(minX, maxX, predGEV_res_x)
+predGEV_grid_y = np.linspace(minY, maxY, predGEV_res_y)
+predGEV_grid_X, predGEV_grid_Y = np.meshgrid(predGEV_grid_x, predGEV_grid_y)
+predGEV_grid_xy = np.vstack([predGEV_grid_X.ravel(), predGEV_grid_Y.ravel()]).T
+
+# Download the elevation information as covariate -----------------------------
+
+try:
+    predGEV_grid_elev = np.load('predGEV_grid_elev.npy')
+except Exception as e:
+    print(e) 
+    predGEV_grid_elev = np.array([get_elevation(long, lat) for long, lat in predGEV_grid_xy]).astype(float)
+    NA_elev_id = np.where(np.isnan(np.array(predGEV_grid_elev).astype(float)))[0]
+    predGEV_grid_elev[NA_elev_id]
+    np.save('predGEV_grid_elev', predGEV_grid_elev)
 
 
+# Prepare the Splines ---------------------------------------------------------
+
+predGEV_grid_xy_ro = numpy2rpy(predGEV_grid_xy)
+r.assign("predGEV_grid_xy", predGEV_grid_xy_ro)
+r('''
+    predGEV_grid_xy <- as.data.frame(predGEV_grid_xy)
+    colnames(predGEV_grid_xy) <- c('x','y')
+  ''')
+
+# Location mu_0
+
+Beta_mu0_splines_m = 12 - 1
+Beta_mu0_m         = Beta_mu0_splines_m + 2
+C_mu0_splines      = np.array(r('''
+                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                # basis_site
+                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t           = np.column_stack((np.ones(predGEV_res_xy),
+                                      predGEV_grid_elev/200,
+                                      C_mu0_splines))
+C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
 
 
+# Location mu_1
+
+# Scale logsigma
+
+# Shape xi
+
+# mu0 -------------------------------------------------------------------------
+
+predmu0 = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+vmin    = np.floor(min(predmu0))
+vmax    = np.ceil(max(predmu0))
+divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+ax.set_aspect('equal','box')
+state_map.boundary.plot(ax=ax, color = 'black')
+heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
+                    extent=[minX, maxX, minY, maxY],
+                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+ax.set_xticks(np.linspace(minX, maxX,num=3))
+ax.set_yticks(np.linspace(minY, maxY,num=5))
+cbar    = fig.colorbar(heatmap, ax = ax)
+cbar.ax.tick_params(labelsize=20)
+plt.xlim([-104,-90])
+plt.ylim([30,47])
+plt.xticks(fontsize = 20)
+plt.yticks(fontsize = 20)
+plt.xlabel('longitude', fontsize = 20)
+plt.ylabel('latitude', fontsize = 20)
+plt.title(r'Posterior mean $\mu_0$ surface', fontsize = 20)
+plt.savefig('Surface:mu0_pred.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
 
 
 # %% Copula Posterior Surface Plotting
