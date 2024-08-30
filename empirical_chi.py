@@ -1,6 +1,5 @@
 """
-Goals for this file:
-1. Make a moving window chi plot for Y
+Moving window empirical chi plot, using initial GEV estimates
 """
 # %%
 import numpy as np

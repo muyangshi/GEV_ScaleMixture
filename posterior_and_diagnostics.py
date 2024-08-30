@@ -642,284 +642,427 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 # plt.title('traceplot for Beta_mu1')
 # plt.xlabel('iter thinned by 10')
 # plt.ylabel('Beta_mu1')
-# plt.legend()  
+# plt.legend()
+
+# %% Empirical chi of dataset, using model fitted GEV
+
+"""
+Moving window empirical chi plot, using GEV fitted at the observation sites
+"""
+
+mu0_fitted      = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+mu1_fitted      = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+logsigma_fitted = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+ksi_fitted      = (C_ksi.T @ Beta_ksi_mean).T[:,0]
+
+if not fixGEV:
+    pY   = np.full(shape = (Ns, Nt), fill_value = np.nan)
+    for t in range(Nt):
+        pY[:,t] = pgev(Y[:,t], mu0_fitted + mu1_fitted * Time[t],
+                            np.exp(logsigma_fitted),
+                            ksi_fitted)
+
+    # place knots for chi plot
+    res_x_chi = 9
+    res_y_chi = 19
+    k_chi = res_x_chi * res_y_chi # number of knots
+    # create one-dimensional arrays for x and y
+    x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
+    y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
+    # create the mesh based on these arrays
+    X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
+    knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
+    knots_x_chi = knots_xy_chi[:,0]
+    knots_y_chi = knots_xy_chi[:,1]   
+
+    rect_width = (knots_xy_chi[0][0] - minX)*2
+    rect_height = (knots_xy_chi[0][1] - minY)*2
+
+    # Plot chi with same h in same figure
+
+    u = 0.99 # 0.9, 0.95, 0.99
+    h = 225 # 75, 150, 225
+    e_abs = 0.2
+
+    # Create a LinearSegmentedColormap from white to red
+    colors = ["#ffffff", "#ff0000"]
+    min_chi = 0.0
+    max_chi = 1.0
+    n_bins = 30  # Number of discrete bins
+    n_ticks = 10
+    cmap_name = "white_to_red"
+    colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+    ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+
+    for h in [75, 150, 225]:
+
+        fig, axes = plt.subplots(1,3)
+        fig.set_size_inches(10,6)
+
+        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+            h_low = h * (1 - e_abs)
+            h_up  = h * (1 + e_abs)
+
+            # e_abs = 20
+            # h_low = h - e_abs
+            # h_up  = h + e_abs
+
+            chi_mat = np.full(shape = (len(x_pos_chi), len(y_pos_chi)), fill_value = np.nan)
+            chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+
+            for i in range(knots_xy_chi.shape[0]):
+
+                # select sites within the rectangle
+                rect_left   = knots_xy_chi[i][0] - rect_width/2
+                rect_right  = knots_xy_chi[i][0] + rect_width/2
+                rect_top    = knots_xy_chi[i][1] + rect_height/2
+                rect_bottom = knots_xy_chi[i][1] - rect_height/2
+                sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+                                                    np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+                sites_in_rect = sites_xy[sites_in_rect_mask]
+
+                # calculate the distance between sites inside rectangle (coords --> km)
+                n_sites = sites_in_rect.shape[0]
+                sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+                for si in range(n_sites):
+                    for sj in range(n_sites):
+                        sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+
+                # select pairs: sites that are ~h km apart
+                sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+                                            np.triu(sites_dist_mat) < h_up)
+                n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+                site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+
+                # large pairs
+                Y_in_rect     = Y[sites_in_rect_mask]
+                pY_in_rect    = pY[sites_in_rect_mask]
+
+                # Calculate empirical chi
+                count_co_extreme = 0
+                for site_pair in site_pairs_to_check:
+                    # for this pair, over time, how many co-occured extremes?
+                    count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
+                                                            pY_in_rect[site_pair[1]] >= u))
+                prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+                prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+                chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+                if np.isnan(chi): chi = 0
+
+                chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
+                chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
+
+            assert np.all(chi_mat2 <= max_chi)
+
+            ax = axes[ax_id]
+            ax.set_aspect('equal', 'box')
+            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+            heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0.0, vmax = 1.0,
+                                interpolation='nearest', 
+                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+            ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+            ax.set_xlim(-101,-93)
+            ax.set_ylim(32.5, 45)
+            ax.tick_params(axis='both', which='major', labelsize=14)
+
+            ax.title.set_text(rf'$\chi_{{{u}}}$')
+            ax.title.set_fontsize(20)
+            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+
+        fig.subplots_adjust(right=0.8)
+        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        colorbar.ax.tick_params(labelsize=14)
+        plt.savefig('empirical_chi_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.show()
+        plt.close()      
+
+
+
+
 
 # %% marginal parameter surface
 # marginal parameter surface
 
-if not fixGEV:
-    # side by side mu0
-    vmin = min(np.floor(min(mu0_estimates)), np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0])))
-    vmax = max(np.ceil(max(mu0_estimates)), np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0])))
-    # mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
-    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+# if not fixGEV:
+#     # side by side mu0
+#     vmin = min(np.floor(min(mu0_estimates)), np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0])))
+#     vmax = max(np.ceil(max(mu0_estimates)), np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0])))
+#     # mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
+#     divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
 
-    fig, ax     = plt.subplots(1,2)
-    mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates,
-                                cmap = colormaps['bwr'], norm = divnorm)
-    ax[0].set_aspect('equal', 'box')
-    ax[0].title.set_text('mu0 data estimates')
-    mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu0.T @ Beta_mu0_mean).T[:,0],
-                                    cmap = colormaps['bwr'], norm = divnorm)
-    ax[1].set_aspect('equal', 'box')
-    ax[1].title.set_text('mu0 post mean estimates')
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(mu0_est_scatter, cax = cbar_ax)
-    plt.savefig('Surface:mu0.pdf')
-    plt.show()
-    plt.close()
+#     fig, ax     = plt.subplots(1,2)
+#     mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates,
+#                                 cmap = colormaps['bwr'], norm = divnorm)
+#     ax[0].set_aspect('equal', 'box')
+#     ax[0].title.set_text('mu0 data estimates')
+#     mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu0.T @ Beta_mu0_mean).T[:,0],
+#                                     cmap = colormaps['bwr'], norm = divnorm)
+#     ax[1].set_aspect('equal', 'box')
+#     ax[1].title.set_text('mu0 post mean estimates')
+#     fig.subplots_adjust(right=0.8)
+#     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#     fig.colorbar(mu0_est_scatter, cax = cbar_ax)
+#     plt.savefig('Surface:mu0.pdf')
+#     plt.show()
+#     plt.close()
 
-    # side by side mu1
-    vmin = min(np.floor(min(mu1_estimates)), np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0])))
-    vmax = max(np.ceil(max(mu1_estimates)), np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0])))
-    # mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
-    divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = vmin, vmax = vmax)
+#     # side by side mu1
+#     vmin = min(np.floor(min(mu1_estimates)), np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0])))
+#     vmax = max(np.ceil(max(mu1_estimates)), np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0])))
+#     # mpnorm = MidpointNormalize(vmin=vmin, vmax=vmax, midpoint=0)
+#     divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = vmin, vmax = vmax)
 
-    fig, ax     = plt.subplots(1,2)
-    mu1_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu1_estimates,
-                                cmap = colormaps['bwr'], norm = divnorm)
-    ax[0].set_aspect('equal', 'box')
-    ax[0].title.set_text('mu1 data estimates')
-    mu1_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu1.T @ Beta_mu1_mean).T[:,0],
-                                    cmap = colormaps['bwr'], norm = divnorm)
-    ax[1].set_aspect('equal', 'box')
-    ax[1].title.set_text('mu1 post mean estimates')
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(mu1_est_scatter, cax = cbar_ax)
-    plt.savefig('Surface:mu1.pdf')
-    plt.show()
-    plt.close()
+#     fig, ax     = plt.subplots(1,2)
+#     mu1_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu1_estimates,
+#                                 cmap = colormaps['bwr'], norm = divnorm)
+#     ax[0].set_aspect('equal', 'box')
+#     ax[0].title.set_text('mu1 data estimates')
+#     mu1_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_mu1.T @ Beta_mu1_mean).T[:,0],
+#                                     cmap = colormaps['bwr'], norm = divnorm)
+#     ax[1].set_aspect('equal', 'box')
+#     ax[1].title.set_text('mu1 post mean estimates')
+#     fig.subplots_adjust(right=0.8)
+#     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#     fig.colorbar(mu1_est_scatter, cax = cbar_ax)
+#     plt.savefig('Surface:mu1.pdf')
+#     plt.show()
+#     plt.close()
 
-    # side by side for mu = mu0 + mu1
-    year = 1999
-    year_adj = year - start_year
-    vmin = min(np.floor(min(mu0_estimates + mu1_estimates * Time[year_adj])), 
-            np.floor(min(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj])))
-    vmax = max(np.ceil(max(mu0_estimates + mu1_estimates * Time[year_adj])), 
-            np.ceil(max(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj])))
-    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+#     # side by side for mu = mu0 + mu1
+#     year = 1999
+#     year_adj = year - start_year
+#     vmin = min(np.floor(min(mu0_estimates + mu1_estimates * Time[year_adj])), 
+#             np.floor(min(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj])))
+#     vmax = max(np.ceil(max(mu0_estimates + mu1_estimates * Time[year_adj])), 
+#             np.ceil(max(((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj])))
+#     divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
 
-    fig, ax     = plt.subplots(1,2)
-    mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates + mu1_estimates * Time[year_adj],
-                                cmap = colormaps['bwr'], norm = divnorm)
-    ax[0].set_aspect('equal', 'box')
-    ax[0].title.set_text('mu data year: ' + str(start_year+year_adj))
-    mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj],
-                                    cmap = colormaps['bwr'], norm = divnorm)
-    ax[1].set_aspect('equal', 'box')
-    ax[1].title.set_text('mu post mean year: ' + str(start_year+year_adj))
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(mu0_est_scatter, cax = cbar_ax)
-    plt.savefig('Surface:mu'+str(1949+year_adj)+'.pdf')
-    plt.show()
-    plt.close()
+#     fig, ax     = plt.subplots(1,2)
+#     mu0_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = mu0_estimates + mu1_estimates * Time[year_adj],
+#                                 cmap = colormaps['bwr'], norm = divnorm)
+#     ax[0].set_aspect('equal', 'box')
+#     ax[0].title.set_text('mu data year: ' + str(start_year+year_adj))
+#     mu0_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = ((C_mu0.T @ Beta_mu0_mean).T + (C_mu1.T @ Beta_mu1_mean).T * Time)[:,year_adj],
+#                                     cmap = colormaps['bwr'], norm = divnorm)
+#     ax[1].set_aspect('equal', 'box')
+#     ax[1].title.set_text('mu post mean year: ' + str(start_year+year_adj))
+#     fig.subplots_adjust(right=0.8)
+#     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#     fig.colorbar(mu0_est_scatter, cax = cbar_ax)
+#     plt.savefig('Surface:mu'+str(1949+year_adj)+'.pdf')
+#     plt.show()
+#     plt.close()
 
-    # side by side logsigma
-    vmin = min(my_floor(min(logsigma_estimates), 1), my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
-    vmax = max(my_ceil(max(logsigma_estimates), 1), my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
-    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+#     # side by side logsigma
+#     vmin = min(my_floor(min(logsigma_estimates), 1), my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
+#     vmax = max(my_ceil(max(logsigma_estimates), 1), my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1))
+#     divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
 
-    fig, ax     = plt.subplots(1,2)
-    logsigma_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = logsigma_estimates,
-                                cmap = colormaps['bwr'], norm = divnorm)
-    ax[0].set_aspect('equal', 'box')
-    ax[0].title.set_text('logsigma data estimates')
-    logsigma_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_logsigma.T @ Beta_logsigma_mean).T[:,0],
-                                    cmap = colormaps['bwr'], norm = divnorm)
-    ax[1].set_aspect('equal', 'box')
-    ax[1].title.set_text('logsigma post mean estimates')
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    fig.colorbar(logsigma_est_scatter, cax = cbar_ax)
-    plt.savefig('Surface:logsigma.pdf')
-    plt.show()
-    plt.close()
+#     fig, ax     = plt.subplots(1,2)
+#     logsigma_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = logsigma_estimates,
+#                                 cmap = colormaps['bwr'], norm = divnorm)
+#     ax[0].set_aspect('equal', 'box')
+#     ax[0].title.set_text('logsigma data estimates')
+#     logsigma_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_logsigma.T @ Beta_logsigma_mean).T[:,0],
+#                                     cmap = colormaps['bwr'], norm = divnorm)
+#     ax[1].set_aspect('equal', 'box')
+#     ax[1].title.set_text('logsigma post mean estimates')
+#     fig.subplots_adjust(right=0.8)
+#     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#     fig.colorbar(logsigma_est_scatter, cax = cbar_ax)
+#     plt.savefig('Surface:logsigma.pdf')
+#     plt.show()
+#     plt.close()
 
-    try:
-        # side by side ksi
-        vmin = min(my_floor(min(ksi_estimates), 1), my_floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
-        vmax = max(my_ceil(max(ksi_estimates), 1), my_ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
-        divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+#     try:
+#         # side by side ksi
+#         vmin = min(my_floor(min(ksi_estimates), 1), my_floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
+#         vmax = max(my_ceil(max(ksi_estimates), 1), my_ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0]), 1))
+#         divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
 
-        fig, ax     = plt.subplots(1,2)
-        ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = ksi_estimates,
-                                    cmap = colormaps['bwr'], norm = divnorm)
-        ax[0].set_aspect('equal', 'box')
-        ax[0].title.set_text('ksi data estimates')
-        ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
-                                        cmap = colormaps['bwr'], norm = divnorm)
-        ax[1].set_aspect('equal', 'box')
-        ax[1].title.set_text('ksi post mean estimates')
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(ksi_est_scatter, cax = cbar_ax)
-        plt.savefig('Surface:ksi.pdf')
-        plt.show()
-        plt.close()
-    except:
-        pass
+#         fig, ax     = plt.subplots(1,2)
+#         ksi_scatter = ax[0].scatter(sites_x, sites_y, s = 10, c = ksi_estimates,
+#                                     cmap = colormaps['bwr'], norm = divnorm)
+#         ax[0].set_aspect('equal', 'box')
+#         ax[0].title.set_text('ksi data estimates')
+#         ksi_est_scatter = ax[1].scatter(sites_x, sites_y, s = 10, c = (C_ksi.T @ Beta_ksi_mean).T[:,0],
+#                                         cmap = colormaps['bwr'], norm = divnorm)
+#         ax[1].set_aspect('equal', 'box')
+#         ax[1].title.set_text('ksi post mean estimates')
+#         fig.subplots_adjust(right=0.8)
+#         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+#         fig.colorbar(ksi_est_scatter, cax = cbar_ax)
+#         plt.savefig('Surface:ksi.pdf')
+#         plt.show()
+#         plt.close()
+#     except:
+#         pass
 
 # %% Externally Smooth GEV Surface
 
-# mu0
-vmin = np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0]))
-vmax = np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0]))
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
-# scatter data
-x = sites_x
-y = sites_y
-z = (C_mu0.T @ Beta_mu0_mean).T[:,0]
-# grid for the heatmap
-xi = plotgrid_X
-yi = plotgrid_Y
-# interpolate z values over the grid
-zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
-# create a figure and set a size
-fig, ax = plt.subplots()
-fig.set_size_inches(8,6)
-ax.set_aspect('equal','box')
-# plot the smoothed surface as a heatmap
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=5))
-cbar = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=20)
-# Overlay the original scatter plot
-ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
-            s = 10, cmap = colormaps['bwr'], norm = divnorm)
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 20)
-plt.yticks(fontsize = 20)
-plt.xlabel('longitude', fontsize = 20)
-plt.ylabel('latitude', fontsize = 20)
-plt.title(r'Posterior mean $\mu_0$ surface', fontsize = 20)
-plt.savefig('Surface:mu0_smooth.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+# # mu0
+# vmin = np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0]))
+# vmax = np.ceil(max((C_mu0.T @ Beta_mu0_mean).T[:,0]))
+# divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+# # scatter data
+# x = sites_x
+# y = sites_y
+# z = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+# # grid for the heatmap
+# xi = plotgrid_X
+# yi = plotgrid_Y
+# # interpolate z values over the grid
+# zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
+# # create a figure and set a size
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+# # plot the smoothed surface as a heatmap
+# state_map.boundary.plot(ax=ax, color = 'black')
+# heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
+# ax.set_xticks(np.linspace(minX, maxX,num=3))
+# ax.set_yticks(np.linspace(minY, maxY,num=5))
+# cbar = fig.colorbar(heatmap, ax = ax)
+# cbar.ax.tick_params(labelsize=20)
+# # Overlay the original scatter plot
+# ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
+#             s = 10, cmap = colormaps['bwr'], norm = divnorm)
+# plt.xlim([-104,-90])
+# plt.ylim([30,47])
+# plt.xticks(fontsize = 20)
+# plt.yticks(fontsize = 20)
+# plt.xlabel('longitude', fontsize = 20)
+# plt.ylabel('latitude', fontsize = 20)
+# plt.title(r'Posterior mean $\mu_0$ surface', fontsize = 20)
+# plt.savefig('Surface:mu0_smooth.pdf', bbox_inches='tight')
+# plt.show()
+# plt.close()
 
 
-# mu1
-vmin = np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0]))
-vmax = np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0]))
-tmp_bound = max(np.abs(vmin), np.abs(vmax))
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
-# scatter data
-x = sites_x
-y = sites_y
-z = (C_mu1.T @ Beta_mu1_mean).T[:,0]
-# grid for the heatmap
-xi = plotgrid_X
-yi = plotgrid_Y
-# interpolate z values over the grid
-zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
-# create a figure and set a size
-fig, ax = plt.subplots()
-fig.set_size_inches(8,6)
-ax.set_aspect('equal','box')
-# plot the smoothed surface as a heatmap
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=5))
-cbar = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=20)
-# Overlay the original scatter plot
-ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
-            s = 10, cmap = colormaps['bwr'], norm = divnorm)
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 20)
-plt.yticks(fontsize = 20)
-plt.xlabel('longitude', fontsize = 20)
-plt.ylabel('latitude', fontsize = 20)
-plt.title(r'Posterior mean $\mu_1$ surface', fontsize = 20)
-plt.savefig('Surface:mu1_smooth.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+# # mu1
+# vmin = np.floor(min((C_mu1.T @ Beta_mu1_mean).T[:,0]))
+# vmax = np.ceil(max((C_mu1.T @ Beta_mu1_mean).T[:,0]))
+# tmp_bound = max(np.abs(vmin), np.abs(vmax))
+# divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
+# # scatter data
+# x = sites_x
+# y = sites_y
+# z = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+# # grid for the heatmap
+# xi = plotgrid_X
+# yi = plotgrid_Y
+# # interpolate z values over the grid
+# zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
+# # create a figure and set a size
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+# # plot the smoothed surface as a heatmap
+# state_map.boundary.plot(ax=ax, color = 'black')
+# heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
+# ax.set_xticks(np.linspace(minX, maxX,num=3))
+# ax.set_yticks(np.linspace(minY, maxY,num=5))
+# cbar = fig.colorbar(heatmap, ax = ax)
+# cbar.ax.tick_params(labelsize=20)
+# # Overlay the original scatter plot
+# ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
+#             s = 10, cmap = colormaps['bwr'], norm = divnorm)
+# plt.xlim([-104,-90])
+# plt.ylim([30,47])
+# plt.xticks(fontsize = 20)
+# plt.yticks(fontsize = 20)
+# plt.xlabel('longitude', fontsize = 20)
+# plt.ylabel('latitude', fontsize = 20)
+# plt.title(r'Posterior mean $\mu_1$ surface', fontsize = 20)
+# plt.savefig('Surface:mu1_smooth.pdf', bbox_inches='tight')
+# plt.show()
+# plt.close()
 
-# logsigma
-vmin = my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
-vmax = my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
-# scatter data
-x = sites_x
-y = sites_y
-z = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
-# grid for the heatmap
-xi = plotgrid_X
-yi = plotgrid_Y
-# interpolate z values over the grid
-zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
-# create a figure and set a size
-fig, ax = plt.subplots()
-fig.set_size_inches(8,6)
-ax.set_aspect('equal','box')
-# plot the smoothed surface as a heatmap
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=5))
-cbar = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=20)
-# Overlay the original scatter plot
-ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
-            s = 10, cmap = colormaps['bwr'], norm = divnorm)
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 20)
-plt.yticks(fontsize = 20)
-plt.xlabel('longitude', fontsize = 20)
-plt.ylabel('latitude', fontsize = 20)
-plt.title(r'Posterior mean $\log(\sigma)$ surface', fontsize = 20)
-plt.savefig('Surface:logsigma_smooth.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+# # logsigma
+# vmin = my_floor(min((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
+# vmax = my_ceil(max((C_logsigma.T @ Beta_logsigma_mean).T[:,0]), 1)
+# divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+# # scatter data
+# x = sites_x
+# y = sites_y
+# z = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+# # grid for the heatmap
+# xi = plotgrid_X
+# yi = plotgrid_Y
+# # interpolate z values over the grid
+# zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
+# # create a figure and set a size
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+# # plot the smoothed surface as a heatmap
+# state_map.boundary.plot(ax=ax, color = 'black')
+# heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
+# ax.set_xticks(np.linspace(minX, maxX,num=3))
+# ax.set_yticks(np.linspace(minY, maxY,num=5))
+# cbar = fig.colorbar(heatmap, ax = ax)
+# cbar.ax.tick_params(labelsize=20)
+# # Overlay the original scatter plot
+# ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
+#             s = 10, cmap = colormaps['bwr'], norm = divnorm)
+# plt.xlim([-104,-90])
+# plt.ylim([30,47])
+# plt.xticks(fontsize = 20)
+# plt.yticks(fontsize = 20)
+# plt.xlabel('longitude', fontsize = 20)
+# plt.ylabel('latitude', fontsize = 20)
+# plt.title(r'Posterior mean $\log(\sigma)$ surface', fontsize = 20)
+# plt.savefig('Surface:logsigma_smooth.pdf', bbox_inches='tight')
+# plt.show()
+# plt.close()
 
-try:
-    # ksi
-    vmin = my_floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0]), 2)
-    vmax = my_ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0]), 2)
-    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
-    # scatter data
-    x = sites_x
-    y = sites_y
-    z = (C_ksi.T @ Beta_ksi_mean).T[:,0]
-    # grid for the heatmap
-    xi = plotgrid_X
-    yi = plotgrid_Y
-    # interpolate z values over the grid
-    zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
-    # create a figure and set a size
-    fig, ax = plt.subplots()
-    fig.set_size_inches(8,6)
-    ax.set_aspect('equal','box')
-    # plot the smoothed surface as a heatmap
-    state_map.boundary.plot(ax=ax, color = 'black')
-    heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
-    ax.set_xticks(np.linspace(minX, maxX,num=3))
-    ax.set_yticks(np.linspace(minY, maxY,num=5))
-    cbar = fig.colorbar(heatmap, ax = ax)
-    cbar.ax.tick_params(labelsize=20)
-    # Overlay the original scatter plot
-    ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
-                s = 10, cmap = colormaps['bwr'], norm = divnorm)
-    plt.xlim([-104,-90])
-    plt.ylim([30,47])
-    plt.xticks(fontsize = 20)
-    plt.yticks(fontsize = 20)
-    plt.xlabel('longitude', fontsize = 20)
-    plt.ylabel('latitude', fontsize = 20)
-    plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
-    plt.savefig('Surface:ksi_smooth.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
-except:
-    pass
+# try:
+#     # ksi
+#     vmin = my_floor(min((C_ksi.T @ Beta_ksi_mean).T[:,0]), 2)
+#     vmax = my_ceil(max((C_ksi.T @ Beta_ksi_mean).T[:,0]), 2)
+#     divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin+vmax)/2, vmin = vmin, vmax = vmax)
+#     # scatter data
+#     x = sites_x
+#     y = sites_y
+#     z = (C_ksi.T @ Beta_ksi_mean).T[:,0]
+#     # grid for the heatmap
+#     xi = plotgrid_X
+#     yi = plotgrid_Y
+#     # interpolate z values over the grid
+#     zi = scipy.interpolate.griddata((x,y), z, (xi, yi), method='cubic')
+#     # create a figure and set a size
+#     fig, ax = plt.subplots()
+#     fig.set_size_inches(8,6)
+#     ax.set_aspect('equal','box')
+#     # plot the smoothed surface as a heatmap
+#     state_map.boundary.plot(ax=ax, color = 'black')
+#     heatmap = ax.imshow(zi, extent=[min(x), max(x), min(y), max(y)], origin='lower', cmap = colormaps['bwr'], norm = divnorm)
+#     ax.set_xticks(np.linspace(minX, maxX,num=3))
+#     ax.set_yticks(np.linspace(minY, maxY,num=5))
+#     cbar = fig.colorbar(heatmap, ax = ax)
+#     cbar.ax.tick_params(labelsize=20)
+#     # Overlay the original scatter plot
+#     ax.scatter(x, y, c=z, edgecolors='black', linewidths=0.1,
+#                 s = 10, cmap = colormaps['bwr'], norm = divnorm)
+#     plt.xlim([-104,-90])
+#     plt.ylim([30,47])
+#     plt.xticks(fontsize = 20)
+#     plt.yticks(fontsize = 20)
+#     plt.xlabel('longitude', fontsize = 20)
+#     plt.ylabel('latitude', fontsize = 20)
+#     plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
+#     plt.savefig('Surface:ksi_smooth.pdf', bbox_inches='tight')
+#     plt.show()
+#     plt.close()
+# except:
+#     pass
 
 # %% Predicted Smooth GEV Surface
 
@@ -960,55 +1103,49 @@ r('''
 
 # Location mu_0
 
-Beta_mu0_splines_m = 12 - 1
-Beta_mu0_m         = Beta_mu0_splines_m + 2
-C_mu0_splines      = np.array(r('''
-                                basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
-                                # basis_site
-                                basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
-                                '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
-C_mu0_1t           = np.column_stack((np.ones(predGEV_res_xy),
-                                      predGEV_grid_elev/200,
-                                      C_mu0_splines))
-C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
+C_mu0_splines_pred      = np.array(r('''
+                                        basis      <- smoothCon(s(x, y, k = {Beta_mu0_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                        basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                        # basis_site
+                                        basis_site[,c(-(ncol(basis_site)-2))] # dropped the 3rd to last column of constant
+                                    '''.format(Beta_mu0_splines_m = Beta_mu0_splines_m+1))) # shaped(Ns, Beta_mu0_splines_m)
+C_mu0_1t_pred           = np.column_stack((np.ones(predGEV_res_xy),
+                                            predGEV_grid_elev/200,
+                                            C_mu0_splines_pred))
+C_mu0_pred              = np.tile(C_mu0_1t_pred.T[:,:,None], reps = (1, 1, Nt))
 
 
 # Location mu_1
 
-Beta_mu1_splines_m = 12 - 1
-Beta_mu1_m         = Beta_mu1_splines_m + 2
-C_mu1_splines      = np.array(r('''
-                                basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
-                                basis_site <- PredictMat(basis, data = predGEV_grid_xy)
-                                # basis_site
-                                basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
+C_mu1_splines_pred      = np.array(r('''
+                                        basis      <- smoothCon(s(x, y, k = {Beta_mu1_splines_m}, fx = TRUE), data = gs_xy_df)[[1]]
+                                        basis_site <- PredictMat(basis, data = predGEV_grid_xy)
+                                        # basis_site
+                                        basis_site[,c(-(ncol(basis_site)-2))] # drop the 3rd to last column of constant
                                 '''.format(Beta_mu1_splines_m = Beta_mu1_splines_m+1))) # shaped(Ns, Beta_mu1_splines_m)
-C_mu1_1t           = np.column_stack((np.ones(predGEV_res_xy),  # intercept
-                                    predGEV_grid_elev/200,     # elevation
-                                    C_mu1_splines)) # splines (excluding intercept)
-C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
+C_mu1_1t_pred           = np.column_stack((np.ones(predGEV_res_xy),  # intercept
+                                            predGEV_grid_elev/200,     # elevation
+                                            C_mu1_splines_pred)) # splines (excluding intercept)
+C_mu1_pred              = np.tile(C_mu1_1t_pred.T[:,:,None], reps = (1, 1, Nt))
 
 
 # Scale logsigma
 
-Beta_logsigma_m   = 2
-C_logsigma        = np.full(shape = (Beta_logsigma_m, predGEV_res_xy, Nt), fill_value = np.nan)
-C_logsigma[0,:,:] = 1.0 
-C_logsigma[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
+C_logsigma_pred        = np.full(shape = (Beta_logsigma_m, predGEV_res_xy, Nt), fill_value = np.nan)
+C_logsigma_pred[0,:,:] = 1.0 
+C_logsigma_pred[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
 
 # Shape xi
 
-Beta_ksi_m   = 2 # just intercept and elevation
-C_ksi        = np.full(shape = (Beta_ksi_m, predGEV_res_xy, Nt), fill_value = np.nan) # ksi design matrix
-C_ksi[0,:,:] = 1.0
-C_ksi[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
+C_ksi_pred        = np.full(shape = (Beta_ksi_m, predGEV_res_xy, Nt), fill_value = np.nan) # ksi design matrix
+C_ksi_pred[0,:,:] = 1.0
+C_ksi_pred[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
 
 # Plotting Predicted GEV Surface ----------------------------------------------
 
 # mu0
 
-predmu0 = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+predmu0 = (C_mu0_pred.T @ Beta_mu0_mean).T[:,0]
 vmin    = np.floor(min(predmu0))
 vmax    = np.ceil(max(predmu0))
 divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
@@ -1036,7 +1173,7 @@ plt.close()
 
 # mu1
 
-predmu1   = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+predmu1   = (C_mu1_pred.T @ Beta_mu1_mean).T[:,0]
 vmin      = np.floor(min(predmu1))
 vmax      = np.ceil(max(predmu1))
 tmp_bound = max(np.abs(vmin), np.abs(vmax))
@@ -1065,7 +1202,7 @@ plt.close()
 
 # logsigma
 
-predlogsigma = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+predlogsigma = (C_logsigma_pred.T @ Beta_logsigma_mean).T[:,0]
 vmin    = my_floor(min(predlogsigma), 2)
 vmax    = my_ceil(max(predlogsigma), 2)
 divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
@@ -1092,33 +1229,34 @@ plt.show()
 plt.close()
 
 # xi
-
-predksi = (C_ksi.T @ Beta_ksi_mean).T[:,0]
-vmin    = my_floor(min(predksi), 2)
-vmax    = my_ceil(max(predksi), 2)
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
-fig, ax = plt.subplots()
-fig.set_size_inches(8,6)
-ax.set_aspect('equal','box')
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
-                    extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=5))
-cbar    = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=20)
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 20)
-plt.yticks(fontsize = 20)
-plt.xlabel('longitude', fontsize = 20)
-plt.ylabel('latitude', fontsize = 20)
-plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
-plt.savefig('Surface:xi_pred.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
-
+try:
+    predksi = (C_ksi_pred.T @ Beta_ksi_mean).T[:,0]
+    vmin    = my_floor(min(predksi), 2)
+    vmax    = my_ceil(max(predksi), 2)
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=5))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=20)
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 20)
+    plt.yticks(fontsize = 20)
+    plt.xlabel('longitude', fontsize = 20)
+    plt.ylabel('latitude', fontsize = 20)
+    plt.title(r'Posterior mean $\xi$ surface', fontsize = 20)
+    plt.savefig('Surface:xi_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+except:
+    pass
 
 # %% Copula Posterior Surface Plotting
 # copula parameter surface
@@ -1191,6 +1329,7 @@ plt.savefig('Surface:range.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
 
+
 # %% Empirical Model estimated chi plot -----------------------------------------------------------------------------------------------
 # Empirical Model estimated chi plot
 
@@ -1230,7 +1369,7 @@ plt.ylim([30,50])
 plt.show()
 plt.close()
 
-# # function to calculate chi for a knot_chi
+# # function to calculate chi for a knot_chi, using posterior mean of R
 # def calc_chi(args):
 #     point_A, u, h = args
 #     point_B = random_point_at_dist(point_A, h)
@@ -1301,14 +1440,7 @@ def calc_chi(args):
     sites_AB = np.row_stack([point_A, point_B])
 
     # new weight matrices
-    # gaussian_weight_matrix_AB = np.full(shape = (2, k), fill_value = np.nan)
-    # for site_id in np.arange(2):
-    #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_AB[site_id,:].reshape((-1,2)), 
-    #                                                 XB = knots_xy)
-    #     # influence coming from each of the knots
-    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    #     gaussian_weight_matrix_AB[site_id, :] = weight_from_knots
+
     gaussian_weight_matrix_AB_phi = np.full(shape = (2, k_phi), fill_value = np.nan)
     for site_id in np.arange(2):
         # Compute distance between each pair of the two collections of inputs
