@@ -644,10 +644,10 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 # plt.ylabel('Beta_mu1')
 # plt.legend()
 
-# %% Empirical chi of dataset, using model fitted GEV
+# %% Empirical chi of dataset, using model fitted posterior mean GEV
 
 """
-Moving window empirical chi plot, using GEV fitted at the observation sites
+Moving window empirical chi plot, using fitted (posterior mean) GEV at the observation sites
 """
 
 mu0_fitted      = (C_mu0.T @ Beta_mu0_mean).T[:,0]
@@ -680,8 +680,8 @@ if not fixGEV:
 
     # Plot chi with same h in same figure
 
-    u = 0.99 # 0.9, 0.95, 0.99
-    h = 225 # 75, 150, 225
+    # u = 0.99 # 0.9, 0.95, 0.99
+    # h = 225 # 75, 150, 225
     e_abs = 0.2
 
     # Create a LinearSegmentedColormap from white to red
@@ -779,13 +779,166 @@ if not fixGEV:
         cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
         colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
         colorbar.ax.tick_params(labelsize=14)
-        plt.savefig('empirical_chi_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.savefig('Surface:empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
         plt.show()
         plt.close()      
 
 
+# %% Empirical chi of dataset, mean of the chi using per MCMC iter fitted GEV
+
+"""
+Moving window empirical chi plot, using mean of per MCMC iter fitted GEV at the observation sites
+"""
+
+if not fixGEV: 
+    
+    # these are the per iteration marginal parameters
+    Beta_mu0_trace_thin100      = Beta_mu0_trace[0:iter:100,:]
+    Beta_mu1_trace_thin100      = Beta_mu1_trace[0:iter:100,:]
+    Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:iter:100,:]
+    Beta_ksi_trace_thin100      = Beta_ksi_trace[0:iter:100,:]
+
+    mu0_fitted_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
+    mu1_fitted_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
+    mu_fitted_matrix_thin100    = mu0_fitted_matrix_thin100 + mu1_fitted_matrix_thin100 * Time
+    sigma_fitted_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
+    ksi_fitted_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
+
+    n_thin100  = Beta_mu0_trace_thin100.shape[0]
+
+    pY_mcmc = np.full(shape = (n_thin100, Ns, Nt), fill_value = np.nan)
+    for i in range(n_thin100): # this should be parallelize too
+        for t in range(Nt):
+            pY_mcmc[i,:,t] = pgev(Y[:,t], 
+                                  mu_fitted_matrix_thin100[i,:,t],
+                                  sigma_fitted_matrix_thin100[i,:,t],
+                                  ksi_fitted_matrix_thin100[i,:,t])
+
+    # place knots for chi plot
+    res_x_chi = 9
+    res_y_chi = 19
+    k_chi = res_x_chi * res_y_chi # number of knots
+    # create one-dimensional arrays for x and y
+    x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
+    y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
+    # create the mesh based on these arrays
+    X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
+    knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
+    knots_x_chi = knots_xy_chi[:,0]
+    knots_y_chi = knots_xy_chi[:,1]   
+
+    rect_width = (knots_xy_chi[0][0] - minX)*2
+    rect_height = (knots_xy_chi[0][1] - minY)*2
+
+    # Plot chi with same h in same figure
+
+    e_abs = 0.2
+
+    # Create a LinearSegmentedColormap from white to red
+    colors = ["#ffffff", "#ff0000"]
+    min_chi = 0.0
+    max_chi = 1.0
+    n_bins = 30  # Number of discrete bins
+    n_ticks = 10
+    cmap_name = "white_to_red"
+    colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+    ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+
+    def calculate_chi_mat(args):
+        pY, h, u = args
+        # print('h:',h,'u:',u)
+
+        h_low = h * (1 - e_abs)
+        h_up  = h * (1 + e_abs)
+
+        chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+
+        for i in range(knots_xy_chi.shape[0]):
+
+            # select sites within the rectangle
+            rect_left   = knots_xy_chi[i][0] - rect_width/2
+            rect_right  = knots_xy_chi[i][0] + rect_width/2
+            rect_top    = knots_xy_chi[i][1] + rect_height/2
+            rect_bottom = knots_xy_chi[i][1] - rect_height/2
+            sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+                                                np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+            sites_in_rect = sites_xy[sites_in_rect_mask]
+
+            # calculate the distance between sites inside rectangle (coords --> km)
+            n_sites = sites_in_rect.shape[0]
+            sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+            for si in range(n_sites):
+                for sj in range(n_sites):
+                    sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+
+            # select pairs: sites that are ~h km apart
+            sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+                                        np.triu(sites_dist_mat) < h_up)
+            n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+            site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+
+            # large pairs
+            # Y_in_rect     = Y[sites_in_rect_mask]
+            pY_in_rect    = pY[sites_in_rect_mask]
+
+            # Calculate empirical chi
+            count_co_extreme = 0
+            for site_pair in site_pairs_to_check:
+                # for this pair, over time, how many co-occured extremes?
+                count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
+                                                        pY_in_rect[site_pair[1]] >= u))
+            prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+            prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+            chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+            if np.isnan(chi): chi = 0
+
+            # chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
+            chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
+        
+        return chi_mat2
 
 
+    for h in [75, 150, 225]:
+
+        fig, axes = plt.subplots(1,3)
+        fig.set_size_inches(10,6)
+
+        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+            args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
+            with multiprocessing.Pool(processes=25) as pool:
+                results = pool.map(calculate_chi_mat, args_list)
+            chi_mats = np.array(results)
+            chi_mat_mean = np.mean(chi_mats, axis = 0)
+
+
+            ax = axes[ax_id]
+            ax.set_aspect('equal', 'box')
+            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+            heatmap = ax.imshow(chi_mat_mean, cmap = colormap, vmin = 0.0, vmax = 1.0,
+                                interpolation='nearest', 
+                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+            ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+            ax.set_xlim(-101,-93)
+            ax.set_ylim(32.5, 45)
+            ax.tick_params(axis='both', which='major', labelsize=14)
+
+            ax.title.set_text(rf'$\chi_{{{u}}}$')
+            ax.title.set_fontsize(20)
+            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+
+        fig.subplots_adjust(right=0.8)
+        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        colorbar.ax.tick_params(labelsize=14)
+        plt.savefig('Surface:mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.show()
+        plt.close()
 
 # %% marginal parameter surface
 # marginal parameter surface
