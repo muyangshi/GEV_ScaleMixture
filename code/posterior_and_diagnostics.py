@@ -139,16 +139,20 @@ def get_elevation(longitude, latitude):
 # %%
 # Specify which chain
 
-folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-name             = 'k13_r4'
-fixGEV           = False
-radius           = 4
-bandwidth_phi    = 4
-bandwidth_rho    = 4
-N_outer_grid_phi = 9
-N_outer_grid_rho = 9
-mark             = True
-burnin           = 5000
+# Model 1: k13_r4
+
+# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
+# name             = 'k13_r4'
+# fixGEV           = False
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 9
+# N_outer_grid_rho = 9
+# mark             = True
+# burnin           = 5000
+
+# Model 2: k13_r4_fixGEV
 
 # folder           = './data_alpine/CONVERGED/20240320_realdata_t75_s590_k13_r4_fixGEV/'
 # name             = 'k13_r4_fixGEV'
@@ -161,6 +165,8 @@ burnin           = 5000
 # mark             = True
 # burnin           = 5000
 
+# Model 3: k25_r2
+
 # folder           = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
 # name             = 'k25_r2'
 # fixGEV           = False
@@ -171,6 +177,8 @@ burnin           = 5000
 # N_outer_grid_rho = 16
 # mark             = False
 # burnin           = 6000
+
+# Model 4: k25_r2_fixGEV
 
 # folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
 # name             = 'k25_r2_fixGEV'
@@ -183,16 +191,7 @@ burnin           = 5000
 # mark             = False
 # burnin           = 6000
 
-# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
-# name             = 'k25_r4_fixGEV'
-# fixGEV           = True
-# radius           = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-# bandwidth_phi    = 4 # range for the gaussian kernel
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 5000
+# Model 5: k25_r4
 
 # folder           = './data_alpine/CONVERGED/20240406_realdata_t75_s590_k25_r4/'
 # name             = 'k25_r4'
@@ -205,6 +204,34 @@ burnin           = 5000
 # mark             = False
 # burnin           = 5000
 
+# Model 6: k25_r4_fixGEV
+
+# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
+# name             = 'k25_r4_fixGEV'
+# fixGEV           = True
+# radius           = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
+# bandwidth_phi    = 4 # range for the gaussian kernel
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 5000
+
+# Model 7: k25_efr2
+
+folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2/'
+name             = 'k25_efr2'
+fixGEV           = False
+radius           = 2
+bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
+bandwidth_rho    = radius**2/6
+N_outer_grid_phi = 16
+N_outer_grid_rho = 16
+mark             = False
+burnin           = 5000
+
+# Model 8: k25_efr2_fixksi
+
 # folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2_fixksi/'
 # name             = 'k25_efr2_fixksi'
 # fixGEV           = False
@@ -216,16 +243,8 @@ burnin           = 5000
 # mark             = False
 # burnin           = 5000
 
-# folder           = './data_alpine/20240428_copy/20240410_realdata_t75_s590_k25_efr2/'
-# name             = 'k25_efr2'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-# bandwidth_rho    = radius**2/6
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 0
+
+# Model 9: k41_efr2
 
 # folder           = './data_alpine/20240428_copy/20240419_realdata_t75_s590_k41_efr2/'
 # name             = 'k41_efr2'
@@ -236,9 +255,11 @@ burnin           = 5000
 # N_outer_grid_phi = 25
 # N_outer_grid_rho = 25
 # mark             = False
-# burnin           = 0
+# burnin           = 7000
 
-# folder           = './data_alpine/20240517_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
+# Model 10: phik41efr2_rhok13r4
+
+# folder           = './data_alpine/20240624_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
 # name             = 'phik41efr2_rhok13r4'
 # fixGEV           = False
 # radius           = 2
@@ -247,7 +268,7 @@ burnin           = 5000
 # N_outer_grid_phi = 25
 # N_outer_grid_rho = 9
 # mark             = False
-# burnin           = 0
+# burnin           = 6000
 
 # %% load traceplots
 # load traceplots
@@ -646,142 +667,142 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
 # %% Empirical chi of dataset, using model fitted posterior mean GEV
 
-"""
-Moving window empirical chi plot, using fitted (posterior mean) GEV at the observation sites
-"""
+# """
+# Moving window empirical chi plot, using fitted (posterior mean) GEV at the observation sites
+# """
 
-mu0_fitted      = (C_mu0.T @ Beta_mu0_mean).T[:,0]
-mu1_fitted      = (C_mu1.T @ Beta_mu1_mean).T[:,0]
-logsigma_fitted = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
-ksi_fitted      = (C_ksi.T @ Beta_ksi_mean).T[:,0]
+# mu0_fitted      = (C_mu0.T @ Beta_mu0_mean).T[:,0]
+# mu1_fitted      = (C_mu1.T @ Beta_mu1_mean).T[:,0]
+# logsigma_fitted = (C_logsigma.T @ Beta_logsigma_mean).T[:,0]
+# ksi_fitted      = (C_ksi.T @ Beta_ksi_mean).T[:,0]
 
-if not fixGEV:
-    pY   = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    for t in range(Nt):
-        pY[:,t] = pgev(Y[:,t], mu0_fitted + mu1_fitted * Time[t],
-                            np.exp(logsigma_fitted),
-                            ksi_fitted)
+# if not fixGEV:
+#     pY   = np.full(shape = (Ns, Nt), fill_value = np.nan)
+#     for t in range(Nt):
+#         pY[:,t] = pgev(Y[:,t], mu0_fitted + mu1_fitted * Time[t],
+#                             np.exp(logsigma_fitted),
+#                             ksi_fitted)
 
-    # place knots for chi plot
-    res_x_chi = 9
-    res_y_chi = 19
-    k_chi = res_x_chi * res_y_chi # number of knots
-    # create one-dimensional arrays for x and y
-    x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
-    y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
-    # create the mesh based on these arrays
-    X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
-    knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
-    knots_x_chi = knots_xy_chi[:,0]
-    knots_y_chi = knots_xy_chi[:,1]   
+#     # place knots for chi plot
+#     res_x_chi = 9
+#     res_y_chi = 19
+#     k_chi = res_x_chi * res_y_chi # number of knots
+#     # create one-dimensional arrays for x and y
+#     x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
+#     y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
+#     # create the mesh based on these arrays
+#     X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
+#     knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
+#     knots_x_chi = knots_xy_chi[:,0]
+#     knots_y_chi = knots_xy_chi[:,1]   
 
-    rect_width = (knots_xy_chi[0][0] - minX)*2
-    rect_height = (knots_xy_chi[0][1] - minY)*2
+#     rect_width = (knots_xy_chi[0][0] - minX)*2
+#     rect_height = (knots_xy_chi[0][1] - minY)*2
 
-    # Plot chi with same h in same figure
+#     # Plot chi with same h in same figure
 
-    # u = 0.99 # 0.9, 0.95, 0.99
-    # h = 225 # 75, 150, 225
-    e_abs = 0.2
+#     # u = 0.99 # 0.9, 0.95, 0.99
+#     # h = 225 # 75, 150, 225
+#     e_abs = 0.2
 
-    # Create a LinearSegmentedColormap from white to red
-    colors = ["#ffffff", "#ff0000"]
-    min_chi = 0.0
-    max_chi = 1.0
-    n_bins = 30  # Number of discrete bins
-    n_ticks = 10
-    cmap_name = "white_to_red"
-    colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-    ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+#     # Create a LinearSegmentedColormap from white to red
+#     colors = ["#ffffff", "#ff0000"]
+#     min_chi = 0.0
+#     max_chi = 1.0
+#     n_bins = 30  # Number of discrete bins
+#     n_ticks = 10
+#     cmap_name = "white_to_red"
+#     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+#     ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
 
-    for h in [75, 150, 225]:
+#     for h in [75, 150, 225]:
 
-        fig, axes = plt.subplots(1,3)
-        fig.set_size_inches(10,6)
+#         fig, axes = plt.subplots(1,3)
+#         fig.set_size_inches(10,6)
 
-        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+#         for ax_id, u in enumerate([0.9, 0.95, 0.99]):
 
-            h_low = h * (1 - e_abs)
-            h_up  = h * (1 + e_abs)
+#             h_low = h * (1 - e_abs)
+#             h_up  = h * (1 + e_abs)
 
-            # e_abs = 20
-            # h_low = h - e_abs
-            # h_up  = h + e_abs
+#             # e_abs = 20
+#             # h_low = h - e_abs
+#             # h_up  = h + e_abs
 
-            chi_mat = np.full(shape = (len(x_pos_chi), len(y_pos_chi)), fill_value = np.nan)
-            chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+#             chi_mat = np.full(shape = (len(x_pos_chi), len(y_pos_chi)), fill_value = np.nan)
+#             chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
 
-            for i in range(knots_xy_chi.shape[0]):
+#             for i in range(knots_xy_chi.shape[0]):
 
-                # select sites within the rectangle
-                rect_left   = knots_xy_chi[i][0] - rect_width/2
-                rect_right  = knots_xy_chi[i][0] + rect_width/2
-                rect_top    = knots_xy_chi[i][1] + rect_height/2
-                rect_bottom = knots_xy_chi[i][1] - rect_height/2
-                sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
-                                                    np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
-                sites_in_rect = sites_xy[sites_in_rect_mask]
+#                 # select sites within the rectangle
+#                 rect_left   = knots_xy_chi[i][0] - rect_width/2
+#                 rect_right  = knots_xy_chi[i][0] + rect_width/2
+#                 rect_top    = knots_xy_chi[i][1] + rect_height/2
+#                 rect_bottom = knots_xy_chi[i][1] - rect_height/2
+#                 sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+#                                                     np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+#                 sites_in_rect = sites_xy[sites_in_rect_mask]
 
-                # calculate the distance between sites inside rectangle (coords --> km)
-                n_sites = sites_in_rect.shape[0]
-                sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
-                for si in range(n_sites):
-                    for sj in range(n_sites):
-                        sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+#                 # calculate the distance between sites inside rectangle (coords --> km)
+#                 n_sites = sites_in_rect.shape[0]
+#                 sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+#                 for si in range(n_sites):
+#                     for sj in range(n_sites):
+#                         sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
 
-                # select pairs: sites that are ~h km apart
-                sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
-                                            np.triu(sites_dist_mat) < h_up)
-                n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
-                site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+#                 # select pairs: sites that are ~h km apart
+#                 sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+#                                             np.triu(sites_dist_mat) < h_up)
+#                 n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+#                 site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
 
-                # large pairs
-                Y_in_rect     = Y[sites_in_rect_mask]
-                pY_in_rect    = pY[sites_in_rect_mask]
+#                 # large pairs
+#                 Y_in_rect     = Y[sites_in_rect_mask]
+#                 pY_in_rect    = pY[sites_in_rect_mask]
 
-                # Calculate empirical chi
-                count_co_extreme = 0
-                for site_pair in site_pairs_to_check:
-                    # for this pair, over time, how many co-occured extremes?
-                    count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
-                                                            pY_in_rect[site_pair[1]] >= u))
-                prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
-                prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
-                chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
-                if np.isnan(chi): chi = 0
+#                 # Calculate empirical chi
+#                 count_co_extreme = 0
+#                 for site_pair in site_pairs_to_check:
+#                     # for this pair, over time, how many co-occured extremes?
+#                     count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
+#                                                             pY_in_rect[site_pair[1]] >= u))
+#                 prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+#                 prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+#                 chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+#                 if np.isnan(chi): chi = 0
 
-                chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
-                chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
+#                 chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
+#                 chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
 
-            assert np.all(chi_mat2 <= max_chi)
+#             assert np.all(chi_mat2 <= max_chi)
 
-            ax = axes[ax_id]
-            ax.set_aspect('equal', 'box')
-            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-            heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0.0, vmax = 1.0,
-                                interpolation='nearest', 
-                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
-                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
-            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-            ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
-            ax.set_xlim(-101,-93)
-            ax.set_ylim(32.5, 45)
-            ax.tick_params(axis='both', which='major', labelsize=14)
+#             ax = axes[ax_id]
+#             ax.set_aspect('equal', 'box')
+#             state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+#             heatmap = ax.imshow(chi_mat2, cmap = colormap, vmin = 0.0, vmax = 1.0,
+#                                 interpolation='nearest', 
+#                                 extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+#                                         min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+#             # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+#             ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+#             ax.set_xlim(-101,-93)
+#             ax.set_ylim(32.5, 45)
+#             ax.tick_params(axis='both', which='major', labelsize=14)
 
-            ax.title.set_text(rf'$\chi_{{{u}}}$')
-            ax.title.set_fontsize(20)
-            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+#             ax.title.set_text(rf'$\chi_{{{u}}}$')
+#             ax.title.set_fontsize(20)
+#             # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
 
-        fig.subplots_adjust(right=0.8)
-        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
-        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
-        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
-        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-        colorbar.ax.tick_params(labelsize=14)
-        plt.savefig('Surface:empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
-        plt.show()
-        plt.close()      
+#         fig.subplots_adjust(right=0.8)
+#         fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+#         fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+#         fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+#         cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+#         colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+#         colorbar.ax.tick_params(labelsize=14)
+#         plt.savefig('Surface:empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
+#         plt.show()
+#         plt.close()      
 
 
 # %% Empirical chi of dataset, mean of the chi using per MCMC iter fitted GEV
@@ -1421,7 +1442,7 @@ fig.set_size_inches(8,6)
 ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    vmin = 0, vmax = 0.5,
+                    vmin = 0.0, vmax = 1.0,
                     cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
@@ -1450,13 +1471,15 @@ plt.close()
 
 # range surface
 range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_mean
+vmin = 0.0
+vmax = np.floor(my_ceil(max(range_vec_for_plot),2))
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
-                    vmin = 0, vmax = 2, 
-                    cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    vmin = vmin, vmax = vmax, 
+                    cmap ='Reds', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
@@ -1652,6 +1675,7 @@ def calc_chi(args):
     # chi = np.mean(np.logical_and(X_bivar[:,0,:] > u_AB[0], X_bivar[:,1,:] > u_AB[1])) / (1-u)
     # using empirical denominator
     chi = np.mean(np.logical_and(X_bivar[:,0] > u_AB[0], X_bivar[:,1] > u_AB[1])) / np.mean(X_bivar[:,1] > u_AB[1])
+    if np.isnan(chi): chi = 0.0
     return chi
 
 # Create a LinearSegmentedColormap from white to red
