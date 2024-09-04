@@ -68,6 +68,16 @@ end_year   = 2023
 all_years  = np.linspace(start_year, end_year, Nt)
 Time       = (all_years - np.mean(all_years))/np.std(all_years, ddof=1)
 
+# Sites
+
+sites_xy = stations
+sites_x = sites_xy[:,0]
+sites_y = sites_xy[:,1]
+
+# define the lower and upper limits for x and y
+minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
+minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
+
 # helper functions
 class MidpointNormalize(mpl.colors.Normalize):
     def __init__(self, vmin, vmax, midpoint=0, clip=False):
@@ -399,18 +409,7 @@ if not fixGEV:
         pass
 
 # %% Splines setup 
-# Splines setup 
-
-# ----------------------------------------------------------------------------------------------------------------
-# Sites
-
-sites_xy = stations
-sites_x = sites_xy[:,0]
-sites_y = sites_xy[:,1]
-
-# define the lower and upper limits for x and y
-minX, maxX = np.floor(np.min(sites_x)), np.ceil(np.max(sites_x))
-minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
+# Splines setup
 
 # ----------------------------------------------------------------------------------------------------------------
 # Knots
@@ -1796,6 +1795,8 @@ test_sites_xy = stations_99
 test_Ns       = 99
 Nt            = 75
 
+# Scatterplot of testing sites with station id
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 ax.set_aspect('equal', 'box')
@@ -1810,23 +1811,168 @@ plt.xlabel('longitude')
 plt.ylabel('latitude')
 plt.show()
 
-fig, ax = plt.subplots()
-fig.set_size_inches(8,6)
-ax.set_aspect('equal', 'box')
-state_map.boundary.plot(ax=ax, color = 'black')
-ax.scatter(test_sites_xy[(23, 41, 82, 94), 0], test_sites_xy[(23, 41, 82, 94), 1], color='blue')  # Scatter plot of points
-labels = (23, 41, 82, 94)
-for index, (x, y) in enumerate(test_sites_xy[(23, 41, 82, 94),:]):
-    ax.text(x, y, f'{labels[index]}', fontsize=12, ha='right')
-plt.xlim([-102,-92])
-plt.ylim([32,45])
-ax.set_xticks(np.linspace(-102, -92,num=3))
-ax.set_yticks(np.linspace(32, 45,num=5))
-# plt.title('Scatter Plot with Labels')
-plt.xlabel('longitude', fontsize = 20)
-plt.ylabel('latitude', fontsize = 20)
-plt.savefig('out-of-sample stations.pdf',bbox_inches="tight")
+# # location of randomly selected stations
+
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8,6)
+# ax.set_aspect('equal', 'box')
+# state_map.boundary.plot(ax=ax, color = 'black')
+# ax.scatter(test_sites_xy[(23, 41, 82, 94), 0], test_sites_xy[(23, 41, 82, 94), 1], color='blue')  # Scatter plot of points
+# labels = (23, 41, 82, 94)
+# for index, (x, y) in enumerate(test_sites_xy[(23, 41, 82, 94),:]):
+#     ax.text(x, y, f'{labels[index]}', fontsize=12, ha='right')
+# plt.xlim([-102,-92])
+# plt.ylim([32,45])
+# ax.set_xticks(np.linspace(-102, -92,num=3))
+# ax.set_yticks(np.linspace(32, 45,num=5))
+# # plt.title('Scatter Plot with Labels')
+# plt.xlabel('longitude', fontsize = 20)
+# plt.ylabel('latitude', fontsize = 20)
+# plt.savefig('out-of-sample stations.pdf',bbox_inches="tight")
+# plt.show()
+
+# # Scatterplot of training AND testing sites 
+# #   with US state boundary
+
+# fig, ax = plt.subplots()
+# fig.set_size_inches(10, 8)
+
+# # Plot boundary
+# state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
+
+# # Scatter plot for sites and knots
+# ax.scatter(sites_x, sites_y, marker='.', c='blue', 
+#            edgecolor = 'white', label='training', zorder = 2)
+# ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
+#            edgecolor='white', s = 25, label='testing', zorder=3)
+
+# # Plot spatial domain rectangle
+# space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+#                                 fill=False, color='black')
+# ax.add_patch(space_rectangle)
+
+# # Set ticks and labels
+# # ax.set_xticks(np.linspace(minX, maxX, num=3))
+# # ax.set_yticks(np.linspace(minY, maxY, num=5))
+# plt.xticks(fontsize=20)
+# plt.yticks(fontsize=20)
+# plt.xlabel('Longitude', fontsize=20)
+# plt.ylabel('Latitude', fontsize=20)
+
+# # Set limits to match the exact range of your data
+# plt.xlim([-130, -65])
+# plt.ylim([25,50])
+
+# # ax.legend(fontsize = 20)
+
+# # customize legend
+# legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=35, label='training', linestyle='None')
+# legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=25, label='testing', linestyle='None')
+# ax.legend(handles=[legend_sites, legend_test_sites], fontsize=20)
+
+# # Save or show plot
+# plt.savefig('stations train and test with US.pdf', bbox_inches="tight")
+# # plt.show()
+# plt.close()
+
+# # Scatterplot of testing and training sets zoomed in
+
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8, 8)
+
+# # Plot boundary
+# state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
+
+# # Scatter plot for sites and knots
+# ax.scatter(sites_x, sites_y, marker='.', c='blue', 
+#            edgecolor = 'white', label='training', zorder = 2)
+# ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
+#            edgecolor='white', s = 25, label='testing', zorder=3)
+
+# # Plot spatial domain rectangle
+# space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+#                                 fill=False, color='black')
+# ax.add_patch(space_rectangle)
+
+# # Set ticks and labels
+# ax.set_xticks(np.linspace(minX, maxX, num=3))
+# ax.set_yticks(np.linspace(minY, maxY, num=5))
+# plt.xticks(fontsize=20)
+# plt.yticks(fontsize=20)
+# plt.xlabel('Longitude', fontsize=20)
+# plt.ylabel('Latitude', fontsize=20)
+
+# # Set limits to match the exact range of your data
+# plt.xlim([-105.5, -88.5])
+# plt.ylim([30.75,47.25])
+
+# # customize legend
+# legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=20, label='training', linestyle='None')
+# legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=15, label='testing', linestyle='None')
+# ax.legend(handles=[legend_sites, legend_test_sites], 
+#           fontsize=15, loc = 'upper right')
+
+# # Save or show plot
+# plt.savefig('stations train and test zoom in.pdf', bbox_inches="tight")
+
+
+# Making these two plots into 1 figure
+
+# Create a figure with two horizontally aligned subplots
+fig, axes = plt.subplots(1, 2, figsize=(20, 8), gridspec_kw={'width_ratios': [2, 1]})
+
+ax = axes[0]
+state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
+ax.scatter(sites_x, sites_y, marker='.', c='blue', 
+           edgecolor = 'white', label='training', zorder = 2)
+ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
+           edgecolor='white', s = 25, label='testing', zorder=3)
+space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+                                fill=False, color='black')
+ax.add_patch(space_rectangle)
+# Set ticks and labels
+ax.set_xticks(np.linspace(-130, -70, num=7))
+ax.set_yticks(np.linspace(25, 50, num=6))
+ax.tick_params(axis='both', which='major', labelsize=15)
+ax.set_xlabel('Longitude', fontsize = 20)
+ax.set_ylabel('Latitude', fontsize = 20)
+ax.set_xlim([-130, -65])
+ax.set_ylim([25,50])
+ax.set_aspect('auto')
+
+ax = axes[1]
+state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
+ax.scatter(sites_x, sites_y, marker='.', c='blue', s = 85,
+           edgecolor = 'white', label='training', zorder = 2)
+ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
+           edgecolor='white', s = 85, label='testing', zorder=3)
+space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
+                                fill=False, color='black')
+ax.add_patch(space_rectangle)
+# Set ticks and labels
+ax.set_xticks(np.linspace(minX, maxX, num=3))
+ax.set_yticks(np.linspace(minY, maxY, num=5))
+ax.tick_params(axis='both', which='major', labelsize=15)
+ax.set_xlabel('Longitude', fontsize = 20)
+ax.set_ylabel('Latitude', fontsize = 20)
+ax.set_xlim([-105.5, -88.5])
+ax.set_ylim([30.75,47.25])
+ax.set_aspect('auto')
+
+# customize legend
+legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=20, label='training', linestyle='None')
+legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=15, label='testing', linestyle='None')
+plt.legend(handles=[legend_sites, legend_test_sites], 
+          fontsize=15, loc = 'upper right')
+
+# Adjust layout to avoid overlap
+plt.tight_layout()
+
+# Show the plots
+plt.savefig('stations train and test combined.pdf',bbox_inches='tight')
 plt.show()
+plt.close()
+
 
 # Create GEV Splines --------------------------------------------------------------------------------------------------
 
@@ -2615,27 +2761,61 @@ try:
 except:
     ll_phik41efr2_rhok13r4 = []
 
+# %%
+
 ll_list = [ll_k13_r4, ll_k13_r4_fixGEV,
            ll_k25_r2, ll_k25_r2_fixGEV,
            ll_k25_r4, ll_k25_r4_fixGEV,
            ll_k25_efr2, ll_k25_efr2_fixksi,
            ll_k41_efr2, ll_phik41efr2_rhok13r4]
-
 fig, ax = plt.subplots()
-fig.set_size_inches((14,10))
-ax.boxplot(ll_list)
+fig.set_size_inches((16,10))
+bp = ax.boxplot(ll_list, patch_artist = True)
 
-ax.set_xticklabels(['k13_r4', 'k13_r4_fixGEV',
-                    'k25_r2', 'k25_r2_fixGEV',
-                    'k25_r4', 'k25_r4_fixGEV',
-                    'k25_efr2', r'k25_efr2_fix$\xi$',
-                    'k41_efr2', r'$\phi$k41efr2_$\rho$k13r4'],
+# Customize colors
+colors = ['deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'deepskyblue']
+for patch, color in zip(bp['boxes'], colors):
+    patch.set_facecolor(color)
+    patch.set_edgecolor('black')
+for whisker in bp['whiskers']:
+    whisker.set(color='black', linewidth=1.5)
+for cap in bp['caps']:
+    cap.set(color='black', linewidth=1.5)
+for median in bp['medians']:
+    median.set(color='black', linewidth=3)
+for flier in bp['fliers']:
+    flier.set(marker='o', color='black', markerfacecolor = 'black')
+
+
+# Customize axis labels and ticks
+ax.set_xticklabels(['k13r4b4', 'k13r4b4m',
+                    'k25r2b2', 'k25r2b2m',
+                    'k25r4b4', 'k25r4b4m',
+                    'k25r2b0.67', r'k25r2b0.67m',
+                    'k41r2b0.67', r'k41r2b0.67k$^{(\rho)}$13b4'],
                    rotation = 45)
-ax.set_ylabel('log-likelihood', fontsize = 20)
-ax.set_xlabel('models', fontsize = 20)
-ax.yaxis.offsetText.set_fontsize(14)
-ax.tick_params(axis='both', which='major', labelsize=14)
-plt.title('Boxplots of log-likelihood at out-of-sample test sites', fontsize = 20)
+ax.set_ylabel('log-likelihood', fontsize = 30)
+# ax.set_xlabel('models', fontsize = 30)
+ax.yaxis.offsetText.set_fontsize(20)
+ax.tick_params(axis='both', which='major', labelsize=20)
+plt.title('Ten Models\' log-likelihood of out-of-sample observations', 
+          fontsize = 30)
+
+# Add gridlines for better readability
+ax.grid(True, which='both', linestyle='--',linewidth=0.7)
+
+# Custom legend
+legend_elements = [mpl.patches.Patch(facecolor='deepskyblue', edgecolor='black',
+                                     label='no marginal restriction'),
+                   mpl.patches.Patch(facecolor='lightsalmon', edgecolor='black',
+                                     label='restriction on GEV params')]
+ax.legend(handles=legend_elements, loc='lower left', fontsize = 20)
+
+# plt.tight_layout()
 plt.savefig('ll_boxplot_all.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
