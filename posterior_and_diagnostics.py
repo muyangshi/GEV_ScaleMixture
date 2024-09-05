@@ -31,11 +31,6 @@ state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
 import matplotlib as mpl
 from matplotlib import colormaps
 import os
-# os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
-# os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
-# os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
-# os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
-# os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -1767,19 +1762,24 @@ for h in [75, 150, 225]:
     plt.show()
     plt.close()
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 # %% Diagnostics and Model selection
 
-#################################################
-#####               Diagnostics             #####
-#################################################
-
-# %% Testing sample and splines
-# Testing sample and splines
-
-Beta_mu0_initSmooth      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
-Beta_mu1_initSmooth      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
-Beta_logsigma_initSmooth = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
-Beta_ksi_initSmooth      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+#####################################################################
+#####               Diagnostics with testing dataset            #####
+#####################################################################
 
 extRemes = importr('extRemes')
 ordinal  = importr('ordinal')
@@ -1794,6 +1794,14 @@ Y_99           = JJA_maxima_99.copy()
 test_sites_xy = stations_99
 test_Ns       = 99
 Nt            = 75
+
+# %% Testing sample and splines
+# Testing sample and splines
+
+Beta_mu0_initSmooth      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+Beta_mu1_initSmooth      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+Beta_logsigma_initSmooth = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+Beta_ksi_initSmooth      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
 
 # Scatterplot of testing sites with station id
 
@@ -1810,6 +1818,7 @@ plt.title('Scatter Plot with Labels')
 plt.xlabel('longitude')
 plt.ylabel('latitude')
 plt.show()
+plt.close()
 
 # # location of randomly selected stations
 
@@ -1830,93 +1839,6 @@ plt.show()
 # plt.ylabel('latitude', fontsize = 20)
 # plt.savefig('out-of-sample stations.pdf',bbox_inches="tight")
 # plt.show()
-
-# # Scatterplot of training AND testing sites 
-# #   with US state boundary
-
-# fig, ax = plt.subplots()
-# fig.set_size_inches(10, 8)
-
-# # Plot boundary
-# state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
-
-# # Scatter plot for sites and knots
-# ax.scatter(sites_x, sites_y, marker='.', c='blue', 
-#            edgecolor = 'white', label='training', zorder = 2)
-# ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
-#            edgecolor='white', s = 25, label='testing', zorder=3)
-
-# # Plot spatial domain rectangle
-# space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
-#                                 fill=False, color='black')
-# ax.add_patch(space_rectangle)
-
-# # Set ticks and labels
-# # ax.set_xticks(np.linspace(minX, maxX, num=3))
-# # ax.set_yticks(np.linspace(minY, maxY, num=5))
-# plt.xticks(fontsize=20)
-# plt.yticks(fontsize=20)
-# plt.xlabel('Longitude', fontsize=20)
-# plt.ylabel('Latitude', fontsize=20)
-
-# # Set limits to match the exact range of your data
-# plt.xlim([-130, -65])
-# plt.ylim([25,50])
-
-# # ax.legend(fontsize = 20)
-
-# # customize legend
-# legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=35, label='training', linestyle='None')
-# legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=25, label='testing', linestyle='None')
-# ax.legend(handles=[legend_sites, legend_test_sites], fontsize=20)
-
-# # Save or show plot
-# plt.savefig('stations train and test with US.pdf', bbox_inches="tight")
-# # plt.show()
-# plt.close()
-
-# # Scatterplot of testing and training sets zoomed in
-
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8, 8)
-
-# # Plot boundary
-# state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
-
-# # Scatter plot for sites and knots
-# ax.scatter(sites_x, sites_y, marker='.', c='blue', 
-#            edgecolor = 'white', label='training', zorder = 2)
-# ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
-#            edgecolor='white', s = 25, label='testing', zorder=3)
-
-# # Plot spatial domain rectangle
-# space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
-#                                 fill=False, color='black')
-# ax.add_patch(space_rectangle)
-
-# # Set ticks and labels
-# ax.set_xticks(np.linspace(minX, maxX, num=3))
-# ax.set_yticks(np.linspace(minY, maxY, num=5))
-# plt.xticks(fontsize=20)
-# plt.yticks(fontsize=20)
-# plt.xlabel('Longitude', fontsize=20)
-# plt.ylabel('Latitude', fontsize=20)
-
-# # Set limits to match the exact range of your data
-# plt.xlim([-105.5, -88.5])
-# plt.ylim([30.75,47.25])
-
-# # customize legend
-# legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=20, label='training', linestyle='None')
-# legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=15, label='testing', linestyle='None')
-# ax.legend(handles=[legend_sites, legend_test_sites], 
-#           fontsize=15, loc = 'upper right')
-
-# # Save or show plot
-# plt.savefig('stations train and test zoom in.pdf', bbox_inches="tight")
-
-
-# Making these two plots into 1 figure
 
 # Create a figure with two horizontally aligned subplots
 fig, axes = plt.subplots(1, 2, figsize=(20, 8), gridspec_kw={'width_ratios': [2, 1]})
