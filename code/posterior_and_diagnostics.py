@@ -1480,13 +1480,13 @@ ax.invert_yaxis()
 cbar = fig.colorbar(heatmap, ax=ax)
 cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
 # Plot knots and circles
-for i in range(k_phi):
+for i in range(k_rho):
     circle_i = plt.Circle((knots_xy_rho[i, 0], knots_xy_rho[i, 1]), radius_from_knots[i],
                         color='r', fill=False, fc='None', ec='lightgrey', alpha=0.5)
     ax.add_patch(circle_i)
 # Scatter plot for sites and knots
 ax.scatter(knots_x_rho, knots_y_rho, marker='+', c='white', label='knot', s=300)
-for index, (x, y) in enumerate(knots_xy_phi):
+for index, (x, y) in enumerate(knots_xy_rho):
     ax.text(x+0.05, y+0.1, f'{index}', fontsize=12, ha='left')
 plt.xlim([-104,-90])
 plt.ylim([30,47])
