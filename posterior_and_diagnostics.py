@@ -22,26 +22,33 @@ loglikelihood at testing sites (April 15)
 
 """
 # %% imports
-import numpy as np
 import sys
+import os
+import math
+import requests
+import multiprocessing
+os.environ["OMP_NUM_THREADS"]        = "64" # export OMP_NUM_THREADS=1
+os.environ["OPENBLAS_NUM_THREADS"]   = "64" # export OPENBLAS_NUM_THREADS=1
+os.environ["MKL_NUM_THREADS"]        = "64" # export MKL_NUM_THREADS=1
+os.environ["VECLIB_MAXIMUM_THREADS"] = "64" # export VECLIB_MAXIMUM_THREADS=1
+os.environ["NUMEXPR_NUM_THREADS"]    = "64" # export NUMEXPR_NUM_THREADS=1
+from math import sin, cos, sqrt, atan2, radians, asin
+
+import numpy as np
+import scipy
 np.set_printoptions(threshold=sys.maxsize)
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import geopandas as gpd
-state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
-import matplotlib as mpl
 from matplotlib import colormaps
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy
-from utilities import *
 from rpy2.robjects import r 
 from rpy2.robjects.numpy2ri import numpy2rpy
 from rpy2.robjects.packages import importr
-import multiprocessing
-from math import sin, cos, sqrt, atan2, radians, asin
-import math
-import requests
+
+from utilities import *
+
+state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
+
 
 # the training dataset
 mgcv = importr('mgcv')
@@ -146,16 +153,16 @@ def get_elevation(longitude, latitude):
 
 # Model 1: k13_r4
 
-# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-# name             = 'k13_r4'
-# fixGEV           = False
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 9
-# N_outer_grid_rho = 9
-# mark             = True
-# burnin           = 5000
+folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
+name             = 'k13_r4'
+fixGEV           = False
+radius           = 4
+bandwidth_phi    = 4
+bandwidth_rho    = 4
+N_outer_grid_phi = 9
+N_outer_grid_rho = 9
+mark             = True
+burnin           = 5000
 
 # Model 2: k13_r4_fixGEV
 
@@ -224,16 +231,16 @@ def get_elevation(longitude, latitude):
 
 # Model 7: k25_efr2
 
-folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2/'
-name             = 'k25_efr2'
-fixGEV           = False
-radius           = 2
-bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-bandwidth_rho    = radius**2/6
-N_outer_grid_phi = 16
-N_outer_grid_rho = 16
-mark             = False
-burnin           = 5000
+# folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2/'
+# name             = 'k25_efr2'
+# fixGEV           = False
+# radius           = 2
+# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
+# bandwidth_rho    = radius**2/6
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# mark             = False
+# burnin           = 5000
 
 # Model 8: k25_efr2_fixksi
 
@@ -955,8 +962,8 @@ if not fixGEV:
         plt.show()
         plt.close()
 
-# %% marginal parameter surface
-# marginal parameter surface
+# %% marginal parameter surface scatterplot
+# marginal parameter surface scatterplot
 
 # if not fixGEV:
 #     # side by side mu0
@@ -1764,15 +1771,252 @@ for h in [75, 150, 225]:
 
 
 
+# %%
+# Empirical chi from Model Realizaiton
+
+'''
+Like Likun suggests,
+    Engineer a grid of locations
+    Draw 10,000 (time) replicates of observations
+    Empirically estimate the chi
+'''
 
 
+# Engineer a grid of sites ----------------------------------------------------
+
+# resolution of engineered points
+
+numX_chi     = 50  # Number of points along the X-axis
+numY_chi     = 150 # Number of points along the Y-axis
+Ns_chi       = numX_chi * numY_chi
+x_chi        = np.linspace(minX, maxX, numX_chi)
+y_chi        = np.linspace(minY, maxY, numY_chi)
+X_chi,Y_chi  = np.meshgrid(x_chi, y_chi)
+sites_xy_chi = np.column_stack([X_chi.ravel(), Y_chi.ravel()]) # a grid of engineerin
+sites_x_chi  = sites_xy_chi[:,0]
+sites_y_chi  = sites_xy_chi[:,1]
+
+# setting up the copula splines
+
+wendland_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
+for site_id in np.arange(Ns_chi):
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy_phi)
+        wendland_weight_matrix_chi[site_id, :] = wendland_weights_fun(d_from_knots, radius_from_knots)
+gaussian_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
+for site_id in np.arange(Ns_chi):
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy_phi)
+        gaussian_weight_matrix_chi[site_id, :] = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff=False)
+gaussian_weight_matrix_rho_chi = np.full(shape = (Ns_chi, k_rho), fill_value = np.nan)
+for site_id in np.arange(Ns_chi):
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+                                                    XB = knots_xy_rho)
+        gaussian_weight_matrix_rho_chi[site_id, :] = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff=False)
+
+alpha          = 0.5
+nu             = 0.5
+sigsq_vec      = np.repeat(1.0, Ns_chi)
+gamma_at_knots = np.repeat(0.5, k_phi)
+gamma_vec_chi  = np.sum(np.multiply(wendland_weight_matrix_chi, gamma_at_knots)**(alpha),
+                        axis = 1)**(1/alpha)
+assert any(np.isnan(gamma_vec_chi)) != True
+
+# model posterior means
+
+phi_vec_chi = gaussian_weight_matrix_chi     @ phi_mean
+rho_vec_chi = gaussian_weight_matrix_rho_chi @ range_mean
+K_chi       = ns_cov(range_vec = rho_vec_chi,
+                     sigsq_vec = sigsq_vec,
+                     coords    = sites_xy_chi,
+                     kappa     = nu, cov_model = "matern") # 16 secs for Ns_chi = 7,500
+
+# Draw <n_draw> (time) replicates of observations -----------------------------
+
+np.random.seed(910)
+n_draw    = 100 # number of time replicates to draw
+S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
+Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
+                                                cov = K_chi, 
+                                                size = n_draw) # shape(n_draw, Ns_chi)
+# Notes on multivariate gaussian speed:
+#   1m 23s for 7,500 x 100
+#   no speed difference when drawing size = 1 or 100
+
+R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
+W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
+X_model_chi = (R_vec_chi.T ** phi_vec_chi).T * W_chi   # shape(Ns_chi, n_draw)
+
+np.save('X_model_chi', X_model_chi)
+np.save('phi_vec_chi', phi_vec_chi)
+np.save('rho_vec_chi', rho_vec_chi)
+
+# Empirically estimate chi ----------------------------------------------------
+
+res_x_chi = 7
+res_y_chi = 17
+k_chi     = res_x_chi * res_y_chi # number of knots
+x_pos_chi = np.linspace(minX, maxX, res_x_chi+4)[2:-2]
+y_pos_chi = np.linspace(minY, maxY, res_y_chi+4)[2:-2]
+X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi) # create the mesh based on these arrays
+knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
+knots_x_chi = knots_xy_chi[:,0]
+knots_y_chi = knots_xy_chi[:,1]
+
+rect_width = (knots_xy_chi[0][0] - minX)*2
+rect_height = (knots_xy_chi[0][1] - minY)*2
+
+e_abs = 0.2
+
+# Threshold quantile qu
+# Note:
+#   Only needs to be calculated once for each u
+#   should parallelize the calculation
+
+def qRW_par(args):
+    u, phi, rho = args
+    return qRW(u, phi, rho)
+
+args_list090 = []
+args_list095 = []
+args_list099 = []
+for i in range(Ns_chi):
+    args_list090.append((0.9, phi_vec_chi[i], rho_vec_chi[i]))
+    args_list095.append((0.95, phi_vec_chi[i], rho_vec_chi[i]))
+    args_list099.append((0.99, phi_vec_chi[i], rho_vec_chi[i]))
+with multiprocessing.Pool(processes = 50) as pool:
+    results090 = pool.map(qRW_par, args_list090)
+with multiprocessing.Pool(processes = 50) as pool:
+    results095 = pool.map(qRW_par, args_list095)
+with multiprocessing.Pool(processes = 50) as pool:
+    results099 = pool.map(qRW_par, args_list099)
+
+qu_090 = np.array(results090)
+qu_095 = np.array(results095)
+qu_099 = np.array(results099)
+qu_all = (qu_090, qu_095, qu_099)
+
+np.save('qu_090', qu_090)
+np.save('qu_095', qu_095)
+np.save('qu_099', qu_099)
+
+def calc_model_chi_local(args):
+    '''
+    Given (as function argument): 
+        c: center of a local window, 
+        h: distance between points,
+        u: threshold probability,
+    
+    Compute the local empirical chi
+
+    Computation across the local windows is parallelized
+    '''
+
+    c, h, u, qu_vec_chi = args
+
+    h_low = h * (1 - e_abs)
+    h_up  = h * (1 + e_abs)
+
+    # select sites within the rectangle
+    # note: sites_in_rect is an array of index on Ns_chi
+
+    rect_left   = c[0] - rect_width/2
+    rect_right  = c[0] + rect_width/2
+    rect_top    = c[1] + rect_height/2
+    rect_bottom = c[1] - rect_height/2
+    sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x_chi, sites_x_chi <= rect_right), 
+                                        np.logical_and(rect_bottom <= sites_y_chi, sites_y_chi <= rect_top))
+    sites_in_rect = sites_xy_chi[sites_in_rect_mask]
+    
+    # calculate the distance between sites inside rectangle (coords -> km)
+    # and select pairs of sites that are ~ h km apart
+    # note: site_pairs_to_check is an array of (index, index) on sites_in_rect
+
+    n_sites = sites_in_rect.shape[0]
+    sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+    for si in range(n_sites): # 30 secs for 600 x 600
+        for sj in range(n_sites):
+            sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])    
+
+    sites_h_mask = np.logical_and(np.triu(sites_dist_mat) >= h_low,
+                                  np.triu(sites_dist_mat) <= h_up)
+    n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+    site_pairs_to_check = np.array([(np.where(sites_h_mask)[0][i], 
+                                     np.where(sites_h_mask)[1][i]) for i in range(n_pairs)])
+
+    # calculate chi
+
+    X_in_rect     = X_model_chi[sites_in_rect_mask]
+    qu_in_rect    = qu_vec_chi[sites_in_rect_mask]
+
+    count_co_extreme = 0
+    for site_pair in site_pairs_to_check:
+        site1 = X_in_rect[site_pair[0]]
+        site2 = X_in_rect[site_pair[1]]
+        site1_qu = qu_in_rect[site_pair[0]]
+        site2_qu = qu_in_rect[site_pair[1]]
+        count_co_extreme += np.sum(np.logical_and(site1 >= site1_qu,
+                                                  site2 >= site2_qu))
+    prob_joint_ext = count_co_extreme / (n_pairs * n_draw) # numerator
+    prob_uni_ext   = np.mean(X_in_rect >= qu_in_rect[:, np.newaxis])
+    chi            = prob_joint_ext / prob_uni_ext if prob_uni_ext != 0 else 0.0
+    
+    return chi
+
+# Plotting --------------------------------------------------------------------
+
+# Create a LinearSegmentedColormap from white to red
+colors = ["#ffffff", "#ff0000"]
+min_chi = 0.0
+max_chi = 1.0
+n_bins = 30  # Number of discrete bins
+n_ticks = 10
+cmap_name = "white_to_red"
+colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
 
 
+for h in [75, 150, 225]:
+    fig, axes = plt.subplots(1,3)
+    fig.set_size_inches(10,6)
+    for ax_id, u in enumerate([0.9, 0.95, 0.99]):
 
-
-
-
-
+        args_list = []
+        for i in range(knots_xy_chi.shape[0]):
+            args = (knots_xy_chi[i], h, u, qu_all[ax_id])
+            args_list.append(args)
+        with multiprocessing.Pool(processes = 60) as pool:
+            results = pool.map(calc_model_chi_local, args_list)
+        
+        chi_mat = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+        for i in range(knots_xy_chi.shape[0]):
+            chi_mat[-1 - i//len(x_pos_chi), i % len(x_pos_chi)] = results[i]
+        
+        ax = axes[ax_id]
+        ax.set_aspect('equal', 'box')
+        state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+        heatmap = ax.imshow(chi_mat, cmap = colormap, interpolation = 'nearest',
+                            vmin = 0.0, vmax = 1.0,
+                            extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                    min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
+        # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+        ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+        ax.set_xlim(-101,-93)
+        ax.set_ylim(32.5, 45)
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.title.set_text(rf'$\chi_{{{u}}}$')
+        ax.title.set_fontsize(20)
+    
+    fig.subplots_adjust(right=0.8)
+    fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+    fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+    fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)    
+    cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+    colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+    colorbar.ax.tick_params(labelsize=14)
+    plt.savefig('Surface:model_realization_empirical_chi_h={}.pdf'.format(h), bbox_inches='tight')
+    plt.show()
+    plt.close()
 
 
 # %% Diagnostics and Model selection
