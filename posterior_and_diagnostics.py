@@ -148,8 +148,7 @@ def get_elevation(longitude, latitude):
     else:
         return None
 
-# %%
-# Specify which chain
+# %% specify which chain
 
 # Model 1: k13_r4
 
@@ -710,7 +709,7 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 #     colors = ["#ffffff", "#ff0000"]
 #     min_chi = 0.0
 #     max_chi = 1.0
-#     n_bins = 30  # Number of discrete bins
+#     n_bins = 100  # Number of discrete bins
 #     n_ticks = 10
 #     cmap_name = "white_to_red"
 #     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
@@ -860,7 +859,7 @@ if not fixGEV:
     colors = ["#ffffff", "#ff0000"]
     min_chi = 0.0
     max_chi = 1.0
-    n_bins = 30  # Number of discrete bins
+    n_bins = 100  # Number of discrete bins
     n_ticks = 10
     cmap_name = "white_to_red"
     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
@@ -1683,7 +1682,7 @@ def calc_chi(args):
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
 max_chi = 1.0
-n_bins = 30  # Number of discrete bins
+n_bins = 100  # Number of discrete bins
 n_ticks = 10
 cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
@@ -1969,7 +1968,7 @@ def calc_model_chi_local(args):
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
 max_chi = 1.0
-n_bins = 30  # Number of discrete bins
+n_bins = 100  # Number of discrete bins
 n_ticks = 10
 cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
