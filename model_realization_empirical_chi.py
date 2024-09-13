@@ -686,7 +686,7 @@ K_chi       = ns_cov(range_vec = rho_vec_chi,
 # Draw <n_draw> (time) replicates of observations -----------------------------
 
 np.random.seed(910)
-n_draw    = 1000 # number of time replicates to draw
+n_draw    = 1000000 # number of time replicates to draw
 S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
 Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
                                                 cov = K_chi, 
@@ -821,7 +821,7 @@ def calc_model_chi_local(args):
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
 max_chi = 1.0
-n_bins = 30  # Number of discrete bins
+n_bins = 100  # Number of discrete bins
 n_ticks = 10
 cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
