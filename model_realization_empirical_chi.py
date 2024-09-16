@@ -686,7 +686,7 @@ K_chi       = ns_cov(range_vec = rho_vec_chi,
 # Draw <n_draw> (time) replicates of observations -----------------------------
 
 np.random.seed(910)
-n_draw    = 1000000 # number of time replicates to draw
+n_draw    = 100000 # number of time replicates to draw
 S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
 Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
                                                 cov = K_chi, 
