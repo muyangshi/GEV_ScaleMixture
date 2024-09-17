@@ -820,7 +820,7 @@ def calc_model_chi_local(args):
 # Create a LinearSegmentedColormap from white to red
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
-max_chi = 1.0
+max_chi = 0.5
 n_bins = 100  # Number of discrete bins
 n_ticks = 10
 cmap_name = "white_to_red"
