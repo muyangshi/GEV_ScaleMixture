@@ -21,8 +21,8 @@ import RW_inte
 # inte_method = 'scipy'   # Scipy QUAD is bad don't use 
 # inte_method = 'mpmath'  # super slow don't use
 inte_method = 'cpp_transformed'
-# norm_pareto = 'shifted'   # shifted Pareto
-norm_pareto = 'standard'    # standard Pareto
+norm_pareto = 'shifted'   # shifted Pareto
+# norm_pareto = 'standard'    # standard Pareto
 #############################
 
 # weights_fun = model_sim.weights_fun
