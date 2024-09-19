@@ -858,7 +858,7 @@ if not fixGEV:
     # Create a LinearSegmentedColormap from white to red
     colors = ["#ffffff", "#ff0000"]
     min_chi = 0.0
-    max_chi = 1.0
+    max_chi = 0.5
     n_bins = 100  # Number of discrete bins
     n_ticks = 10
     cmap_name = "white_to_red"
@@ -936,7 +936,7 @@ if not fixGEV:
             ax = axes[ax_id]
             ax.set_aspect('equal', 'box')
             state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-            heatmap = ax.imshow(chi_mat_mean, cmap = colormap, vmin = 0.0, vmax = 1.0,
+            heatmap = ax.imshow(chi_mat_mean, cmap = colormap, vmin = min_chi, vmax = max_chi,
                                 interpolation='nearest', 
                                 extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                         min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
