@@ -848,7 +848,7 @@ for h in [75, 150, 225]:
         ax.set_aspect('equal', 'box')
         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
         heatmap = ax.imshow(chi_mat, cmap = colormap, interpolation = 'nearest',
-                            vmin = 0.0, vmax = 1.0,
+                            vmin = min_chi, vmax = max_chi,
                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                     min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
