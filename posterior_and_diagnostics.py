@@ -1329,7 +1329,7 @@ ax.set_aspect('equal','box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
                     extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+                    origin = 'lower', cmap = colormaps['OrRd'], norm = divnorm)
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 cbar    = fig.colorbar(heatmap, ax = ax)
@@ -1358,7 +1358,7 @@ ax.set_aspect('equal','box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
                     extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+                    origin = 'lower', cmap = colormaps['RdBu_r'], norm = divnorm)
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 cbar    = fig.colorbar(heatmap, ax = ax)
@@ -1386,7 +1386,7 @@ ax.set_aspect('equal','box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
                     extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+                    origin = 'lower', cmap = colormaps['OrRd'], norm = divnorm)
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 cbar    = fig.colorbar(heatmap, ax = ax)
@@ -1414,7 +1414,7 @@ try:
     state_map.boundary.plot(ax=ax, color = 'black')
     heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
                         extent=[minX, maxX, minY, maxY],
-                        origin = 'lower', cmap = colormaps['bwr'], norm = divnorm)
+                        origin = 'lower', cmap = colormaps['OrRd'], norm = divnorm)
     ax.set_xticks(np.linspace(minX, maxX,num=3))
     ax.set_yticks(np.linspace(minY, maxY,num=5))
     cbar    = fig.colorbar(heatmap, ax = ax)
@@ -1442,8 +1442,8 @@ fig.set_size_inches(8,6)
 ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
-                    vmin = 0.0, vmax = 1.0,
-                    cmap ='seismic', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    vmin = 0.15, vmax = 0.5,
+                    cmap ='Blues_r', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
@@ -1457,7 +1457,7 @@ for i in range(k_phi):
 # Scatter plot for sites and knots
 ax.scatter(knots_x_phi, knots_y_phi, marker='+', c='white', label='knot', s=300)
 for index, (x, y) in enumerate(knots_xy_phi):
-    ax.text(x+0.05, y+0.1, f'{index}', fontsize=12, ha='left')
+    ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left', c='white')
 plt.xlim([-104,-90])
 plt.ylim([30,47])
 plt.xticks(fontsize = 20)
@@ -1479,7 +1479,7 @@ ax.set_aspect('equal', 'box')
 state_map.boundary.plot(ax=ax, color = 'black')
 heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                     vmin = vmin, vmax = vmax, 
-                    cmap ='Reds', interpolation='nearest', extent = [minX, maxX, maxY, minY])
+                    cmap ='OrRd', interpolation='nearest', extent = [minX, maxX, maxY, minY])
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=5))
 ax.invert_yaxis()
@@ -1493,7 +1493,7 @@ for i in range(k_rho):
 # Scatter plot for sites and knots
 ax.scatter(knots_x_rho, knots_y_rho, marker='+', c='white', label='knot', s=300)
 for index, (x, y) in enumerate(knots_xy_rho):
-    ax.text(x+0.05, y+0.1, f'{index}', fontsize=12, ha='left')
+    ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left',c='white')
 plt.xlim([-104,-90])
 plt.ylim([30,47])
 plt.xticks(fontsize = 20)
