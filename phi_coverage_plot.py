@@ -14,7 +14,7 @@ import scipy
 burnins = 10000 # length of burnin iterations
 
 sim_id_from = 1 # inclusive
-sim_id_to = 8  # inclusive
+sim_id_to = 15  # inclusive
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
 
 nsim = len(sim_ids)
@@ -251,3 +251,5 @@ fig.text(0.05, 0.5, 'Empirical Coverage', fontsize = 24, ha='center', va='center
 fig.savefig("Empirical_Coverage_all_Range.pdf")
 plt.close()
 
+
+# %%
