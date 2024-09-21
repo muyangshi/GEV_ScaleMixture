@@ -686,7 +686,7 @@ K_chi       = ns_cov(range_vec = rho_vec_chi,
 # Draw <n_draw> (time) replicates of observations -----------------------------
 
 np.random.seed(910)
-n_draw    = 100000 # number of time replicates to draw
+n_draw    = 100 # number of time replicates to draw
 S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
 Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
                                                 cov = K_chi, 
@@ -726,16 +726,16 @@ e_abs = 0.2
 #   should parallelize the calculation
 
 def qRW_par(args):
-    u, phi, rho = args
-    return qRW(u, phi, rho)
+    u, phi, gamma = args
+    return qRW(u, phi, gamma)
 
 args_list090 = []
 args_list095 = []
 args_list099 = []
 for i in range(Ns_chi):
-    args_list090.append((0.9, phi_vec_chi[i], rho_vec_chi[i]))
-    args_list095.append((0.95, phi_vec_chi[i], rho_vec_chi[i]))
-    args_list099.append((0.99, phi_vec_chi[i], rho_vec_chi[i]))
+    args_list090.append((0.9, phi_vec_chi[i], gamma_vec_chi[i]))
+    args_list095.append((0.95, phi_vec_chi[i], gamma_vec_chi[i]))
+    args_list099.append((0.99, phi_vec_chi[i], gamma_vec_chi[i]))
 with multiprocessing.Pool(processes = 60) as pool:
     results090 = pool.map(qRW_par, args_list090)
 with multiprocessing.Pool(processes = 60) as pool:

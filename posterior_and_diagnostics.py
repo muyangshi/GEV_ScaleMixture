@@ -1873,16 +1873,16 @@ e_abs = 0.2
 #   should parallelize the calculation
 
 def qRW_par(args):
-    u, phi, rho = args
-    return qRW(u, phi, rho)
+    u, phi, gamma = args
+    return qRW(u, phi, gamma)
 
 args_list090 = []
 args_list095 = []
 args_list099 = []
 for i in range(Ns_chi):
-    args_list090.append((0.9, phi_vec_chi[i], rho_vec_chi[i]))
-    args_list095.append((0.95, phi_vec_chi[i], rho_vec_chi[i]))
-    args_list099.append((0.99, phi_vec_chi[i], rho_vec_chi[i]))
+    args_list090.append((0.9, phi_vec_chi[i], gamma_vec_chi[i]))
+    args_list095.append((0.95, phi_vec_chi[i], gamma_vec_chi[i]))
+    args_list099.append((0.99, phi_vec_chi[i], gamma_vec_chi[i]))
 with multiprocessing.Pool(processes = 50) as pool:
     results090 = pool.map(qRW_par, args_list090)
 with multiprocessing.Pool(processes = 50) as pool:
@@ -1995,7 +1995,7 @@ for h in [75, 150, 225]:
         ax.set_aspect('equal', 'box')
         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
         heatmap = ax.imshow(chi_mat, cmap = colormap, interpolation = 'nearest',
-                            vmin = 0.0, vmax = 1.0,
+                            vmin = min_chi, vmax = max_chi,
                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                     min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
