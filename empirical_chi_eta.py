@@ -6,11 +6,11 @@ if __name__ == "__main__":
     # %% imports
     # imports
     import os
-    os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=1
-    os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=1
-    os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=1
-    os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=1
-    os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=1
+    os.environ["OMP_NUM_THREADS"]        = "64" # export OMP_NUM_THREADS=1
+    os.environ["OPENBLAS_NUM_THREADS"]   = "64" # export OPENBLAS_NUM_THREADS=1
+    os.environ["MKL_NUM_THREADS"]        = "64" # export MKL_NUM_THREADS=1
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "64" # export VECLIB_MAXIMUM_THREADS=1
+    os.environ["NUMEXPR_NUM_THREADS"]    = "64" # export NUMEXPR_NUM_THREADS=1
     import numpy as np
     import matplotlib
     import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # Numbers - Ns, Nt --------------------------------------------------------
     
     np.random.seed(data_seed)
-    Nt = 1000000 # number of time replicates
+    Nt = 300000000 # number of time replicates
     Ns = 6 # number of sites/stations
 
     # Sites - random uniformly (x,y) generate site locations ------------------
@@ -278,15 +278,9 @@ if __name__ == "__main__":
     norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
 
     heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape), 
-                        extent=[minX, maxX, minY, maxY], origin='lower',
-                        norm = norm,
-                        cmap=cmap, interpolation='nearest')
+                        origin='lower', extent=[minX, maxX, minY, maxY], 
+                        norm = norm, cmap=cmap, interpolation='nearest')
 
-
-    # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape), 
-    #                     extent=[minX, maxX, minY, maxY], origin='lower',
-    #                     vmin = vmin, vmax = vmax,
-    #                     cmap='RdBu_r', interpolation='nearest')
     cbar = fig.colorbar(heatmap, ax=ax)
 
     cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
@@ -333,12 +327,12 @@ if __name__ == "__main__":
     plt.title(f'$\phi(s)$', fontsize=20)
 
     plt.savefig(f'Simulation_eta_chi.pdf', bbox_inches='tight')
-    plt.show()
+    # plt.show()
     plt.close()
 
 # %%
 Nu = 100
-us = np.linspace(0.9, 0.999, Nu)
+us = np.linspace(0.9, 0.9999999, Nu)
 
 # q = np.array([qRW(u, phi_vec, gamma_vec) for u in us]) # shape(Nu, Ns)
 
@@ -356,8 +350,11 @@ q = np.array(q_results) # shape(Nu, Ns)
 
 # \chi_{12]}
 
-s1, s2 = X_star[0,:], X_star[1,:]  # Unpacking X_star
-q_s1, q_s2 = q[:, 0], q[:, 1]      # Unpacking q
+i = 0
+j = 1
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
 
 # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
 co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
@@ -387,24 +384,258 @@ ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{12}}$: $\phi(s_1)$ = {round(phi_vec[0],2)}, $\phi(s_2)$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
 # Show the plot
-plt.savefig('chi_12.pdf', bbox_inches='tight')
-plt.show()
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
 plt.close()
 
 
 
 # %% Estimate between s(3,4) for Thm2.3 a ii
 
+# \chi_{34}
+
+i = 2
+j = 3
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+# Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+# Count co-extreme events across all `i` at once
+count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+# Probability of co-extreme and uni-extreme events
+prob_co_extreme = count_co_extreme / len(s1)
+prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+
+# Chi calculation
+chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
+
+# Create a figure and axis object
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='tab:blue')
+
+ax.set_xlim((0.9,1.0))
+ax.set_ylim((0,0.5))
+ax.set_xticks(np.linspace(0.9,1.0, 6))
+ax.tick_params(axis='both', labelsize=20)
+
+ax.set_xlabel(r'$u$', fontsize=20)
+ax.set_ylabel(r'$\chi$', fontsize=20)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+
+# Add grid lines
+ax.grid(True, linestyle = '--')
+
+# Show the plot
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
+plt.close()
+
+
 # %% Estimate between s(4,5) for Thm2.3 a iii
+
+# \chi_{45}
+
+i = 3
+j = 4
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+# Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+# Count co-extreme events across all `i` at once
+count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+# Probability of co-extreme and uni-extreme events
+prob_co_extreme = count_co_extreme / len(s1)
+prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+
+# Chi calculation
+chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
+
+# Create a figure and axis object
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='tab:blue')
+
+ax.set_xlim((0.9,1.0))
+ax.set_ylim((0,0.5))
+ax.set_xticks(np.linspace(0.9,1.0, 6))
+ax.tick_params(axis='both', labelsize=20)
+
+ax.set_xlabel(r'$u$', fontsize=20)
+ax.set_ylabel(r'$\chi$', fontsize=20)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+
+# Add grid lines
+ax.grid(True, linestyle = '--')
+
+# Show the plot
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
+plt.close()
 
 # %% Estimate between s(1,5) for Thm2.3 b i
 
+# \chi_{15}
+
+i = 0
+j = 4
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+# Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+# Count co-extreme events across all `i` at once
+count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+# Probability of co-extreme and uni-extreme events
+prob_co_extreme = count_co_extreme / len(s1)
+prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+
+# Chi calculation
+chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
+
+# Create a figure and axis object
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='tab:blue')
+
+ax.set_xlim((0.9,1.0))
+ax.set_ylim((0,0.5))
+ax.set_xticks(np.linspace(0.9,1.0, 6))
+ax.tick_params(axis='both', labelsize=20)
+
+ax.set_xlabel(r'$u$', fontsize=20)
+ax.set_ylabel(r'$\chi$', fontsize=20)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+
+# Add grid lines
+ax.grid(True, linestyle = '--')
+
+# Show the plot
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
+plt.close()
+
 # %% Estimate between s(3,6) for Thm2.3 b ii
 
+# \chi_{36}
+
+i = 2
+j = 5
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+# Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+# Count co-extreme events across all `i` at once
+count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+# Probability of co-extreme and uni-extreme events
+prob_co_extreme = count_co_extreme / len(s1)
+prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+
+# Chi calculation
+chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
+
+# Create a figure and axis object
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='tab:blue')
+
+ax.set_xlim((0.9,1.0))
+ax.set_ylim((0,0.5))
+ax.set_xticks(np.linspace(0.9,1.0, 6))
+ax.tick_params(axis='both', labelsize=20)
+
+ax.set_xlabel(r'$u$', fontsize=20)
+ax.set_ylabel(r'$\chi$', fontsize=20)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+
+# Add grid lines
+ax.grid(True, linestyle = '--')
+
+# Show the plot
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
+plt.close()
+
+
 # %% Estimate between s(1,4) for Thm2.3 b iii
+
+# \chi_{14}
+
+i = 0
+j = 3
+
+s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+# Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+# Count co-extreme events across all `i` at once
+count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+# Probability of co-extreme and uni-extreme events
+prob_co_extreme = count_co_extreme / len(s1)
+prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+
+# Chi calculation
+chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
+
+# Create a figure and axis object
+fig, ax = plt.subplots()
+fig.set_size_inches(8,6)
+# ax.set_aspect('equal','box')
+
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='tab:blue')
+
+ax.set_xlim((0.9,1.0))
+ax.set_ylim((0,0.5))
+ax.set_xticks(np.linspace(0.9,1.0, 6))
+ax.tick_params(axis='both', labelsize=20)
+
+ax.set_xlabel(r'$u$', fontsize=20)
+ax.set_ylabel(r'$\chi$', fontsize=20)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+
+# Add grid lines
+ax.grid(True, linestyle = '--')
+
+# Show the plot
+plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+# plt.show()
+plt.close()
+
+# %%
