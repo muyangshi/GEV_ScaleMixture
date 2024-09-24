@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # Numbers - Ns, Nt --------------------------------------------------------
     
     np.random.seed(data_seed)
-    Nt = 300000000 # number of time replicates
+    Nt = 3000 # number of time replicates
     Ns = 6 # number of sites/stations
 
     # Sites - random uniformly (x,y) generate site locations ------------------
@@ -265,76 +265,75 @@ if __name__ == "__main__":
         weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
         gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
 
+# %% Plot phi surface and sites
+
+    # phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    # ax.set_aspect('equal', 'box')
+
+    # vmin, vmax = (0.3, 0.7)
+
+    # cmap = matplotlib.cm.RdBu_r
+    # bounds = np.linspace(0.3, 0.7,num=9)
+    # norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+
+    # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape), 
+    #                     origin='lower', extent=[minX, maxX, minY, maxY], 
+    #                     norm = norm, cmap=cmap, interpolation='nearest')
+
+    # cbar = fig.colorbar(heatmap, ax=ax)
+
+    # cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
+    # ax.set_xticks(np.linspace(0, 10,num=5))
+    # ax.set_yticks(np.linspace(0, 10,num=5))
+
+    # # Add contour line at Z = 0.5
+    # contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
+    #                     levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
+    # # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5', 
+    # #           manual = [(3,3)])  # Label the contour line
+
+    # # Plot knots and circles
+    # for i in range(k):
+    #     circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
+    #                         color='r', fill=False, fc='None', ec='lightgrey', alpha=0.9)
+    #     ax.add_patch(circle_i)
+
+    # # Scatter plot for sites and knots
+    # ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=300)
+    # # for index, (x, y) in enumerate(knots_xy):
+    #     # ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left')
     
-    # %% Plot phi surface and sites
+    # # Scatter the engineered sites
+    # markers = ['o', 's', '^', 'D', 'P', '*']
+    # for i, (x, y) in enumerate(zip(sites_x, sites_y)):
+    #     ax.scatter(x, y, marker=markers[i], 
+    #             #    c='#E6FF00', 
+    #                c='#c9a800',edgecolor='black',
+    #                s=100, 
+    #             #    label=f'Point {i+1}',
+    #                label=f'$\phi(s_{i+1})$ = {round(phi_vec[i],2)}')
+    #     ax.text(x+0.1, y+0.2, f'{i+1}', fontsize=12, ha='left', c = '#E6FF00')
+    # ax.legend(fontsize=15, loc='center right', bbox_to_anchor=(1.75, 0.77))  # Adjusted to place the legend on the left side
+    # # ax.scatter(sites_x, sites_y, marker='o', c='black', label='site', s=200)
 
-    phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
-    fig, ax = plt.subplots()
-    fig.set_size_inches(8,6)
-    ax.set_aspect('equal', 'box')
+    # # Set axis limits and labels
+    # plt.xlim([0, 10])
+    # plt.ylim([0, 10])
+    # plt.xticks(fontsize=20)
+    # plt.yticks(fontsize=20)
+    # plt.xlabel('x', fontsize=20)
+    # plt.ylabel('y', fontsize=20)
+    # plt.title(f'$\phi(s)$', fontsize=20)
 
-    vmin, vmax = (0.3, 0.7)
-
-    cmap = matplotlib.cm.RdBu_r
-    bounds = np.linspace(0.3, 0.7,num=9)
-    norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
-
-    heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape), 
-                        origin='lower', extent=[minX, maxX, minY, maxY], 
-                        norm = norm, cmap=cmap, interpolation='nearest')
-
-    cbar = fig.colorbar(heatmap, ax=ax)
-
-    cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
-    ax.set_xticks(np.linspace(0, 10,num=5))
-    ax.set_yticks(np.linspace(0, 10,num=5))
-
-    # Add contour line at Z = 0.5
-    contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
-                        levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
-    # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5', 
-    #           manual = [(3,3)])  # Label the contour line
-
-    # Plot knots and circles
-    for i in range(k):
-        circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                            color='r', fill=False, fc='None', ec='lightgrey', alpha=0.9)
-        ax.add_patch(circle_i)
-
-    # Scatter plot for sites and knots
-    ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=300)
-    # for index, (x, y) in enumerate(knots_xy):
-        # ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left')
-    
-    # Scatter the engineered sites
-    markers = ['o', 's', '^', 'D', 'P', '*']
-    for i, (x, y) in enumerate(zip(sites_x, sites_y)):
-        ax.scatter(x, y, marker=markers[i], 
-                #    c='#E6FF00', 
-                   c='#c9a800',edgecolor='black',
-                   s=100, 
-                #    label=f'Point {i+1}',
-                   label=f'$\phi(s_{i+1})$ = {round(phi_vec[i],2)}')
-        ax.text(x+0.1, y+0.2, f'{i+1}', fontsize=12, ha='left', c = '#E6FF00')
-    ax.legend(fontsize=15, loc='center right', bbox_to_anchor=(1.75, 0.77))  # Adjusted to place the legend on the left side
-    # ax.scatter(sites_x, sites_y, marker='o', c='black', label='site', s=200)
-
-    # Set axis limits and labels
-    plt.xlim([0, 10])
-    plt.ylim([0, 10])
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
-    plt.xlabel('x', fontsize=20)
-    plt.ylabel('y', fontsize=20)
-    plt.title(f'$\phi(s)$', fontsize=20)
-
-    plt.savefig(f'Simulation_eta_chi.pdf', bbox_inches='tight')
-    # plt.show()
-    plt.close()
+    # plt.savefig(f'Simulation_eta_chi.pdf', bbox_inches='tight')
+    # # plt.show()
+    # plt.close()
 
 # %%
 Nu = 100
-us = np.linspace(0.9, 0.9999999, Nu)
+us = np.linspace(0.9, 0.999999, Nu)
 
 # q = np.array([qRW(u, phi_vec, gamma_vec) for u in us]) # shape(Nu, Ns)
 
@@ -344,11 +343,11 @@ def qRW_par(args):
 args_list = []
 for u in us:
     args_list.append((u, phi_vec, gamma_vec))
-with multiprocessing.Pool(processes = 50) as pool:
+with multiprocessing.get_context('fork').Pool(processes = 4) as pool:
     q_results = pool.map(qRW_par, args_list)
 q = np.array(q_results) # shape(Nu, Ns)
 
-# %% Estimate between s(1,2) for Thm2.3 a i (AD)
+# %% Estimate between s(1,2) for Thm2.3 a i (AD) - alpha < phi_i < phi_j
 
 # \chi_{12]}
 
@@ -368,12 +367,38 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+v_k1    = np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha / sum(np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha)
+v_k2    = np.multiply(wendland_weight_matrix[j,:], gamma_at_knots)**alpha / sum(np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha)
+v_kmin  = np.minimum(v_k1, v_k2)
+v_kmax  = np.maximum(v_k1, v_k2)
+
+tmp_i   = W[i]**(alpha/phi_vec[i]) / np.mean(W[i]**(alpha/phi_vec[i]))
+tmp_j   = W[j]**(alpha/phi_vec[j]) / np.mean(W[j]**(alpha/phi_vec[j]))
+tmp_min = np.minimum(tmp_i, tmp_j)
+tmp_max = np.maximum(tmp_i, tmp_j)
+
+chi_LB  = np.mean(tmp_min) * sum(v_kmin)
+chi_UB  = np.mean(tmp_max) * sum(v_kmax)
+
+# eta bounds - (AD) alpha < phi_i < phi_j
+
+# eta_LB, eta_UB = 1.0, 1.0
+eta_limit = 1.0
+
+# Plotting --------------------------------------------------------------------
+
+# chi -----------------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 # ax.set_aspect('equal','box')
@@ -382,26 +407,34 @@ ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_LB, label=r'$\chi$ LB', xmin=0.9, xmax=1.0, 
+          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
+ax.hlines(y=chi_UB, label=r'$\chi$ UB', xmin=0.9, xmax=1.0, 
+          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='red', linestyle='None', zorder = 100)
+
+ax.legend(loc = 'upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# eta -----------------------------------------------------
 
-# Create a figure and axis object
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
@@ -409,23 +442,30 @@ ax.plot(us, etas, label=r'Empirical $\eta$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0.2,1))
+ax.set_ylim((0.2,1.01))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds
+ax.hlines(y=eta_limit, label=r'$\eta$ limit', linestyles=':',
+          xmin=0.9, xmax=1.0, colors='#008000',  linewidth=3,
+          clip_on = False)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# %% Estimate between s(3,4) for Thm2.3 a ii (AI)
+# %% Estimate between s(3,4) for Thm2.3 a ii (AI) - phi_i < phi_j < alpha
 
 # \chi_{34}
 
@@ -445,12 +485,33 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+chi_limit = 0.0
+
+# eta bounds - phi_i < phi_j < alpha
+
+eta_W = (1 + K[i,j])/2
+phi_i = min(phi_vec[i], phi_vec[j])
+phi_j = max(phi_vec[i], phi_vec[j])
+
+if eta_W > phi_j/alpha:         eta_LB, eta_UB = eta_W, eta_W
+if phi_i < eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
+if eta_W < phi_i/alpha:         eta_LB, eta_UB = phi_i/alpha, phi_j/alpha
+
+
+# Plotting --------------------------------------------------------------------
+
+# chi -----------------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 # ax.set_aspect('equal','box')
@@ -459,24 +520,31 @@ ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_limit, label=r'$\chi$ limit', linestyles=':',
+          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# eta -----------------------------------------------------
 
 # Create a figure and axis object
 fig, ax = plt.subplots()
@@ -486,23 +554,30 @@ ax.plot(us, etas, label=r'Empirical $\eta$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0.2,1))
+ax.set_ylim((0.2,1.01))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles='--',
+          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='-.',
+          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3, alpha = 0.5)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# %% Estimate between s(4,5) for Thm2.3 a iii (AI)
+# %% Estimate between s(4,5) for Thm2.3 a iii (AI) - phi_i < \alpha < phi_j
 
 # \chi_{45}
 
@@ -522,40 +597,64 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+chi_limit = 0.0
+
+# eta bounds - phi_i < \alpha < phi_j
+
+eta_W = (1 + K[i,j])/2
+phi_i = min(phi_vec[i], phi_vec[j])
+phi_j = max(phi_vec[i], phi_vec[j])
+
+if eta_W <= (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 1/(1+(1-phi_i/alpha)/(2*eta_W))
+if eta_W <  (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 2*eta_W/(1+phi_j/alpha)
+
+# Plotting --------------------------------------------------------------------
+
+# chi -------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-# ax.set_aspect('equal','box')
 
 ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_limit, label = r'$\chi$ limit', linestyles=':',
+          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# eta -------------------------------------------
 
-# Create a figure and axis object
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
@@ -563,23 +662,30 @@ ax.plot(us, etas, label=r'Empirical $\eta$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0.2,1))
+ax.set_ylim((0.2,1.01))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
+          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
+          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# %% Estimate between s(1,5) for Thm2.3 b i (AI)
+# %% Estimate between s(1,5) for Thm2.3 b i (AI) - alpha < phi_i < phi_j
 
 # \chi_{15}
 
@@ -599,40 +705,65 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+chi_limit = 0.0
+
+# eta bounds - alpha < phi_i < phi_j
+
+eta_W = (1 + K[i,j])/2
+phi_i = min(phi_vec[i], phi_vec[j])
+phi_j = max(phi_vec[i], phi_vec[j])
+
+if phi_i/alpha > 2:                       eta_LB, eta_UB = 0.5, 0.5
+if phi_i/alpha < 2 < phi_j/(alpha*eta_W): eta_LB, eta_UB = 0.5, alpha/phi_i
+if phi_j/(alpha*eta_W) < 2:               eta_Lb, eta_UB = alpha*eta_W/phi_j, alpha/phi_i
+
+# Plotting --------------------------------------------------------------------
+
+# chi -------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-# ax.set_aspect('equal','box')
 
 ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
+          colors='#008000', linestyles=':', linewidth=3)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# eta -------------------------------------------
 
-# Create a figure and axis object
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
@@ -646,17 +777,24 @@ ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
+          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
+          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# %% Estimate between s(3,6) for Thm2.3 b ii (AI)
+# %% Estimate between s(3,6) for Thm2.3 b ii (AI) - phi_i < phi_j < alpha
 
 # \chi_{36}
 
@@ -676,40 +814,65 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+chi_limit = 0.0
+
+# eta bounds - phi_i < phi_j < alpha
+
+eta_W = (1 + K[i,j])/2
+phi_i = min(phi_vec[i], phi_vec[j])
+phi_j = max(phi_vec[i], phi_vec[j])
+
+if eta_W > phi_j/alpha: eta_LB, eta_UB = eta_W, eta_W
+if eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
+
+
+# Plotting --------------------------------------------------------------------
+
+# chi -------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-# ax.set_aspect('equal','box')
 
 ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
+          colors='#008000', linestyles=':', linewidth=3)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# Eta -------------------------------------------
 
-# Create a figure and axis object
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
@@ -717,23 +880,30 @@ ax.plot(us, etas, label=r'Empirical $\eta$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0.2,1))
+ax.set_ylim((0.2,1.01))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
+          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
+          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# %% Estimate between s(1,4) for Thm2.3 b iii (AI)
+# %% Estimate between s(1,4) for Thm2.3 b iii (AI) - phi_i < alpha < phi_J
 
 # \chi_{14}
 
@@ -753,12 +923,31 @@ count_co_extreme = np.sum(co_extreme_mask, axis=0)
 prob_co_extreme = count_co_extreme / len(s1)
 prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
 
-# Chi calculation -------------------------------------------------------------
+# Chi and eta calculation -------------------------------------------------------------
+
+# Empirical estimates
+
 # chis = np.where(prob_uni_extreme != 0, prob_co_extreme / prob_uni_extreme, 0)
-
 chis = prob_co_extreme / (1-us)
+etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
 
-# Create a figure and axis object
+# chi bounds
+
+chi_limit = 0.0
+
+# eta bounds - phi_j < alpha < phi_j
+
+eta_W = (1 + K[i,j])/2
+phi_i = min(phi_vec[i], phi_vec[j])
+phi_j = max(phi_vec[i], phi_vec[j])
+
+if 2*eta_W <= phi_j/alpha: eta_LB, eta_UB = 0.5, 1/(1+1/(1+K[i,j]))
+if 2*eta_W > phi_j/alpha:  eta_LB, eta_UB = 0.5, (1+K[i,j])/(1+phi_j/alpha)
+
+# Plotting --------------------------------------------------------------------
+
+# chi -------------------------------------------
+
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 # ax.set_aspect('equal','box')
@@ -767,24 +956,31 @@ ax.plot(us, chis, label=r'Empirical $\chi$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0,0.5))
+ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
-ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+
+# Add bounds and dot
+ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label = r'$\chi$ limit',
+          colors='#008000', linestyles='dashed', linewidth=3)
+ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+        color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
 # plt.show()
 plt.close()
 
-# Eta calculation -------------------------------------------------------------
-etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+# eta -------------------------------------------
 
 # Create a figure and axis object
 fig, ax = plt.subplots()
@@ -794,16 +990,22 @@ ax.plot(us, etas, label=r'Empirical $\eta$',
         linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
-ax.set_ylim((0.2,1))
+ax.set_ylim((0.2,1.01))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
 
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
-ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[0],2)}, $\phi(s_{j+1})$ = {round(phi_vec[1],2)}', fontsize=30)
+ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
 
 # Add grid lines
 ax.grid(True, linestyle = '--')
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
+          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
+          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+
+ax.legend(loc='upper left', fontsize = 14)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
