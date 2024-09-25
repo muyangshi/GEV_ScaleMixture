@@ -1,5 +1,74 @@
 # Meeting Summaries on GEV Project
 
+## Sept 24 Tuesday Meeting with Likun/Ben
+
+### Poster
+
+- [ ] Ben's "p-card" -- purchasing card?
+
+- Section 2:
+  - [ ] No color fill for equations. Just a box. It's too popped.
+  - [ ] Non-stationarity is for $\phi(s)$ and $\rho(s)$;  Scale-awareness means the local AI or AD, long range AI.
+- Section 3 Simulation:
+  - [ ] Figure 1 caption references the parameter surfaces, not the data
+  - [ ] Use the actual parameter surface not the Likun's
+- Section 3 Data Application:
+  - [ ] Shorter Intro, remove computation even (to make space)
+  - [ ] Make space to put data $\chi$ and fitted $\chi$ side-by-side
+  - [ ] Modify figure 5 caption: comparing model realization chi versus empirical dataset one
+- Section 4 Discussion:
+  - [ ] no s
+  - [ ] Make bulletpoints
+    - [ ] no two step -- phrased in a positive way: put the marginal part integrated into the model
+    - [ ] AI $\phi(s)$ but spatially varying
+    - [ ] ToDo: GPD
+- [ ] Remove ASA Logo, put on NSF logo
+
+
+### Paper
+
+Went over changes made on plots: 
+  - Figure 3 the Thm2.3 simulation plot
+  - Current stage of the Figure 4 (empirical estimates of $\chi$ and $\eta$)
+  - the simulation scenarios plots 3D -> 2D
+  - the data application posterior single hue plots
+  - The moving window $\chi$-plots are good as they are now.
+  
+#### Todo
+
+- [ ] Throught the paper, change "marginal distribution of the copula" to the dependence model
+- [ ] Update model names in the manuscript texts
+- [ ] Follow Ben's edits
+
+#### Simulation $\chi$ and $\eta$ - Example 3 Figure 4
+
+- Computation:
+  - [ ] save and load data
+  - [ ] fix the bug in $\eta$ estimation and redo estimations
+  - [ ] eventually use $N = 300,000,000$ datapoints
+  - [ ] Using `mev` in `R` to estimate $\eta$ because treating $L(1-u)$ as 1 may be biased
+  - Likun: limit of $\eta$ can be calculated by transforming to unit Frechet and fit GPD: 
+    ```##Calculate the tail dependence using min(Xi,Xj)
+    T1<-rank(Realizations[,1])/(N+1)
+    T2<-rank(Realizations[,2])/(N+1)
+    NewReal<-data.frame(xi=FrechetInv(T1), xj=FrechetInv(T2))
+    Tmin<-apply(NewReal,1,min)
+    fit<-gpd.fit(Tmin,method='amle')
+    itaX<-fit[1]
+    library(mvtnorm)
+    library(EnvStats)
+    library(gPdtest)
+    ```
+  
+- Plotting/aesthetics:
+  - [ ] Place UB above LB in legend
+  - [ ] the circle may not be necessary
+  - [ ] different colors and linestyle for the UB and LB
+  - [ ] thicker lines for the lines drawn first (if overlapping)
+  - [ ] if $\chi$ is not smooth, use smoothing splines to smooth it
+
+
+
 ## Sept 17 Tuesday Meeting with Likun/Mark/Ben
 
 ### Paper - Ben will give a pass on Thursday
@@ -48,4 +117,3 @@
 ### Some documents on choosing colormaps:
 - https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
 - https://colorbrewer2.org/#type=sequential&scheme=OrRd&n=3
-
