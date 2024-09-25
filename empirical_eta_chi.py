@@ -31,7 +31,11 @@ if __name__ == "__main__":
     print('Pareto: ', norm_pareto)
     sim_case = 3
 
-    # %% Simulation Setup
+    load_data = False
+    if load_data: print('Load previous data')
+
+    # %%
+    # Simulation Setup
 
     # Spatial Domain Setup --------------------------------------------------------------------------------------------
 
@@ -156,37 +160,40 @@ if __name__ == "__main__":
                                                 scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
 
 
-    # %% Generate Simulation Data
-
-    # Transformed Gaussian Process - W = g(Z), Z ~ MVN(0, K) ------------------
+    # %%
+    # Generate Simulation Data
 
     range_vec = gaussian_weight_matrix @ rho_at_knots
-    K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
-                        coords = sites_xy, kappa = nu, cov_model = "matern")
-    Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
-    W         = norm_to_Pareto(Z) 
+    phi_vec   = gaussian_weight_matrix @ phi_at_knots   # shape(Ns,)
 
-    # Random Scaling Factor - R^phi -------------------------------------------
+    if load_data == False:
 
-    phi_vec    = gaussian_weight_matrix @ phi_at_knots   # shape(Ns,)
-    S_at_knots = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k) for _ in range(Nt)]) # shape(Nt, k)
-    R_vec      = (wendland_weight_matrix @ S_at_knots.T) # shape(Ns, Nt)
-    X_star     = (R_vec.T ** phi_vec).T * W              # shape(Ns, Nt)
+        # Transformed Gaussian Process - W = g(Z), Z ~ MVN(0, K) ------------------
 
-    np.save('X_eta_chi', X_star)
+        K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
+                            coords = sites_xy, kappa = nu, cov_model = "matern")
+        Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
+        W         = norm_to_Pareto(Z) 
 
-    # R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
-    # for t in np.arange(Nt):
-    #     R_at_knots[:,t] = rlevy(n = k, m = delta, s = gamma) # generate R at time t, spatially varying k knots
-    #     # should need to vectorize rlevy so in future s = gamma_at_knots (k,) vector
-    #     # R_at_knots[:,t] = scipy.stats.levy.rvs(delta, gamma, k)
-    #     # R_at_knots[:,t] = np.repeat(rlevy(n = 1, m = delta, s = gamma), k) # generate R at time t, spatially constant k knots
-    # R_at_sites = wendland_weight_matrix @ R_at_knots
-    # R_phi      = np.full(shape = (Ns, Nt), fill_value = np.nan)
-    # for t in np.arange(Nt):
-    #     R_phi[:,t] = np.power(R_at_sites[:,t], phi_vec)
-    # X_star       = R_phi * W
+        # Random Scaling Factor - R^phi -------------------------------------------
 
+        S_at_knots = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k) for _ in range(Nt)]) # shape(Nt, k)
+        R_vec      = (wendland_weight_matrix @ S_at_knots.T) # shape(Ns, Nt)
+        X_star     = (R_vec.T ** phi_vec).T * W              # shape(Ns, Nt)
+
+        np.save(f'eta_chi:K_{Nt}', K)
+        # np.save(f'eta_chi:Z_{Nt}', Z)
+        np.save(f'eta_chi:W_{Nt}', W)
+        # np.save(f'eta_chi:S_at_knots_{Nt}', S_at_knots)
+        np.save(f'eta_chi:X_star_{Nt}', X_star)
+
+    if load_data == True:
+        K      = np.load(f'eta_chi:K_{Nt}.npy')
+        # Z      = np.load(f'eta_chi:Z_{Nt}.npy')
+        W      = np.load(f'eta_chi:W_{Nt}.npy')
+        # S_at_knots = np.load(f'eta_chi:S_at_knots_{Nt}.npy')
+        X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
+    
 
     # %% Checks on Data Generation ------------------------------------------------------------------------------------
 
@@ -331,9 +338,13 @@ if __name__ == "__main__":
     # # plt.show()
     # plt.close()
 
+
 # %%
 Nu = 100
-us = np.linspace(0.9, 0.999999, Nu)
+# us = np.linspace(0.9, 0.999999, Nu)
+
+us = np.concatenate((np.linspace(0.9, 0.99, Nu//2), 
+                     np.linspace(0.99, 0.999999, Nu//2)))
 
 # q = np.array([qRW(u, phi_vec, gamma_vec) for u in us]) # shape(Nu, Ns)
 
@@ -401,10 +412,6 @@ eta_limit = 1.0
 
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-# ax.set_aspect('equal','box')
-
-ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((-0.01,0.5))
@@ -418,15 +425,18 @@ ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
-# Add bounds and dot
-ax.hlines(y=chi_LB, label=r'$\chi$ LB', xmin=0.9, xmax=1.0, 
-          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
-ax.hlines(y=chi_UB, label=r'$\chi$ UB', xmin=0.9, xmax=1.0, 
-          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
-ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
-        color='red', linestyle='None', zorder = 100)
+# Plot the lines
+line_UB = ax.hlines(y=chi_UB, label=r'$\chi$ UB', xmin=0.9, xmax=1.0, 
+          colors='tab:orange', linestyles='--', linewidth=4)
+line_est, = ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='black')
+line_LB = ax.hlines(y=chi_LB, label=r'$\chi$ LB', xmin=0.9, xmax=1.0, 
+          colors='tab:blue', linestyles=':', linewidth=4)
+# ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+#         color='red', linestyle='None', zorder = 100)
 
-ax.legend(loc = 'upper left', fontsize = 14)
+ax.legend([line_UB, line_est, line_LB],[r'$\chi$ UB', r'Empirical $\chi$', r'$\chi$ LB'],
+          loc = 'upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -437,9 +447,6 @@ plt.close()
 
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-
-ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((0.2,1.01))
@@ -454,11 +461,14 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 ax.grid(True, linestyle = '--')
 
 # Add bounds
-ax.hlines(y=eta_limit, label=r'$\eta$ limit', linestyles=':',
-          xmin=0.9, xmax=1.0, colors='#008000',  linewidth=3,
-          clip_on = False)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.hlines(y=eta_limit, label=r'$\eta$ limit',
+          xmin=0.9, xmax=1.0, colors='tab:red',  linewidth=4,
+          clip_on = False)
+ax.plot(us, etas, label=r'Empirical $\eta$',
+        linewidth = 3, color='black')
+
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -514,10 +524,6 @@ if eta_W < phi_i/alpha:               eta_LB, eta_UB = phi_i/alpha, phi_j/alpha
 
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-# ax.set_aspect('equal','box')
-
-ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((-0.01,0.5))
@@ -532,12 +538,15 @@ ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
-ax.hlines(y=chi_limit, label=r'$\chi$ limit', linestyles=':',
-          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3)
-ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
-        color='blue', linestyle='None', zorder = 100)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='black')
+ax.hlines(y=chi_limit, label=r'$\chi$ limit',
+          xmin=0.9, xmax=1.0, colors='tab:red', linewidth=3)
+# ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+#         color='blue', linestyle='None', zorder = 100)
+
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -549,9 +558,6 @@ plt.close()
 # Create a figure and axis object
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-
-ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((0.2,1.01))
@@ -565,12 +571,14 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
-ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles='--',
-          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3, alpha = 0.5)
-ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='-.',
-          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3, alpha = 0.5)
+ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+          xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=3)
+ax.plot(us, etas, label=r'Empirical $\eta$',
+        linewidth = 3, color='black')
+ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+          xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=3)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -625,9 +633,6 @@ if eta_W >  (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 2
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
-ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='tab:blue')
-
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
@@ -641,12 +646,14 @@ ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
-ax.hlines(y=chi_limit, label = r'$\chi$ limit', linestyles=':',
-          xmin=0.9, xmax=1.0, colors='#008000', linewidth=3)
-ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
-        color='blue', linestyle='None', zorder = 100)
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='black')
+ax.hlines(y=chi_limit, label = r'$\chi$ limit',
+          xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+# ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+#         color='blue', linestyle='None', zorder = 100)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -657,9 +664,6 @@ plt.close()
 
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
-
-ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
 
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((0.2,1.01))
@@ -673,12 +677,14 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
-ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
-          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
-          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+          colors='tab:orange', linestyles='--', linewidth=4)
+ax.plot(us, etas, label=r'Empirical $\eta$',
+        linewidth = 3, color='black')
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
+          colors='tab:blue', linestyles=':', linewidth=4)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -734,14 +740,10 @@ if phi_j/(alpha*eta_W) < 2:               eta_Lb, eta_UB = alpha*eta_W/phi_j, al
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
-ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='tab:blue')
-
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((-0.01,0.5))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
-
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\chi$', fontsize=20)
 ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
@@ -750,12 +752,14 @@ ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
+ax.plot(us, chis, label=r'Empirical $\chi$',
+        linewidth = 3, color='black')
 ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
-          colors='#008000', linestyles=':', linewidth=3)
-ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
-        color='blue', linestyle='None', zorder = 100)
+          colors='tab:red', linewidth=4)
+# ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+#         color='blue', linestyle='None', zorder = 100)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -767,14 +771,10 @@ plt.close()
 fig, ax = plt.subplots()
 fig.set_size_inches(8,6)
 
-ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
-
 ax.set_xlim((0.9,1.0))
 ax.set_ylim((0.2,1))
 ax.set_xticks(np.linspace(0.9,1.0, 6))
 ax.tick_params(axis='both', labelsize=20)
-
 ax.set_xlabel(r'$u$', fontsize=20)
 ax.set_ylabel(r'$\eta$', fontsize=20)
 ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
@@ -782,12 +782,14 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
-ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
-          colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
-          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+          colors='tab:orange', linestyles='--', linewidth=4)
+ax.plot(us, etas, label=r'Empirical $\eta$',
+        linewidth = 3, color='black')
+ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
+          colors='tab:blue', linestyles=':', linewidth=4)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -864,7 +866,7 @@ ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
 ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
         color='blue', linestyle='None', zorder = 100)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -894,9 +896,9 @@ ax.grid(True, linestyle = '--')
 ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
           colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
-          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+          colors='#008000', linestyles=':', linewidth=3, alpha = 0.5)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -973,7 +975,7 @@ ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label = r'$\chi$ limit',
 ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
         color='blue', linestyle='None', zorder = 100)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
@@ -1003,9 +1005,9 @@ ax.grid(True, linestyle = '--')
 ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
           colors='#008000', linestyles='--', linewidth=3, alpha = 0.5)
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
-          colors='#008000', linestyles='-.', linewidth=3, alpha = 0.5)
+          colors='#008000', linestyles=':', linewidth=3, alpha = 0.5)
 
-ax.legend(loc='upper left', fontsize = 14)
+ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
