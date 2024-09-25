@@ -503,9 +503,9 @@ eta_W = (1 + K[i,j])/2
 phi_i = min(phi_vec[i], phi_vec[j])
 phi_j = max(phi_vec[i], phi_vec[j])
 
-if eta_W > phi_j/alpha:         eta_LB, eta_UB = eta_W, eta_W
-if phi_i < eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
-if eta_W < phi_i/alpha:         eta_LB, eta_UB = phi_i/alpha, phi_j/alpha
+if eta_W > phi_j/alpha:               eta_LB, eta_UB = eta_W, eta_W
+if phi_i/alpha < eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
+if eta_W < phi_i/alpha:               eta_LB, eta_UB = phi_i/alpha, phi_j/alpha
 
 
 # Plotting --------------------------------------------------------------------
@@ -616,7 +616,7 @@ phi_i = min(phi_vec[i], phi_vec[j])
 phi_j = max(phi_vec[i], phi_vec[j])
 
 if eta_W <= (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 1/(1+(1-phi_i/alpha)/(2*eta_W))
-if eta_W <  (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 2*eta_W/(1+phi_j/alpha)
+if eta_W >  (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 2*eta_W/(1+phi_j/alpha)
 
 # Plotting --------------------------------------------------------------------
 
