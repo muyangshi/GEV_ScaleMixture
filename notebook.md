@@ -7,22 +7,22 @@
 - [ ] Ben's "p-card" -- purchasing card?
 
 - Section 2:
-  - [ ] No color fill for equations. Just a box. It's too popped.
-  - [ ] Non-stationarity is for $\phi(s)$ and $\rho(s)$;  Scale-awareness means the local AI or AD, long range AI.
+  - [x] No color fill for equations. Just a box. It's too popped.
+  - [x] Non-stationarity is for $\phi(s)$ and $\rho(s)$;  Scale-awareness means the local AI or AD, long range AI.
 - Section 3 Simulation:
-  - [ ] Figure 1 caption references the parameter surfaces, not the data
-  - [ ] Use the actual parameter surface not the Likun's
+  - [x] Figure 1 caption references the parameter surfaces, not the data
+  - [x] Use the actual parameter surface not the Likun's
 - Section 3 Data Application:
-  - [ ] Shorter Intro, remove computation even (to make space)
-  - [ ] Make space to put data $\chi$ and fitted $\chi$ side-by-side
-  - [ ] Modify figure 5 caption: comparing model realization chi versus empirical dataset one
+  - [x] Shorter Intro, remove computation even (to make space)
+  - [x] Make space to put data $\chi$ and fitted $\chi$ side-by-side
+  - [x] Modify figure 5 caption: comparing model realization chi versus empirical dataset one
 - Section 4 Discussion:
-  - [ ] no s
-  - [ ] Make bulletpoints
-    - [ ] no two step -- phrased in a positive way: put the marginal part integrated into the model
-    - [ ] AI $\phi(s)$ but spatially varying
-    - [ ] ToDo: GPD
-- [ ] Remove ASA Logo, put on NSF logo
+  - [x] no s
+  - [x] Make bulletpoints
+    - [x] no two step -- phrased in a positive way: put the marginal part integrated into the model
+    - [x] AI $\phi(s)$ but spatially varying
+    - [x] ToDo: GPD
+- [x] Remove ASA Logo, put on NSF logo
 
 
 ### Paper
@@ -40,12 +40,12 @@ Went over changes made on plots:
 - [ ] Update model names in the manuscript texts
 - [ ] Follow Ben's edits
 
-#### Simulation $\chi$ and $\eta$ - Example 3 Figure 4
+### Simulation $\chi$ and $\eta$ - Example 3 Figure 4
 
 - Computation:
-  - [ ] save and load data
-  - [ ] fix the bug in $\eta$ estimation and redo estimations
-  - [ ] eventually use $N = 300,000,000$ datapoints
+  - [x] save and load data
+  - [x] fix the bug in $\eta$ estimation and redo estimations
+  - [x] eventually use $N = 300,000,000$ datapoints
   - [ ] Using `mev` in `R` to estimate $\eta$ because treating $L(1-u)$ as 1 may be biased
   - Likun: limit of $\eta$ can be calculated by transforming to unit Frechet and fit GPD: 
     ```##Calculate the tail dependence using min(Xi,Xj)
@@ -61,10 +61,13 @@ Went over changes made on plots:
     ```
   
 - Plotting/aesthetics:
-  - [ ] Place UB above LB in legend
-  - [ ] the circle may not be necessary
-  - [ ] different colors and linestyle for the UB and LB
-  - [ ] thicker lines for the lines drawn first (if overlapping)
+  - [x] Place UB above LB in legend
+    - `tab:red` solid line represent theoretical limit
+    - `tab:orange` dashed line represent UB
+    - `tab:blue` dotted line represent LB
+  - [x] the circle may not be necessary
+  - [x] different colors and linestyle for the UB and LB
+  - [x] thicker lines for the lines drawn first (if overlapping)
   - [ ] if $\chi$ is not smooth, use smoothing splines to smooth it
 
 
