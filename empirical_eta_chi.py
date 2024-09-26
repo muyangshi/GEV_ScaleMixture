@@ -6,11 +6,11 @@ if __name__ == "__main__":
     # %% imports
     # imports
     import os
-    os.environ["OMP_NUM_THREADS"]        = "64" # export OMP_NUM_THREADS=1
-    os.environ["OPENBLAS_NUM_THREADS"]   = "64" # export OPENBLAS_NUM_THREADS=1
-    os.environ["MKL_NUM_THREADS"]        = "64" # export MKL_NUM_THREADS=1
-    os.environ["VECLIB_MAXIMUM_THREADS"] = "64" # export VECLIB_MAXIMUM_THREADS=1
-    os.environ["NUMEXPR_NUM_THREADS"]    = "64" # export NUMEXPR_NUM_THREADS=1
+    # os.environ["OMP_NUM_THREADS"]        = "64" # export OMP_NUM_THREADS=1
+    # os.environ["OPENBLAS_NUM_THREADS"]   = "64" # export OPENBLAS_NUM_THREADS=1
+    # os.environ["MKL_NUM_THREADS"]        = "64" # export MKL_NUM_THREADS=1
+    # os.environ["VECLIB_MAXIMUM_THREADS"] = "64" # export VECLIB_MAXIMUM_THREADS=1
+    # os.environ["NUMEXPR_NUM_THREADS"]    = "64" # export NUMEXPR_NUM_THREADS=1
     import numpy as np
     import matplotlib
     import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print('Pareto: ', norm_pareto)
     sim_case = 3
 
-    load_data = True
+    load_data = False
     if load_data: print('Load previous data')
 
     # %%
@@ -430,7 +430,7 @@ ax.grid(True, linestyle = '--')
 line_UB = ax.hlines(y=chi_UB, label=r'$\chi$ UB', xmin=0.9, xmax=1.0, 
           colors='tab:orange', linestyles='--', linewidth=4)
 line_est, = ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 line_LB = ax.hlines(y=chi_LB, label=r'$\chi$ LB', xmin=0.9, xmax=1.0, 
           colors='tab:blue', linestyles=':', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
@@ -467,7 +467,7 @@ ax.hlines(y=eta_limit, label=r'$\eta$ limit',
           xmin=0.9, xmax=1.0, colors='tab:red',  linewidth=4,
           clip_on = False)
 ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 
 ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
@@ -541,9 +541,9 @@ ax.grid(True, linestyle = '--')
 # Add bounds and dot
 
 ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=chi_limit, label=r'$\chi$ limit',
-          xmin=0.9, xmax=1.0, colors='tab:red', linewidth=3)
+          xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
 #         color='blue', linestyle='None', zorder = 100)
 
@@ -573,11 +573,11 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 ax.grid(True, linestyle = '--')
 
 ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
-          xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=3)
+          xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
 ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
-          xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=3)
+          xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
 
 ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
@@ -648,7 +648,7 @@ ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
 ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=chi_limit, label = r'$\chi$ limit',
           xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
@@ -681,7 +681,7 @@ ax.grid(True, linestyle = '--')
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
           colors='tab:orange', linestyles='--', linewidth=4)
 ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
           colors='tab:blue', linestyles=':', linewidth=4)
 
@@ -754,7 +754,7 @@ ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
 ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
           colors='tab:red', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
@@ -786,7 +786,7 @@ ax.grid(True, linestyle = '--')
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
           colors='tab:orange', linestyles='--', linewidth=4)
 ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
           colors='tab:blue', linestyles=':', linewidth=4)
 
@@ -860,9 +860,9 @@ ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
 ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label=r'$\chi$ limit',
-          colors='tab:red', linewidth=3)
+          colors='tab:red', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
 #         color='blue', linestyle='None', zorder = 100)
 
@@ -891,11 +891,11 @@ ax.grid(True, linestyle = '--')
 
 
 ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label=r'$\eta$ UB',
-          colors='tab:orange', linestyles='--', linewidth=3)
+          colors='tab:orange', linestyles='--', linewidth=4)
 ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
+        linewidth=4, color='black')
 ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label=r'$\eta$ LB',
-          colors='tab:blue', linestyles=':', linewidth=3)
+          colors='tab:blue', linestyles=':', linewidth=4)
 
 ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
 
@@ -965,9 +965,9 @@ ax.grid(True, linestyle = '--')
 
 # Add bounds and dot
 ax.plot(us, chis, label=r'Empirical $\chi$',
-        linewidth = 3, color='black')
+        linewidth=4, color='black')
 ax.hlines(y=chi_limit, xmin=0.9, xmax=1.0, label = r'$\chi$ limit',
-          colors='tab:red', linewidth=3)
+          colors='tab:red', linewidth=4)
 # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
 #         color='blue', linestyle='None', zorder = 100)
 
@@ -996,14 +996,15 @@ ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, 
 # Add grid lines
 ax.grid(True, linestyle = '--')
 
-ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
-          colors='tab:orange', linestyles='--', linewidth=3)
-ax.plot(us, etas, label=r'Empirical $\eta$',
-        linewidth = 3, color='tab:blue')
-ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
-          colors='tab:blue', linestyles=':', linewidth=3)
+line_est, = ax.plot(us, etas, label=r'Empirical $\eta$',
+        linewidth=4, color='black')
+line_UB = ax.hlines(y=eta_UB, xmin=0.9, xmax=1.0, label = r'$\eta$ UB',
+          colors='tab:orange', linestyles='--', linewidth=4)
+line_LB = ax.hlines(y=eta_LB, xmin=0.9, xmax=1.0, label = r'$\eta$ LB',
+          colors='tab:blue', linestyles=':', linewidth=4)
 
-ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+ax.legend([line_UB, line_est, line_LB],[r'$\eta$ UB', r'Empirical $\eta$', r'$\eta$ LB'],
+    loc='upper left', fontsize = 14, handlelength = 3.0)
 
 # Show the plot
 plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
