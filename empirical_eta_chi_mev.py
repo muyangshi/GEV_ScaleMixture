@@ -5,12 +5,6 @@ if __name__ == "__main__":
 
     # %% imports
     # imports
-    import os
-    # os.environ["OMP_NUM_THREADS"]        = "64" # export OMP_NUM_THREADS=1
-    # os.environ["OPENBLAS_NUM_THREADS"]   = "64" # export OPENBLAS_NUM_THREADS=1
-    # os.environ["MKL_NUM_THREADS"]        = "64" # export MKL_NUM_THREADS=1
-    # os.environ["VECLIB_MAXIMUM_THREADS"] = "64" # export VECLIB_MAXIMUM_THREADS=1
-    # os.environ["NUMEXPR_NUM_THREADS"]    = "64" # export NUMEXPR_NUM_THREADS=1
     import numpy as np
     import matplotlib
     import matplotlib.pyplot as plt
@@ -41,6 +35,9 @@ if __name__ == "__main__":
 
     n_core = 5
     print(f'using {n_core} cores')
+
+    eta_method = 'emp' # "emp", "betacop", "gpd", "hill"
+    chi_method = 'emp'     # "emp", "betacop"
 
     # %%
     # Simulation Setup
@@ -207,33 +204,27 @@ if __name__ == "__main__":
 
         # np.save(f'eta_chi:Z_{Nt}', Z)
         # np.save(f'eta_chi:S_at_knots_{Nt}', S_at_knots)
-        # np.save(f'eta_chi:K_{Nt}', K)
-        # np.save(f'eta_chi:W_{Nt}', W)
+        np.save(f'eta_chi:K_{Nt}', K)
+        np.save(f'eta_chi:W_{Nt}', W)
         np.save(f'eta_chi:X_star_{Nt}', X_star)
         np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
 
-        # K_ro     = numpy2rpy(K)
-        # W_ro     = numpy2rpy(W)
         X_star_ro = numpy2rpy(X_star)
         CDF_X_ro  = numpy2rpy(CDF_X)
 
-        # r.assign('K', K_ro)
-        # r.assign('W', W_ro)
         r.assign('X_star', X_star_ro)
         r.assign('CDF_X', CDF_X_ro)
 
-        # r(f"save(K, file='eta_chi:K_{Nt}.gzip', compress=TRUE)")
-        # r(f"save(W, file='eta_chi:W_{Nt}.gzip', compress=TRUE)")
         r(f"save(X_star, file='eta_chi:X_star_{Nt}.gzip', compress=TRUE)")
         r(f"save(CDF_X, file='eta_chi:CDF_X_{Nt}.gzip', compress=TRUE)")
         
 
     if load_data == True:
         
-        # K      = np.load(f'eta_chi:K_{Nt}.npy')
         # Z      = np.load(f'eta_chi:Z_{Nt}.npy')
-        # W      = np.load(f'eta_chi:W_{Nt}.npy')
         # S_at_knots = np.load(f'eta_chi:S_at_knots_{Nt}.npy')
+        K      = np.load(f'eta_chi:K_{Nt}.npy')
+        W      = np.load(f'eta_chi:W_{Nt}.npy')
         X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
         CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
                         
@@ -396,23 +387,71 @@ if __name__ == "__main__":
     us_ro = numpy2rpy(us)
     r.assign('us', us_ro)
 
+    # for calculating the eta bounds in python
+
+    def qRW_par(args): 
+        u, phi_vec, gamma_vec = args
+        return qRW(u, phi_vec, gamma_vec)
+    args_list = []
+    for u in us:
+        args_list.append((u, phi_vec, gamma_vec))
+    with multiprocessing.get_context('fork').Pool(processes = 4) as pool:
+        q_results = pool.map(qRW_par, args_list)
+    q = np.array(q_results) # shape(Nu, Ns)
+
 
     # %% \chi_{12} Thm2.3 a i (AD) - alpha < phi_i < phi_j
 
     i = 0
     j = 1
-    eta_limit = 1.0
+
+    # Estimation --------------------------------------------------------------
 
     r(f'''
     est <- taildep(data = CDF_X[,{i+1}:{j+1}],
             u = us,
             depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
             empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
 
-    # eta -----------------------------------------------------
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - (AD) alpha < phi_i < phi_j
+
+    v_k1    = np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha / sum(np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha)
+    v_k2    = np.multiply(wendland_weight_matrix[j,:], gamma_at_knots)**alpha / sum(np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha)
+    v_kmin  = np.minimum(v_k1, v_k2)
+    v_kmax  = np.maximum(v_k1, v_k2)
+
+    tmp_i   = W[i]**(alpha/phi_vec[i]) / np.mean(W[i]**(alpha/phi_vec[i]))
+    tmp_j   = W[j]**(alpha/phi_vec[j]) / np.mean(W[j]**(alpha/phi_vec[j]))
+    tmp_min = np.minimum(tmp_i, tmp_j)
+    tmp_max = np.maximum(tmp_i, tmp_j)
+
+    chi_LB  = np.mean(tmp_min) * sum(v_kmin)
+    chi_UB  = np.mean(tmp_max) * sum(v_kmax)
+
+    # eta bounds - (AD) alpha < phi_i < phi_j
+
+    eta_limit = 1.0
+
+    # Plotting eta -----------------------------------------------------
 
     fig, ax = plt.subplots()
     fig.set_size_inches(8,6)
@@ -446,12 +485,389 @@ if __name__ == "__main__":
 
     # %% \chi_{34} Thm2.3 a ii (AI) - phi_i < phi_j < alpha
 
+    i = 2
+    j = 3
+
+    # Estimation --------------------------------------------------------------
+
+    r(f'''
+    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+            u = us,
+            depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
+            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    ''')
+    r_est = np.array(r('est$eta'))
+    etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
+
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - phi_i < phi_j < alpha
+
+    chi_limit = 0.0
+
+    # eta bounds - phi_i < phi_j < alpha
+
+    eta_W = (1 + K[i,j])/2
+    phi_i = min(phi_vec[i], phi_vec[j])
+    phi_j = max(phi_vec[i], phi_vec[j])
+
+    if eta_W > phi_j/alpha:               eta_LB, eta_UB = eta_W, eta_W
+    if phi_i/alpha < eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
+    if eta_W < phi_i/alpha:               eta_LB, eta_UB = phi_i/alpha, phi_j/alpha
+
+    # Plotting eta -----------------------------------------------------
+
+    # Create a figure and axis object
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((0.2,1.01))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\eta$', fontsize=20)
+    ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+            xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
+    ax.plot(us, etas, label=r'Empirical $\eta$',
+            linewidth=4, color='black')
+    ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+            xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
+
     # %% \chi_{45} Thm2.3 a iii (AI) - phi_i < \alpha < phi_j
+    
+    i = 3
+    j = 4
+
+    # Estimation --------------------------------------------------------------
+
+    r(f'''
+    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+            u = us,
+            depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
+            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    ''')
+    r_est = np.array(r('est$eta'))
+    etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
+    
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - phi_i < \alpha < phi_j
+
+    chi_limit = 0.0
+
+    # eta bounds - phi_i < \alpha < phi_j
+
+    eta_W = (1 + K[i,j])/2
+    phi_i = min(phi_vec[i], phi_vec[j])
+    phi_j = max(phi_vec[i], phi_vec[j])
+
+    if eta_W <= (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 1/(1+(1-phi_i/alpha)/(2*eta_W))
+    if eta_W >  (phi_i/alpha + phi_j/alpha)/2: eta_LB, eta_UB = 1/(2-phi_i/alpha), 2*eta_W/(1+phi_j/alpha)
+
+    # Plotting eta -----------------------------------------------------
+
+    # Create a figure and axis object
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((0.2,1.01))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\eta$', fontsize=20)
+    ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+            xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
+    ax.plot(us, etas, label=r'Empirical $\eta$',
+            linewidth=4, color='black')
+    ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+            xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
     # %% \chi_{15} Thm2.3 b i (AI) - alpha < phi_i < phi_j
+    
+    i = 0
+    j = 4
 
-    # %% \chi_{35} Thm2.3 b ii (AI) - phi_i < phi_j < alpha
+    # Estimation --------------------------------------------------------------
+
+    r(f'''
+    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+            u = us,
+            depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
+            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    ''')
+    r_est = np.array(r('est$eta'))
+    etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
+    
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - alpha < phi_i < phi_j
+
+    chi_limit = 0.0
+
+    # eta bounds - alpha < phi_i < phi_j
+
+    eta_W = (1 + K[i,j])/2
+    phi_i = min(phi_vec[i], phi_vec[j])
+    phi_j = max(phi_vec[i], phi_vec[j])
+
+    if phi_i/alpha > 2:                       eta_LB, eta_UB = 0.5, 0.5
+    if phi_i/alpha < 2 < phi_j/(alpha*eta_W): eta_LB, eta_UB = 0.5, alpha/phi_i
+    if phi_j/(alpha*eta_W) < 2:               eta_Lb, eta_UB = alpha*eta_W/phi_j, alpha/phi_i
+
+    # Plotting eta -----------------------------------------------------
+
+    # Create a figure and axis object
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((0.2,1.01))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\eta$', fontsize=20)
+    ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+            xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
+    ax.plot(us, etas, label=r'Empirical $\eta$',
+            linewidth=4, color='black')
+    ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+            xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
+
+    # %% \chi_{36} Thm2.3 b ii (AI) - phi_i < phi_j < alpha
+
+    i = 2
+    j = 5
+
+    # Estimation --------------------------------------------------------------
+
+    r(f'''
+    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+            u = us,
+            depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
+            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    ''')
+    r_est = np.array(r('est$eta'))
+    etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
+    
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - phi_i < phi_j < alpha
+
+    chi_limit = 0.0
+
+    # eta bounds - phi_i < phi_j < alpha
+
+    eta_W = (1 + K[i,j])/2
+    phi_i = min(phi_vec[i], phi_vec[j])
+    phi_j = max(phi_vec[i], phi_vec[j])
+
+    if eta_W > phi_j/alpha: eta_LB, eta_UB = eta_W, eta_W
+    if eta_W < phi_j/alpha: eta_LB, eta_UB = eta_W, phi_j/alpha
+
+    # Plotting eta -----------------------------------------------------
+
+    # Create a figure and axis object
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((0.2,1.01))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\eta$', fontsize=20)
+    ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+            xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
+    ax.plot(us, etas, label=r'Empirical $\eta$',
+            linewidth=4, color='black')
+    ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+            xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
     # %% \chi_{14} b iii (AI) - phi_i < alpha < phi_J
+
+    i = 0
+    j = 3
+
+    # Estimation --------------------------------------------------------------
+
+    r(f'''
+    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+            u = us,
+            depmeas = 'eta',
+            method = list(eta = "{eta_method}", chi = "{chi_method}"),
+            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    ''')
+    r_est = np.array(r('est$eta'))
+    etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
+    
+    # Bounds ------------------------------------------------------------------
+
+    s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
+    q_s1, q_s2 = q[:,i], q[:,j]      # Unpacking q
+
+    # Broadcasting comparisons for s1 and s2 against q_s1 and q_s2 for all `i` at once
+    co_extreme_mask = (s1[:, np.newaxis] >= q_s1) & (s2[:, np.newaxis] >= q_s2)
+
+    # Count co-extreme events across all `i` at once
+    count_co_extreme = np.sum(co_extreme_mask, axis=0)
+
+    # Probability of co-extreme and uni-extreme events
+    prob_co_extreme = count_co_extreme / len(s1)
+    prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
+    
+    # chi bounds - phi_j < alpha < phi_j
+
+    chi_limit = 0.0
+
+    # eta bounds - phi_j < alpha < phi_j
+
+    eta_W = (1 + K[i,j])/2
+    phi_i = min(phi_vec[i], phi_vec[j])
+    phi_j = max(phi_vec[i], phi_vec[j])
+
+    if 2*eta_W <= phi_j/alpha: eta_LB, eta_UB = 0.5, 1/(1+1/(1+K[i,j]))
+    if 2*eta_W > phi_j/alpha:  eta_LB, eta_UB = 0.5, (1+K[i,j])/(1+phi_j/alpha)
+
+    # Plotting eta -----------------------------------------------------
+
+    # Create a figure and axis object
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((0.2,1.01))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\eta$', fontsize=20)
+    ax.set_title(fr'$\eta_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    ax.hlines(y=eta_UB, label=r'$\eta$ UB', linestyles='--',
+            xmin=0.9, xmax=1.0, colors='tab:orange', linewidth=4)
+    ax.plot(us, etas, label=r'Empirical $\eta$',
+            linewidth=4, color='black')
+    ax.hlines(y=eta_LB, label=r'$\eta$ LB', linestyles=':',
+            xmin=0.9, xmax=1.0, colors='tab:blue', linewidth=4)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'eta_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
     # %%
