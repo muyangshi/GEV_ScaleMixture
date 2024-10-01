@@ -30,8 +30,9 @@ if __name__ == "__main__":
     print('Pareto: ', norm_pareto)
     sim_case = 3
 
-    load_data = False
-    if load_data: print('Load previous data')
+    load_data = True
+    if load_data:     print('Load previous data')
+    if not load_data: print('Generating new Z')
 
     n_core = 5
     print(f'using {n_core} cores')
