@@ -1,10 +1,50 @@
 # Meeting Summaries on GEV Project
 
-## Sept 24 Tuesday Meeting with Likun/Ben
+## Oct. 1 Tuesday Meeting with Mark/Ben
+
+### Meeting
+
+- Talked about the difficulties in estimating $\eta$, evening using `mev` package
+- Go over the comments in the paper
+  - Ben will look at the "unresolved" comments
+
+### Todo
+
+#### Paper
+
+- [x] Talk about the difficulties of $\eta$ not reaching the empirical bounds
+  ```
+  eta = np.log(1-us) / np.log(prob_co_extreme)
+  ```
+  $\eta = \dfrac{\log(1-u)}{\log(P(F_1(X_1) > u, F_2(X_2) > u))}$ -- the empirical estimates on the denominator is troubling.
+- [x] Move model integral into section 3 together with the likelihood
+- [ ] Follow Ben's edit:
+  - [ ] Section 3
+- [ ] Change the data analysis section 5's intro paragraphs
+  - if any issue, keep some notes for Mark
+- [ ] Update model names in the section 5's texts
+- [ ] Elaborate bullet points in section 6's discussion into paragraphs
+
+#### simulation
+- [ ] try hill estimator from `mev` if time permits
+
+
+## Sept. 24 Tuesday Meeting with Likun/Ben
+
+### Meeting
+
+Went over changes made on plots: 
+  - Figure 3 the Thm2.3 simulation plot
+  - Current stage of the Figure 4 (empirical estimates of $\chi$ and $\eta$)
+  - the simulation scenarios plots 3D -> 2D
+  - the data application posterior single hue plots
+  - The moving window $\chi$-plots are good as they are now.
+
+### Todo
 
 ### Poster
 
-- [ ] Ben's "p-card" -- purchasing card?
+- [x] Ben's "p-card" -- purchasing card?
 
 - Section 2:
   - [x] No color fill for equations. Just a box. It's too popped.
@@ -27,18 +67,11 @@
 
 ### Paper
 
-Went over changes made on plots: 
-  - Figure 3 the Thm2.3 simulation plot
-  - Current stage of the Figure 4 (empirical estimates of $\chi$ and $\eta$)
-  - the simulation scenarios plots 3D -> 2D
-  - the data application posterior single hue plots
-  - The moving window $\chi$-plots are good as they are now.
-  
-#### Todo
+- [x] Follow Ben's edits
+- [x] Through out the paper, change "marginal" to "univariate"
+- [x] Through out the paper, change "copula" to "dependence model"
+- [-] Update model names in the manuscript texts
 
-- [ ] Throught the paper, change "marginal distribution of the copula" to the dependence model
-- [ ] Update model names in the manuscript texts
-- [ ] Follow Ben's edits
 
 ### Simulation $\chi$ and $\eta$ - Example 3 Figure 4
 
@@ -46,7 +79,9 @@ Went over changes made on plots:
   - [x] save and load data
   - [x] fix the bug in $\eta$ estimation and redo estimations
   - [x] eventually use $N = 300,000,000$ datapoints
-  - [ ] Using `mev` in `R` to estimate $\eta$ because treating $L(1-u)$ as 1 may be biased
+  - [x] Using `mev` in `R` to estimate $\eta$ because treating $L(1-u)$ as 1 may be biased
+    - Seems it also ignores $L(1-u)$ from its vignette
+    - Gives same if not worse result than manually estimate empirically
   - Likun: limit of $\eta$ can be calculated by transforming to unit Frechet and fit GPD: 
     ```##Calculate the tail dependence using min(Xi,Xj)
     T1<-rank(Realizations[,1])/(N+1)
@@ -68,11 +103,11 @@ Went over changes made on plots:
   - [x] the circle may not be necessary
   - [x] different colors and linestyle for the UB and LB
   - [x] thicker lines for the lines drawn first (if overlapping)
-  - [ ] if $\chi$ is not smooth, use smoothing splines to smooth it
+  - if $\chi$ is not smooth, use smoothing splines to smooth it
 
 
 
-## Sept 17 Tuesday Meeting with Likun/Mark/Ben
+## Sept. 17 Tuesday Meeting with Likun/Mark/Ben
 
 ### Paper - Ben will give a pass on Thursday
 
@@ -80,9 +115,9 @@ Went over changes made on plots:
 
 - Section 2 Model
   - [x] Change the "marginal distribution of the copula" to univariate distribution of the dependence model -- **through out the paper!**
-  - [ ] Remade Figure 3 ($\phi(s)$ surface) Figure 4 (empirical $\chi$ and $\eta$) so that we are not making radius able to change and have plots verifying the bounds in Thm 2.3
+  - [x] Remade Figure 3 ($\phi(s)$ surface) Figure 4 (empirical $\chi$ and $\eta$) so that we are not making radius able to change and have plots verifying the bounds in Thm 2.3
     - [x] Figure 3 - simulation case
-    - [ ] Figure 4 - empirical plots
+    - [x] Figure 4 - empirical plots
 - Section 3 Bayesian Inference
   - [x] add hierarchical model into section 3
   - [x] paragraph on knot (spatial dimension reduction) for the dependence model (don't say process model because levels are not clear)
@@ -99,11 +134,11 @@ Went over changes made on plots:
     - [x] Change the $\rho(s)$ surface plot to single color
     - [x] Potentially also changing the $\theta_{GEV}(s)$ plots to have one hue?
     - [x] Change the bound of colorbar for $\chi$-plot to [0, 0.5]. 
-  - [ ] Update model names in the manuscript texts
+  - [-] Update model names in the manuscript texts
 
 ### Re-do $\eta$ and $\chi$ empricial estimation for Thm 2.3
 
-- [ ] Empirically estimate $\chi$ and $\eta$
+- [x] Empirically estimate $\chi$ and $\eta$
   - Treat $L_Z(...)$ as 1 since we are approaching the limit. Likun: do a regression on (log of) the formula to get $\eta$
   - Roughly 2 hours for $N = 300,000,000$ to get six $\chi$ and $\eta$; doing $N = 100,000,000$ seems to be much faster.
   - $u$ goes to 0.999999 not enough for (a) (iii)'s $\chi$ (with $N = 100,000,000$)? Likun used cubic spline smooth, I'm plotting the raw numerical estimate
