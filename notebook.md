@@ -1,5 +1,9 @@
 # Meeting Summaries on GEV Project
 
+## Oct. 8 Tuesday Meeting
+
+- Using the `betacop` estimator is just like a smooth, and doesn't improve estimation
+
 ## Oct. 1 Tuesday Meeting with Mark/Ben
 
 ### Meeting
