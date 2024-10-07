@@ -3,6 +3,13 @@
 ## Oct. 8 Tuesday Meeting
 
 - Using the `betacop` estimator is just like a smooth, and doesn't improve estimation
+- Check with Likun on Introduction section and Appendix A
+
+### Todo
+
+#### Paper
+
+- [ ] Fix up MCMC details
 
 ## Oct. 1 Tuesday Meeting with Mark/Ben
 
@@ -24,10 +31,10 @@
 - [x] Move model integral into section 3 together with the likelihood
 - [x] Follow Ben's edit:
   - [x] Section 3
-- [ ] Change the data analysis section 5's intro paragraphs
+- [x] Change the data analysis section 5's intro paragraphs
   - if any issue, keep some notes for Mark
-- [ ] Update model names in the section 5's texts
-- [ ] Elaborate bullet points in section 6's discussion into paragraphs
+- [x] Update model names in the section 5's texts
+- [x] Elaborate bullet points in section 6's discussion into paragraphs
 
 #### simulation
 - [ ] try hill estimator from `mev` if time permits
