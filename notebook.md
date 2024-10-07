@@ -22,8 +22,8 @@
   ```
   $\eta = \dfrac{\log(1-u)}{\log(P(F_1(X_1) > u, F_2(X_2) > u))}$ -- the empirical estimates on the denominator is troubling.
 - [x] Move model integral into section 3 together with the likelihood
-- [ ] Follow Ben's edit:
-  - [ ] Section 3
+- [x] Follow Ben's edit:
+  - [x] Section 3
 - [ ] Change the data analysis section 5's intro paragraphs
   - if any issue, keep some notes for Mark
 - [ ] Update model names in the section 5's texts
