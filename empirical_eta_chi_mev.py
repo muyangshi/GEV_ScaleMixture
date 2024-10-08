@@ -37,7 +37,7 @@ if __name__ == "__main__":
     n_core = 5
     print(f'using {n_core} cores')
 
-    eta_method = 'emp' # "emp", "betacop", "gpd", "hill"
+    eta_method = 'hill' # "emp", "betacop", "gpd", "hill"
     chi_method = 'emp'     # "emp", "betacop"
 
     # %%
@@ -46,13 +46,13 @@ if __name__ == "__main__":
     # Spatial Domain Setup --------------------------------------------------------------------------------------------
 
     # Numbers - Ns, Nt --------------------------------------------------------
-    
+
     np.random.seed(data_seed)
     Nt = 3000 # number of time replicates
     Ns = 6 # number of sites/stations
 
     # Sites - random uniformly (x,y) generate site locations ------------------
-    
+
     # sites_xy = np.random.random((Ns, 2)) * 10
     sites_xy = np.array([[0.5, 2.5],
                          [2.5, 0.5],
@@ -75,9 +75,9 @@ if __name__ == "__main__":
     # N_outer_grid = 9
     # h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
     # v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
-    # x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+    # x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2,
     #                                        num = int(2*np.sqrt(N_outer_grid)))
-    # y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+    # y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2,
     #                                        num = int(2*np.sqrt(N_outer_grid)))
     # x_outer_pos              = x_pos[0::2]
     # x_inner_pos              = x_pos[1::2]
@@ -113,17 +113,17 @@ if __name__ == "__main__":
 
     radius = 4
     radius_from_knots = np.repeat(radius, k) # Wendland kernel influence radius from a knot
-    
+
     effective_range = radius # Gaussian kernel effective range: exp(-3) = 0.05
     bandwidth = effective_range**2/6 # range for the gaussian kernel
-    
+
     # bandwidth = radius
-    
+
     # Weight matrix generated using Gaussian Smoothing Kernel
     gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
     for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
                                         XB = knots_xy)
         # influence coming from each of the knots
         weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
     for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
                                         XB = knots_xy)
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     delta = 0.0 # this is the delta in levy, stays 0
     alpha = 0.5
     gamma_at_knots = np.repeat(gamma, k)
-    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
                        axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
     # Model Parameter Setup (Truth) -----------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     if sim_case == 1: phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
     if sim_case == 2: phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
-    if sim_case == 3: phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+    if sim_case == 3: phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) +
                                                 scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
 
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         K         = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
                             coords = sites_xy, kappa = nu, cov_model = "matern")
         Z         = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
-        W         = norm_to_Pareto(Z) 
+        W         = norm_to_Pareto(Z)
 
         # Random Scaling Factor - R^phi -------------------------------------------
 
@@ -200,6 +200,7 @@ if __name__ == "__main__":
             results = pool.map(pRW_par, args_par)
 
         CDF_X = np.array(results) # shaped (Nt x Ns=6), perfect for mev taildep
+        X_Exp = scipy.stats.expon.ppf(CDF_X)
 
         # Saving data ---------------------------------------------------------
 
@@ -209,27 +210,33 @@ if __name__ == "__main__":
         np.save(f'eta_chi:W_{Nt}', W)
         np.save(f'eta_chi:X_star_{Nt}', X_star)
         np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
+        np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
 
         X_star_ro = numpy2rpy(X_star)
         CDF_X_ro  = numpy2rpy(CDF_X)
+        X_Exp_ro = numpy2rpy(X_Exp)
 
         r.assign('X_star', X_star_ro)
         r.assign('CDF_X', CDF_X_ro)
+        r.assign('X_Exp', X_Exp_ro)
 
         r(f"save(X_star, file='eta_chi:X_star_{Nt}.gzip', compress=TRUE)")
         r(f"save(CDF_X, file='eta_chi:CDF_X_{Nt}.gzip', compress=TRUE)")
-        
+        r(f"save(X_Exp, file='eta_chi:X_Exp_{Nt}.gzip', compress=TRUE)")
+
 
     if load_data == True:
-        
+
         # Z      = np.load(f'eta_chi:Z_{Nt}.npy')
         # S_at_knots = np.load(f'eta_chi:S_at_knots_{Nt}.npy')
         K      = np.load(f'eta_chi:K_{Nt}.npy')
         W      = np.load(f'eta_chi:W_{Nt}.npy')
         X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
         CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
-                        
+        X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+
         r(f"load('eta_chi:CDF_X_{Nt}.gzip')")
+        r(f"load('eta_chi:X_Exp_{Nt}.gzip')")
 
 
     # %% Checks on Data Generation ------------------------------------------------------------------------------------
@@ -237,7 +244,7 @@ if __name__ == "__main__":
     # # Check stable variables S ------------------------------------------------
 
     # # levy.cdf(R_at_knots, loc = 0, scale = gamma) should look uniform
-    
+
     # for i in range(k):
     #     scipy.stats.probplot(scipy.stats.levy.cdf(S_at_knots[i,:], scale=gamma), dist='uniform', fit=False, plot=plt)
     #     plt.axline((0,0), slope = 1, color = 'black')
@@ -248,7 +255,7 @@ if __name__ == "__main__":
     # # Check Pareto distribution -----------------------------------------------
 
     # # shifted pareto.cdf(W[site_i,:] + 1, b = 1, loc = 0, scale = 1) shoud look uniform
-    
+
     # if norm_pareto == 'shifted':
     #     for site_i in range(Ns):
     #         if site_i % 10 == 0: # don't print all sites
@@ -279,7 +286,7 @@ if __name__ == "__main__":
     #         plt.savefig(f'QQPlot_Xstar_site_{site_i}.png')
     #         plt.show()
     #         plt.close()
-            
+
     # # pRW(X_star) at each time t should deviates from uniform b/c spatial correlation
     # for t in range(Nt):
     #     if t % 5 == 0:
@@ -303,7 +310,7 @@ if __name__ == "__main__":
     # gaussian_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy, k), fill_value = np.nan)
     # for site_id in np.arange(plotgrid_res_xy):
     #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)),
     #                                     XB = knots_xy)
     #     # influence coming from each of the knots
     #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
@@ -322,8 +329,8 @@ if __name__ == "__main__":
     # bounds = np.linspace(0.3, 0.7,num=9)
     # norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
 
-    # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape), 
-    #                     origin='lower', extent=[minX, maxX, minY, maxY], 
+    # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape),
+    #                     origin='lower', extent=[minX, maxX, minY, maxY],
     #                     norm = norm, cmap=cmap, interpolation='nearest')
 
     # cbar = fig.colorbar(heatmap, ax=ax)
@@ -335,7 +342,7 @@ if __name__ == "__main__":
     # # Add contour line at Z = 0.5
     # contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
     #                     levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
-    # # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5', 
+    # # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5',
     # #           manual = [(3,3)])  # Label the contour line
 
     # # Plot knots and circles
@@ -348,14 +355,14 @@ if __name__ == "__main__":
     # ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=300)
     # # for index, (x, y) in enumerate(knots_xy):
     #     # ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left')
-    
+
     # # Scatter the engineered sites
     # markers = ['o', 's', '^', 'D', 'P', '*']
     # for i, (x, y) in enumerate(zip(sites_x, sites_y)):
-    #     ax.scatter(x, y, marker=markers[i], 
-    #             #    c='#E6FF00', 
+    #     ax.scatter(x, y, marker=markers[i],
+    #             #    c='#E6FF00',
     #                c='#c9a800',edgecolor='black',
-    #                s=100, 
+    #                s=100,
     #             #    label=f'Point {i+1}',
     #                label=f'$\phi(s_{i+1})$ = {round(phi_vec[i],2)}')
     #     ax.text(x+0.1, y+0.2, f'{i+1}', fontsize=12, ha='left', c = '#E6FF00')
@@ -381,16 +388,16 @@ if __name__ == "__main__":
     # %% Estimation eta and chi
 
     Nu = 100
-    us = np.concatenate((np.linspace(0.9, 0.99, Nu//2), 
+    us = np.concatenate((np.linspace(0.9, 0.99, Nu//2),
                          np.linspace(0.99, 0.999999, Nu//2)))
-    
+
     mev   = importr('mev')
     us_ro = numpy2rpy(us)
     r.assign('us', us_ro)
 
     # for calculating the eta bounds in python
 
-    def qRW_par(args): 
+    def qRW_par(args):
         u, phi_vec, gamma_vec = args
         return qRW(u, phi_vec, gamma_vec)
     args_list = []
@@ -408,13 +415,22 @@ if __name__ == "__main__":
 
     # Estimation --------------------------------------------------------------
 
+    # emp or betacop
+    # r(f'''
+    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    #         u = us,
+    #         depmeas = 'eta',
+    #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
+    #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    # ''')
+    # exp
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    est <- taildep(data = X_Exp[,{i+1}:{j+1}],
             u = us,
-            depmeas = 'eta',
+            depmeas = 'hill',
             method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
-    ''')
+            empirical.transformation = TRUE)
+      ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
 
@@ -432,7 +448,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - (AD) alpha < phi_i < phi_j
 
     v_k1    = np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha / sum(np.multiply(wendland_weight_matrix[i,:], gamma_at_knots)**alpha)
@@ -491,12 +507,19 @@ if __name__ == "__main__":
 
     # Estimation --------------------------------------------------------------
 
+#     r(f'''
+#     est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+#             u = us,
+#             depmeas = 'eta',
+#             method = list(eta = "{eta_method}", chi = "{chi_method}"),
+#             empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+#     ''')
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
-            u = us,
-            depmeas = 'eta',
-            method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+                u = us,
+                depmeas = 'hill',
+                method = list(eta = "{eta_method}", chi = "{chi_method}"),
+                empirical.transformation = TRUE)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
@@ -515,7 +538,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - phi_i < phi_j < alpha
 
     chi_limit = 0.0
@@ -563,22 +586,29 @@ if __name__ == "__main__":
     plt.close()
 
     # %% \chi_{45} Thm2.3 a iii (AI) - phi_i < \alpha < phi_j
-    
+
     i = 3
     j = 4
 
     # Estimation --------------------------------------------------------------
 
+    # r(f'''
+    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    #         u = us,
+    #         depmeas = 'eta',
+    #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
+    #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    # ''')
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
-            u = us,
-            depmeas = 'eta',
-            method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+                u = us,
+                depmeas = 'hill',
+                method = list(eta = "{eta_method}", chi = "{chi_method}"),
+                empirical.transformation = TRUE)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
-    
+
     # Bounds ------------------------------------------------------------------
 
     s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
@@ -593,7 +623,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - phi_i < \alpha < phi_j
 
     chi_limit = 0.0
@@ -640,22 +670,29 @@ if __name__ == "__main__":
     plt.close()
 
     # %% \chi_{15} Thm2.3 b i (AI) - alpha < phi_i < phi_j
-    
+
     i = 0
     j = 4
 
     # Estimation --------------------------------------------------------------
 
+    # r(f'''
+    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    #         u = us,
+    #         depmeas = 'eta',
+    #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
+    #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    # ''')
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
-            u = us,
-            depmeas = 'eta',
-            method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+                u = us,
+                depmeas = 'hill',
+                method = list(eta = "{eta_method}", chi = "{chi_method}"),
+                empirical.transformation = TRUE)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
-    
+
     # Bounds ------------------------------------------------------------------
 
     s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
@@ -670,7 +707,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - alpha < phi_i < phi_j
 
     chi_limit = 0.0
@@ -724,16 +761,23 @@ if __name__ == "__main__":
 
     # Estimation --------------------------------------------------------------
 
+    # r(f'''
+    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    #         u = us,
+    #         depmeas = 'eta',
+    #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
+    #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    # ''')
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
-            u = us,
-            depmeas = 'eta',
-            method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+                u = us,
+                depmeas = 'hill',
+                method = list(eta = "{eta_method}", chi = "{chi_method}"),
+                empirical.transformation = TRUE)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
-    
+
     # Bounds ------------------------------------------------------------------
 
     s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
@@ -748,7 +792,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - phi_i < phi_j < alpha
 
     chi_limit = 0.0
@@ -801,16 +845,23 @@ if __name__ == "__main__":
 
     # Estimation --------------------------------------------------------------
 
+    # r(f'''
+    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    #         u = us,
+    #         depmeas = 'eta',
+    #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
+    #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+    # ''')
     r(f'''
-    est <- taildep(data = CDF_X[,{i+1}:{j+1}],
-            u = us,
-            depmeas = 'eta',
-            method = list(eta = "{eta_method}", chi = "{chi_method}"),
-            empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
+        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+                u = us,
+                depmeas = 'hill',
+                method = list(eta = "{eta_method}", chi = "{chi_method}"),
+                empirical.transformation = TRUE)
     ''')
     r_est = np.array(r('est$eta'))
     etas  = np.where(r_est[:,0] != 0, r_est[:,0], np.nan)
-    
+
     # Bounds ------------------------------------------------------------------
 
     s1, s2 = X_star[i,:], X_star[j,:]  # Unpacking X_star
@@ -825,7 +876,7 @@ if __name__ == "__main__":
     # Probability of co-extreme and uni-extreme events
     prob_co_extreme = count_co_extreme / len(s1)
     prob_uni_extreme = np.mean(s2[:, np.newaxis] >= q_s2, axis=0)
-    
+
     # chi bounds - phi_j < alpha < phi_j
 
     chi_limit = 0.0

@@ -4,6 +4,7 @@
 
 - Using the `betacop` estimator is just like a smooth, and doesn't improve estimation
 - Check with Likun on Introduction section and Appendix A
+- Ben will look at the unresolved comments and Section 4 & 5.
 
 ### Todo
 
