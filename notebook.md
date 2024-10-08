@@ -1,16 +1,25 @@
 # Meeting Summaries on GEV Project
 
-## Oct. 8 Tuesday Meeting
+## Oct. 8 Tuesday Meeting with Likun/Mark/Ben
 
-- Using the `betacop` estimator is just like a smooth, and doesn't improve estimation
-- Check with Likun on Introduction section and Appendix A
-- Ben will look at the unresolved comments and Section 4 & 5.
+- Talk about `mev` results
+  - Using the `betacop` estimator is just like a smooth, and doesn't improve estimation
+  - `hill` with Exponential margin seems fine for AD
+  - But we don't want inconsistency of switching between methods
+- Check with Likun on Introduction section, proposition 2.1, and Appendix A
+- Ben will look at the unresolved comments and Section 4, 5, & 6.
+- Wadsworth's Paper on [marginal transformation influence dependence model](<../../Research/Spatial Extreme/1 Papers/Wadsworth Interplay between margins and dependence.pdf>)
+
 
 ### Todo
 
-#### Paper
 
-- [ ] Fix up MCMC details
+- [ ] Use Likun's code to find the limit of $\eta$
+  - just put a points at the end and connect with the previous scatter
+
+- [ ] Fix up MCMC details Appendix section B
+
+- [ ] [Work on GPD Model](../GPD_ScaleMixture/notebook.md)
 
 ## Oct. 1 Tuesday Meeting with Mark/Ben
 
@@ -38,7 +47,10 @@
 - [x] Elaborate bullet points in section 6's discussion into paragraphs
 
 #### simulation
-- [ ] try hill estimator from `mev` if time permits
+- [x] try hill estimator from `mev` if time permits
+  - `mev`'s Hill estimator is using MLE for a scale parameter(?) (of an exponential??)
+  - our margin is not in Exponential, so transform to uniform and then transform to Exponential margin. 
+  - `hill` did great for AD cases, poorly for AI cases as always.
 
 
 ## Sept. 24 Tuesday Meeting with Likun/Ben
