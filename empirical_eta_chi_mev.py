@@ -233,7 +233,13 @@ if __name__ == "__main__":
         W      = np.load(f'eta_chi:W_{Nt}.npy')
         X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
         CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
-        X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+        # X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+
+        X_Exp = scipy.stats.expon.ppf(CDF_X)
+        np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
+        X_Exp_ro = numpy2rpy(X_Exp)
+        r.assign('X_Exp', X_Exp_ro)
+        r(f"save(X_Exp, file='eta_chi:X_Exp_{Nt}.gzip', compress=TRUE)")
 
         r(f"load('eta_chi:CDF_X_{Nt}.gzip')")
         r(f"load('eta_chi:X_Exp_{Nt}.gzip')")
@@ -427,7 +433,7 @@ if __name__ == "__main__":
     r(f'''
     est <- taildep(data = X_Exp[,{i+1}:{j+1}],
             u = us,
-            depmeas = 'hill',
+            depmeas = 'eta',
             method = list(eta = "{eta_method}", chi = "{chi_method}"),
             empirical.transformation = TRUE)
       ''')
@@ -517,7 +523,7 @@ if __name__ == "__main__":
     r(f'''
         est <- taildep(data = X_Exp[,{i+1}:{j+1}],
                 u = us,
-                depmeas = 'hill',
+                depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
                 empirical.transformation = TRUE)
     ''')
@@ -602,7 +608,7 @@ if __name__ == "__main__":
     r(f'''
         est <- taildep(data = X_Exp[,{i+1}:{j+1}],
                 u = us,
-                depmeas = 'hill',
+                depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
                 empirical.transformation = TRUE)
     ''')
@@ -686,7 +692,7 @@ if __name__ == "__main__":
     r(f'''
         est <- taildep(data = X_Exp[,{i+1}:{j+1}],
                 u = us,
-                depmeas = 'hill',
+                depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
                 empirical.transformation = TRUE)
     ''')
@@ -771,7 +777,7 @@ if __name__ == "__main__":
     r(f'''
         est <- taildep(data = X_Exp[,{i+1}:{j+1}],
                 u = us,
-                depmeas = 'hill',
+                depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
                 empirical.transformation = TRUE)
     ''')
@@ -855,7 +861,7 @@ if __name__ == "__main__":
     r(f'''
         est <- taildep(data = X_Exp[,{i+1}:{j+1}],
                 u = us,
-                depmeas = 'hill',
+                depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
                 empirical.transformation = TRUE)
     ''')
