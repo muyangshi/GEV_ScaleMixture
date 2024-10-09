@@ -34,7 +34,7 @@ if __name__ == "__main__":
     if load_data:     print('Load previous data')
     if not load_data: print('Generating new Z')
 
-    n_core = 5
+    n_core = 60
     print(f'using {n_core} cores')
 
     eta_method = 'hill' # "emp", "betacop", "gpd", "hill"
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     # Numbers - Ns, Nt --------------------------------------------------------
 
     np.random.seed(data_seed)
-    Nt = 3000 # number of time replicates
+    Nt = 300000000 # number of time replicates
     Ns = 6 # number of sites/stations
 
     # Sites - random uniformly (x,y) generate site locations ------------------
@@ -233,13 +233,31 @@ if __name__ == "__main__":
         W      = np.load(f'eta_chi:W_{Nt}.npy')
         X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
         CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
-        # X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+        X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
 
-        X_Exp = scipy.stats.expon.ppf(CDF_X)
-        np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
-        X_Exp_ro = numpy2rpy(X_Exp)
-        r.assign('X_Exp', X_Exp_ro)
-        r(f"save(X_Exp, file='eta_chi:X_Exp_{Nt}.gzip', compress=TRUE)")
+        ########################################################################################
+
+        # # tweaked calculation in load_data to accomodate earlier saved data
+
+        # def pRW_par(args):
+        #     X, phi, gamma = args
+        #     return(pRW(X, phi, gamma))
+        # args_par = [(X_star[:, i], phi_vec, gamma_vec) for i in range(X_star.shape[1])]
+        # with multiprocessing.get_context('fork').Pool(processes = n_core) as pool:
+        #     results = pool.map(pRW_par, args_par)
+        # CDF_X = np.array(results) # shaped (Nt x Ns=6), perfect for mev taildep
+        # np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
+        # CDF_X_ro  = numpy2rpy(CDF_X)
+        # r.assign('CDF_X', CDF_X_ro)
+        # r(f"save(CDF_X, file='eta_chi:CDF_X_{Nt}.gzip', compress=TRUE)")
+
+        # X_Exp = scipy.stats.expon.ppf(CDF_X)
+        # np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
+        # X_Exp_ro = numpy2rpy(X_Exp)
+        # r.assign('X_Exp', X_Exp_ro)
+        # r(f"save(X_Exp, file='eta_chi:X_Exp_{Nt}.gzip', compress=TRUE)")
+
+        #########################################################################################
 
         r(f"load('eta_chi:CDF_X_{Nt}.gzip')")
         r(f"load('eta_chi:X_Exp_{Nt}.gzip')")
@@ -423,7 +441,7 @@ if __name__ == "__main__":
 
     # emp or betacop
     # r(f'''
-    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    # est <- taildep(data = CDF_X[,c({i+1},{j+1})],
     #         u = us,
     #         depmeas = 'eta',
     #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -431,7 +449,7 @@ if __name__ == "__main__":
     # ''')
     # exp
     r(f'''
-    est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+    est <- taildep(data = X_Exp[,c({i+1},{j+1})],
             u = us,
             depmeas = 'eta',
             method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -514,14 +532,14 @@ if __name__ == "__main__":
     # Estimation --------------------------------------------------------------
 
 #     r(f'''
-#     est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+#     est <- taildep(data = CDF_X[,c({i+1},{j+1})],
 #             u = us,
 #             depmeas = 'eta',
 #             method = list(eta = "{eta_method}", chi = "{chi_method}"),
 #             empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
 #     ''')
     r(f'''
-        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+        est <- taildep(data = X_Exp[,c({i+1},{j+1})],
                 u = us,
                 depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -599,14 +617,14 @@ if __name__ == "__main__":
     # Estimation --------------------------------------------------------------
 
     # r(f'''
-    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    # est <- taildep(data = CDF_X[,c({i+1},{j+1})],
     #         u = us,
     #         depmeas = 'eta',
     #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
     #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
     # ''')
     r(f'''
-        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+        est <- taildep(data = X_Exp[,c({i+1},{j+1})],
                 u = us,
                 depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -683,14 +701,14 @@ if __name__ == "__main__":
     # Estimation --------------------------------------------------------------
 
     # r(f'''
-    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    # est <- taildep(data = CDF_X[,c({i+1},{j+1})],
     #         u = us,
     #         depmeas = 'eta',
     #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
     #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
     # ''')
     r(f'''
-        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+        est <- taildep(data = X_Exp[,c({i+1},{j+1})],
                 u = us,
                 depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -768,14 +786,14 @@ if __name__ == "__main__":
     # Estimation --------------------------------------------------------------
 
     # r(f'''
-    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    # est <- taildep(data = CDF_X[,c({i+1},{j+1})],
     #         u = us,
     #         depmeas = 'eta',
     #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
     #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
     # ''')
     r(f'''
-        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+        est <- taildep(data = X_Exp[,c({i+1},{j+1})],
                 u = us,
                 depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
@@ -852,14 +870,14 @@ if __name__ == "__main__":
     # Estimation --------------------------------------------------------------
 
     # r(f'''
-    # est <- taildep(data = CDF_X[,{i+1}:{j+1}],
+    # est <- taildep(data = CDF_X[,c({i+1},{j+1})],
     #         u = us,
     #         depmeas = 'eta',
     #         method = list(eta = "{eta_method}", chi = "{chi_method}"),
     #         empirical.transformation = FALSE) # empirical.transformation = FALSE as we using pRW(X)
     # ''')
     r(f'''
-        est <- taildep(data = X_Exp[,{i+1}:{j+1}],
+        est <- taildep(data = X_Exp[,c({i+1},{j+1})],
                 u = us,
                 depmeas = 'eta',
                 method = list(eta = "{eta_method}", chi = "{chi_method}"),
