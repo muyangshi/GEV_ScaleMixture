@@ -1,3 +1,8 @@
+'''
+Use pure empirical estimation for eta and chi
+estimation for chi is good when using N = 300,000,000 replications
+estimation for eta is off at the boundary.
+'''
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys

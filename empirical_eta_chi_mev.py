@@ -1,3 +1,8 @@
+'''
+Using R mev package to estimate eta
+marginally transform to Exponential scale and use MLE hill estimator
+'''
+
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys
