@@ -13,13 +13,25 @@
 
 ### Todo
 
-
-- [ ] Use Likun's code to find the limit of $\eta$
-  - just put a points at the end and connect with the previous scatter
+- `mev` results with the hill estimator
+  - bug in earlier code, `CDF[,i:j]` instead of `CDF[,c(i,j)]`
+  - [x] fix and re-run $N = 100,000,000$
+    - results look good
+  - [ ] try to use $N = 300,000,000$ to match with $\chi$
+- [x] If `mev` result bad, use Likun's code to find the limit of $\eta$ (at least get the limit right):
+  - implemented but not run on $N = 300,000,000$since `mev` now gives good result
+    - tried $N = 1,000,000$ but sample size might still be small?
+  - Check: <mark>scale or shape parameter fit?</mark>
+  - still necessary?
+  - `gPdtest` is not available anymore, using `extRemes` instead
+    - `qevd` function in `extRemes` <mark> seems wrong</mark>, as it gives negative values when marginally transform to Frechet. 
+    - Using a manual implementation to transform to Frechet; or use the `qfrechet` function in `VGAM`. They seem to give equal answers.
+    - Check manual implementation that for  <mark> unit Frechet, $\alpha = 1$. </mark>
+  - just put a point at the end and connect with the previous scatter point, also try to save the data (point (x,y)) so re-plotting is easier
 
 - [ ] Fix up MCMC details Appendix section B
 
-- [ ] [Work on GPD Model](../GPD_ScaleMixture/notebook.md)
+- If time permits, start to [Work on GPD Model](../GPD_ScaleMixture/notebook.md)
 
 ## Oct. 1 Tuesday Meeting with Mark/Ben
 
