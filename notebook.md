@@ -20,12 +20,12 @@
   - [x] try to use $N = 300,000,000$ to match with $\chi$
     - $\eta_{34}$ is not good (sharing a kernel, but $\alpha < \phi_i < \phi_j$) 
     - [x] edit plotting in the paper and change wording (how $\eta$ is estimated and quote `mev` package)
-  - [ ] Try a $N = 1,000,000,000$ versino?
+  - [ ] Try a $N = 1,000,000,000$ version?
+    - Not enough memory on misspiggy, so we can't go one additional magnitude larger
 - [x] If `mev` result bad, use Likun's code to find the limit of $\eta$ (at least get the limit right):
   - implemented and tried $N = 1,000,000$ but sample size might still be small?
     - Check: <mark>scale or shape parameter fit?</mark>
   - still necessary? since `mev` now gives good result
-    - [ ] running on $N = 300,000,000$ can be time consuming, waiting for `mev` $N = $ 1 billion to finish
   - `gPdtest` is not available anymore, using `extRemes` instead
     - `qevd` function in `extRemes` <mark> seems wrong</mark>, as it gives negative values when marginally transform to Frechet. 
     - Using a manual implementation to transform to Frechet; or use the `qfrechet` function in `VGAM`. They seem to give equal answers.
