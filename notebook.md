@@ -22,10 +22,15 @@
     - [x] edit plotting in the paper and change wording (how $\eta$ is estimated and quote `mev` package)
   - [ ] Try a $N = 1,000,000,000$ version?
     - Not enough memory on misspiggy, so we can't go one additional magnitude larger
+    - Running a $N = 500,000,000$ version. `~420G`
+    - multiprocessing.pool leas to Broken Pipe, potential RAM issue.
 - [x] If `mev` result bad, use Likun's code to find the limit of $\eta$ (at least get the limit right):
   - implemented and tried $N = 1,000,000$ but sample size might still be small?
     - Check: <mark>scale or shape parameter fit?</mark>
   - still necessary? since `mev` now gives good result
+    - Can't add order of magnitude on $N$ for `mev`, currently running a $N = 100,000,000$ to estimate limit $\eta$. Results are copied in `limit_eta.R` file.
+    - Also trying to match $N$ to 300,000,000?
+      - should not try while `python mev` is running, they fight for RAM.
   - `gPdtest` is not available anymore, using `extRemes` instead
     - `qevd` function in `extRemes` <mark> seems wrong</mark>, as it gives negative values when marginally transform to Frechet. 
     - Using a manual implementation to transform to Frechet; or use the `qfrechet` function in `VGAM`. They seem to give equal answers.
@@ -36,9 +41,9 @@
   - Do we still need this appendix? almost all things are already in section 3
   - shovel a lot of things into this appendix and shorten the paper?
 
-- How do we want to justify $\gamma_k = 0.5$?
+- <mark>How do we want to justify $\gamma_k = 0.5$?</mark>
 
-- Figure placement seems annoying to modify.
+- Figure placement seems annoying to modify. Do this lastly.
 
 ## Oct. 1 Tuesday Meeting with Mark/Ben
 
