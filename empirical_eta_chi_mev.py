@@ -1,8 +1,3 @@
-'''
-Using R mev package to estimate eta
-marginally transform to Exponential scale and use MLE hill estimator
-'''
-
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys
@@ -39,7 +34,7 @@ if __name__ == "__main__":
     if load_data:     print('Load previous data')
     if not load_data: print('Generating new Z')
 
-    n_core = 60
+    n_core = 20
     print(f'using {n_core} cores')
 
     eta_method = 'hill' # "emp", "betacop", "gpd", "hill"
@@ -53,7 +48,7 @@ if __name__ == "__main__":
     # Numbers - Ns, Nt --------------------------------------------------------
 
     np.random.seed(data_seed)
-    Nt = 300000000 # number of time replicates
+    Nt = 500000000 # number of time replicates
     Ns = 6 # number of sites/stations
 
     # Sites - random uniformly (x,y) generate site locations ------------------
@@ -191,7 +186,10 @@ if __name__ == "__main__":
         S_at_knots = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k) for _ in range(Nt)]) # shape(Nt, k)
         R_vec      = (wendland_weight_matrix @ S_at_knots.T) # shape(Ns, Nt)
         X_star     = (R_vec.T ** phi_vec).T * W              # shape(Ns, Nt)
-
+        
+        np.save(f'eta_chi:K_{Nt}', K)
+        np.save(f'eta_chi:W_{Nt}', W)
+        np.save(f'eta_chi:X_star_{Nt}', X_star)
 
         # Transform X_star to uniform using pRW for mev -----------------------
 
@@ -205,17 +203,20 @@ if __name__ == "__main__":
             results = pool.map(pRW_par, args_par)
 
         CDF_X = np.array(results) # shaped (Nt x Ns=6), perfect for mev taildep
+        np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
+
         X_Exp = scipy.stats.expon.ppf(CDF_X)
+        np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
 
         # Saving data ---------------------------------------------------------
 
         # np.save(f'eta_chi:Z_{Nt}', Z)
         # np.save(f'eta_chi:S_at_knots_{Nt}', S_at_knots)
-        np.save(f'eta_chi:K_{Nt}', K)
-        np.save(f'eta_chi:W_{Nt}', W)
-        np.save(f'eta_chi:X_star_{Nt}', X_star)
-        np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
-        np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
+        # np.save(f'eta_chi:K_{Nt}', K)
+        # np.save(f'eta_chi:W_{Nt}', W)
+        # np.save(f'eta_chi:X_star_{Nt}', X_star)
+        # np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
+        # np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
 
         X_star_ro = numpy2rpy(X_star)
         CDF_X_ro  = numpy2rpy(CDF_X)
@@ -232,39 +233,50 @@ if __name__ == "__main__":
 
     if load_data == True:
 
-        # Z      = np.load(f'eta_chi:Z_{Nt}.npy')
-        # S_at_knots = np.load(f'eta_chi:S_at_knots_{Nt}.npy')
+        # Z      = np.load(f'eta_chi:Z_{Nt}.npy') # no need to load
+        # S_at_knots = np.load(f'eta_chi:S_at_knots_{Nt}.npy') # no need to load
         K      = np.load(f'eta_chi:K_{Nt}.npy')
         W      = np.load(f'eta_chi:W_{Nt}.npy')
         X_star = np.load(f'eta_chi:X_star_{Nt}.npy')
         CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
-        X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+        # X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy') # no need to load
 
-        ########################################################################################
-
-        # # tweaked calculation in load_data to accomodate earlier saved data
+        # To Accomodate N=500,000,000 RAM #####################################################
 
         # def pRW_par(args):
         #     X, phi, gamma = args
         #     return(pRW(X, phi, gamma))
+
         # args_par = [(X_star[:, i], phi_vec, gamma_vec) for i in range(X_star.shape[1])]
+
         # with multiprocessing.get_context('fork').Pool(processes = n_core) as pool:
         #     results = pool.map(pRW_par, args_par)
+
         # CDF_X = np.array(results) # shaped (Nt x Ns=6), perfect for mev taildep
         # np.save(f'eta_chi:CDF_X_{Nt}', CDF_X)
-        # CDF_X_ro  = numpy2rpy(CDF_X)
-        # r.assign('CDF_X', CDF_X_ro)
-        # r(f"save(CDF_X, file='eta_chi:CDF_X_{Nt}.gzip', compress=TRUE)")
 
         # X_Exp = scipy.stats.expon.ppf(CDF_X)
         # np.save(f'eta_chi:X_Exp_{Nt}', X_Exp)
+
+
+        # CDF_X  = np.load(f'eta_chi:CDF_X_{Nt}.npy')
+        # X_Exp  = np.load(f'eta_chi:X_Exp_{Nt}.npy')
+
+        # X_star_ro = numpy2rpy(X_star)
+        # CDF_X_ro  = numpy2rpy(CDF_X)
         # X_Exp_ro = numpy2rpy(X_Exp)
+
+        # r.assign('X_star', X_star_ro)
+        # r.assign('CDF_X', CDF_X_ro)
         # r.assign('X_Exp', X_Exp_ro)
+
+        # r(f"save(X_star, file='eta_chi:X_star_{Nt}.gzip', compress=TRUE)")
+        # r(f"save(CDF_X, file='eta_chi:CDF_X_{Nt}.gzip', compress=TRUE)")
         # r(f"save(X_Exp, file='eta_chi:X_Exp_{Nt}.gzip', compress=TRUE)")
 
-        #########################################################################################
+        ########################################################################################
 
-        r(f"load('eta_chi:CDF_X_{Nt}.gzip')")
+        # r(f"load('eta_chi:CDF_X_{Nt}.gzip')") # no need to load
         r(f"load('eta_chi:X_Exp_{Nt}.gzip')")
 
 
