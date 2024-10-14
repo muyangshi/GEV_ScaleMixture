@@ -1,5 +1,11 @@
 # Meeting Summaries on GEV Project
 
+## Oct. 15 Tuesday Meeting with Likun/Ben
+
+- `mev`
+- limit of $\eta$ using Frechet
+- Paper edits
+
 ## Oct. 8 Tuesday Meeting with Likun/Mark/Ben
 
 - Talk about `mev` results
@@ -13,24 +19,27 @@
 
 ### Work
 
-- `mev` results with the hill estimator
-  - bug in earlier code, `CDF[,i:j]` instead of `CDF[,c(i,j)]`
+- [x] Finish `mev` results with the hill estimator on Exponential margin
+  - bug in earlier code; now use `CDF[,i:j]` instead of `CDF[,c(i,j)]`
   - [x] fix and re-run $N = 100,000,000$
     - results look good
   - [x] try to use $N = 300,000,000$ to match with $\chi$
     - $\eta_{34}$ is not good (sharing a kernel, but $\alpha < \phi_i < \phi_j$) 
     - [x] edit plotting in the paper and change wording (how $\eta$ is estimated and quote `mev` package)
-  - [ ] Try a $N = 1,000,000,000$ version?
+  - [x] Try a $N = 1,000,000,000$ version?
     - Not enough memory on misspiggy, so we can't go one additional magnitude larger
     - Running a $N = 500,000,000$ version. `~420G`
-    - multiprocessing.pool leas to Broken Pipe, potential RAM issue.
-- [x] If `mev` result bad, use Likun's code to find the limit of $\eta$ (at least get the limit right):
+    - RAM is still an issue
+      - break down generating data and calculating `qRW` in separate pieces
+      - <mark>$\eta_{34}$ still not good</mark>
+      - <mark> e.g. $\eta_{45}$ estimation doesn't "monotonically" gets better with larger $N$</mark>
+- [x] Use Likun's code to find the limit of $\eta$ (at least get the limit right):
   - implemented and tried $N = 1,000,000$ but sample size might still be small?
     - Check: <mark>scale or shape parameter fit?</mark>
-  - still necessary? since `mev` now gives good result
-    - Can't add order of magnitude on $N$ for `mev`, currently running a $N = 100,000,000$ to estimate limit $\eta$. Results are copied in `limit_eta.R` file.
+  - Can't add order of magnitude on $N$ for `mev`, currently running a $N = 100,000,000$ to estimate limit $\eta$. Results are copied in `limit_eta.R` file.
     - Also trying to match $N$ to 300,000,000?
       - should not try while `python mev` is running, they fight for RAM.
+      - [x] waiting until `mev` finishes to try this.
   - `gPdtest` is not available anymore, using `extRemes` instead
     - `qevd` function in `extRemes` <mark> seems wrong</mark>, as it gives negative values when marginally transform to Frechet. 
     - Using a manual implementation to transform to Frechet; or use the `qfrechet` function in `VGAM`. They seem to give equal answers.
