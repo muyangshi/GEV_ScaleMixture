@@ -2,9 +2,14 @@
 
 ## Oct. 15 Tuesday Meeting with Likun/Ben
 
-- `mev`
-- limit of $\eta$ using Frechet
-- Paper edits
+- Talk about:
+  - `mev`
+  - limit of $\eta$ using Frechet
+  - Paper edits
+
+- Get rid of the last point in $\eta_{34}$ -- call it numerical instability
+- Ben will justify $\gamma_k = 0.5$
+- Likun will go over on Friday
 
 ## Oct. 8 Tuesday Meeting with Likun/Mark/Ben
 
