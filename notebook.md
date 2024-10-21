@@ -7,9 +7,10 @@
   - limit of $\eta$ using Frechet
   - Paper edits
 
-- Get rid of the last point in $\eta_{34}$ -- call it numerical instability
+- [x] Get rid of the last point in $\eta_{34}$ -- call it numerical instability
 - Ben will justify $\gamma_k = 0.5$
-- Likun will go over on Friday
+  - Ben will review section 5 and 6
+- Likun will go over the paper on Friday
 
 ## Oct. 8 Tuesday Meeting with Likun/Mark/Ben
 
