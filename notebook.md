@@ -1,5 +1,12 @@
 # Meeting Summaries on GEV Project
 
+## Oct. 21 Tuesday Meeting with Likun/Mark/Ben
+
+- SBSS deadline November 15
+- Ben will justify $\gamma_k = 0.5$
+  - Ben will review section 5 and 6
+- Likun will go over the paper
+
 ## Oct. 15 Tuesday Meeting with Likun/Ben
 
 - Talk about:
