@@ -1,11 +1,28 @@
 # Meeting Summaries on GEV Project
 
+## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
+
+- [ ] Result section, GEV $\mu_1$ unit on $Y_t$?
+
+- [ ] Fit a Huser-Wadsworth version Stationary Model on the dataset
+  - set there to be one knot and very very large radius
+
+
+- [ ] Golden poster Ben suggested:
+  - consider removing the model equations on the first page
+  - remove the simulation study on the second page, add a $\chi$-plot
+
 ## Oct. 21 Tuesday Meeting with Likun/Mark/Ben
 
 - SBSS deadline November 15
 - Ben will justify $\gamma_k = 0.5$
   - Ben will review section 5 and 6
 - Likun will go over the paper
+
+- followed Ben's edits
+  - added plots to intro
+
+- [Hazra et al.](<../../Desktop/Efficient Modeling of Spatial Extremes over Large Geographical Domains.pdf>)
 
 ## Oct. 15 Tuesday Meeting with Likun/Ben
 
