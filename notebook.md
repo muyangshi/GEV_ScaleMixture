@@ -2,10 +2,11 @@
 
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
-- [ ] Result section, GEV $\mu_1$ unit on $Y_t$?
+- [ ] Paper Result section, GEV $\mu_1$ unit on $Y_t$?
 
-- [ ] Fit a Huser-Wadsworth version Stationary Model on the dataset
+- [x] Fit a Huser-Wadsworth version Stationary Model on the dataset
   - set there to be one knot and very very large radius
+  - or use a constant kernel?
 
 
 - [ ] Golden poster Ben suggested:
