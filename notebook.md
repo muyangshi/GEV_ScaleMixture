@@ -6,7 +6,10 @@
 
 - [x] Fit a Huser-Wadsworth version Stationary Model on the dataset
   - set there to be one knot and very very large radius
-  - or use a constant kernel?
+  - [ ] run the chain until convergence
+  - [ ] posterior summaries
+    - QQplot
+    - Predictive Log-likelihood
 
 
 - [ ] Golden poster Ben suggested:

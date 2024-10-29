@@ -1003,7 +1003,7 @@ if __name__ == "__main__":
     if start_iter == 1: # initialize the adaptive update necessities
         # with no trial run
         phi_cov                 = 1e-2 * np.identity(k)
-        range_cov               = 0.5  * np.identity(k)
+        range_cov               = 0.5  * np.identity(k_rho)
         Beta_mu0_cov            = 1e-2 * np.identity(Beta_mu0_m)
         Beta_mu1_cov            = 1e-2 * np.identity(Beta_mu1_m)
         Beta_logsigma_cov       = 1e-6 * np.identity(Beta_logsigma_m)
@@ -1029,7 +1029,7 @@ if __name__ == "__main__":
         if proposal_cov.R_log_cov is not None:               R_log_cov               = proposal_cov.R_log_cov
 
         assert k               == phi_cov.shape[0]
-        assert k               == range_cov.shape[0]
+        assert k_rho           == range_cov.shape[0]
         assert k               == R_log_cov.shape[0]
         assert Nt              == R_log_cov.shape[2]
         assert Beta_mu0_m      == Beta_mu0_cov.shape[0]
