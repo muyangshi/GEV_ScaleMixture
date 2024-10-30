@@ -2,10 +2,6 @@
 
 ## Nov. 5 Tuesday Meeting with Ben
 
-- `recv(20) failed: Connection reset by peer (104)`
-  - all else seems to be fine
-  - restarted on 20241030 just to be safe
-
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
 Paper:
@@ -18,13 +14,18 @@ Paper:
 
 Work:
 
-- [ ] Remake $\chi_{12}$ plot with only the $\chi$ limit (only lower bound)
+- [x] Remake $\chi_{12}$ plot with only the $\chi$ limit (only lower bound)
 
-- GEV $\mu_1$ unit on $Y_t$:
+- [x] GEV $\mu_1$ unit on $Y_t$:
   - $t = \dfrac{\text{year} - 1986}{21.8}$
   - 1986 is the center of {1949, ..., 2023}, and 21.8 is the sample std.
   - `np.max(predmu1) * 100 / np.std(all_years, ddof=1)` = 4.81 mm
   - `np.min(predmu1) * 100 / np.std(all_years, ddof=1)` = -4.49 mm
+
+- [x] Running a stationary model for comparison
+  - `recv(20) failed: Connection reset by peer (104)`
+  - all else seems to be fine
+  - restarted on 20241030 just to be safe
 
 ## Oct. 26 Friday Meeting with Ben
 
