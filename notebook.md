@@ -1,10 +1,39 @@
 # Meeting Summaries on GEV Project
 
+## Nov. 5 Tuesday Meeting with Ben
+
+- `recv(20) failed: Connection reset by peer (104)`
+  - all else seems to be fine
+  - restarted on 20241030 just to be safe
+
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
-- [ ] Paper Result section, GEV $\mu_1$ unit on $Y_t$?
+Paper:
+
+- [Huser, Opitz, Thibaud 2017](<../../Research/Spatial Extreme/1 Papers/Bridging Asymptotic Independence and Dependence in Spatial Extremes Using Gaussian Scale Mixtures.pdf>)
+- [Huser and Wadsworth 2019](<../../Research/Spatial Extreme/1 Papers/Modeling Spatial Processes with Unknown Extremal Dependence Class.pdf>)
+- [Hazra et al.](<../../Desktop/Efficient Modeling of Spatial Extremes over Large Geographical Domains.pdf>)
+- [Wadsworth 2024](<../../Research/Spatial Extreme/1 Papers/Wadsworth 2024 Spatial extremal modelling A case study on the interplay between margins and dependence.pdf>)
+
+
+Work:
+
+- [ ] Remake $\chi_{12}$ plot with only the $\chi$ limit (only lower bound)
+
+- GEV $\mu_1$ unit on $Y_t$:
+  - $t = \dfrac{\text{year} - 1986}{21.8}$
+  - 1986 is the center of {1949, ..., 2023}, and 21.8 is the sample std.
+  - `np.max(predmu1) * 100 / np.std(all_years, ddof=1)` = 4.81 mm
+  - `np.min(predmu1) * 100 / np.std(all_years, ddof=1)` = -4.49 mm
+
+## Oct. 26 Friday Meeting with Ben
+
+- [x] Paper Result section, GEV $\mu_1$ unit on $Y_t$?
+  - precipitation measured in mm, fill in the blank
+  - Be sure of the scaling on the denominator
 
 - [x] Fit a Huser-Wadsworth version Stationary Model on the dataset
+  - `/GEV_ScaleMixture/data/20241029_realdata_stationary`
   - set there to be one knot and very very large radius
   - [ ] run the chain until convergence
   - [ ] posterior summaries
@@ -12,7 +41,7 @@
     - Predictive Log-likelihood
 
 
-- [ ] Golden poster Ben suggested:
+- Golden poster Ben suggested:
   - consider removing the model equations on the first page
   - remove the simulation study on the second page, add a $\chi$-plot
 
@@ -25,8 +54,6 @@
 
 - followed Ben's edits
   - added plots to intro
-
-- [Hazra et al.](<../../Desktop/Efficient Modeling of Spatial Extremes over Large Geographical Domains.pdf>)
 
 ## Oct. 15 Tuesday Meeting with Likun/Ben
 
