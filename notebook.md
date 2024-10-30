@@ -1,5 +1,12 @@
 # Meeting Summaries on GEV Project
 
+## TODOs
+
+- Run the stationary model until convergence
+- Posterior summaries
+  - QQplot of the out-of-sample sites
+  - Predictive log-likelihood of those testing sites
+
 ## Nov. 5 Tuesday Meeting with Ben
 
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
@@ -36,8 +43,9 @@ Work:
 - [x] Fit a Huser-Wadsworth version Stationary Model on the dataset
   - `/GEV_ScaleMixture/data/20241029_realdata_stationary`
   - set there to be one knot and very very large radius
-  - [ ] run the chain until convergence
-  - [ ] posterior summaries
+  - Note that $\phi$ starting value was set to 0.4; shouldn't matter.
+  - run the chain until convergence
+  - posterior summaries
     - QQplot
     - Predictive Log-likelihood
 
