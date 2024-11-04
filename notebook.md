@@ -33,6 +33,7 @@ Work:
   - `recv(20) failed: Connection reset by peer (104)`
   - all else seems to be fine
   - restarted on 20241030 just to be safe
+    - mixing seems very fine.
 
 ## Oct. 26 Friday Meeting with Ben
 
