@@ -9,6 +9,8 @@
 
 ## Nov. 5 Tuesday Meeting with Ben
 
+- Make a double spaced version of the paper, and see how long it is
+
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
 Paper:
