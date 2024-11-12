@@ -2,14 +2,25 @@
 
 ## TODOs
 
-- Run the stationary model until convergence
-- Posterior summaries
+- [ ] Run the stationary model until convergence
+- [ ] Posterior summaries
   - QQplot of the out-of-sample sites
   - Predictive log-likelihood of those testing sites
 
+## Nov. 12 Tuesday Meeting with Ben/Likun/Mark
+
+- Check in on Paper 
+  - Go through the unresolved comments during meeting
+- Stationary model
+- Schedule a Thursday's meeting with Ben 
+  - paper submit to [`SBSS`](https://community.amstat.org/sbss/awards)
+  - topic-contributed session
+
 ## Nov. 5 Tuesday Meeting with Ben
 
-- Make a double spaced version of the paper, and see how long it is
+- [ ] Make a double spaced version of the paper, and see how long it is
+  - Flatten (no folder structure)
+  - Any other particular rules I should be aware of for `arXiv`?
 
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
