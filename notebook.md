@@ -2,25 +2,54 @@
 
 ## TODOs
 
-- [ ] Run the stationary model until convergence
-- [ ] Posterior summaries
-  - QQplot of the out-of-sample sites
-  - Predictive log-likelihood of those testing sites
+## Nov. 19 Tuesday Meeting
+
+
 
 ## Nov. 12 Tuesday Meeting with Ben/Likun/Mark
 
+Note:
+
+- [x] Make the double spaced version of the paper on the original Overleaf
+  - Ben and Likun both have paid Overleaf account
+  - [x] Make the edits that we made to the original main.tex today
+  - [x] Change word colors
+  - All necessary files and figures have been “flattened” and now reside directly under the root directory of the LaTeX project. Previously, our figures and .tex sections were nested within individual folders, but since arXiv needs a flattened structure, I made this adjustment.
+  - main.tex: “the main branch.” This file contains the single-spaced, original version of the full paper, including the edits we discussed during today’s meeting. 
+  - main_SBSS.tex: a “fork from the main branch.” This is the double-spaced version intended for the SBSS submission. Please use this file for any edits and shrinkings that are specific to the SBSS submission process.
+
+- [ ] Make predictive log-likelihood for the stationary model
+  - Ben: use the first 3,000 iterations as burn in 
+  - Predictive log-likelihood of those testing sites
+    - add as a one liner to the paragrah
+    - add to the boxplot figure
+  - QQplot of the out-of-sample sites
+
+To Talk: 
+
 - Check in on Paper 
+  - Revert $\chi_{12}$ to UB and LB?
   - Go through the unresolved comments during meeting
-- Stationary model
+    - Likun Section 1 Grey texts
+    - Likun Section 2.4 Examples exponential-Gamma
+    - Likun section 5.1 red colored text
+  - Colored texts
+    - Section 1 Ben added
+    - Section 2 Proposition 2.2 (a)
+  - 
+
 - Schedule a Thursday's meeting with Ben 
   - paper submit to [`SBSS`](https://community.amstat.org/sbss/awards)
   - topic-contributed session
 
-## Nov. 5 Tuesday Meeting with Ben
+- Stationary model
 
-- [ ] Make a double spaced version of the paper, and see how long it is
+### Nov. 5 Tuesday Meeting with Ben
+
+- [x] Make a double spaced version of the paper, and see how long it is
   - Flatten (no folder structure)
   - Any other particular rules I should be aware of for `arXiv`?
+  - Compile time too long. Anybody has overleaf account?
 
 ## Oct. 29 Tuesday Meeting with Likun/Mark/Ben
 
