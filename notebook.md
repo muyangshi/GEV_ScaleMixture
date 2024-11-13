@@ -18,11 +18,17 @@ Note:
   - main.tex: “the main branch.” This file contains the single-spaced, original version of the full paper, including the edits we discussed during today’s meeting. 
   - main_SBSS.tex: a “fork from the main branch.” This is the double-spaced version intended for the SBSS submission. Please use this file for any edits and shrinkings that are specific to the SBSS submission process.
 
-- [ ] Make predictive log-likelihood for the stationary model
+- [x] Make predictive log-likelihood for the stationary model
   - Ben: use the first 3,000 iterations as burn in 
   - Predictive log-likelihood of those testing sites
-    - add as a one liner to the paragrah
-    - add to the boxplot figure
+    - Boxplot is made with `k1_r100`, not particularly worse actually among some of the best performing model
+      - Do we want to include it?
+      - Dataset is not particularly nonstationary, so that's why this model perform decent?
+      - median of `k13_r4` is better than this
+    - If we want to add it to paper:
+      - [ ] add as a one liner to the paragrah
+      - [ ] add to the boxplot figure
+      - [ ] modify the table?
   - QQplot of the out-of-sample sites
 
 To Talk: 
