@@ -30,9 +30,12 @@ Note:
   - QQplot of the out-of-sample sites
 
 - Condense the SBSS paper submission
-  - Combine the station plot with knot configuration plot?
-  - 200 words abstract
-  - 25 pages total
+  - requires:
+    - 200 words abstract
+    - 25 pages total
+  - combine:
+    - knots configuration plot with station plot
+    - example station plot with $\chi$ $\eta$ plot
 - Topic-Contributed Session JSM 2025
   - Topic-contributed paper sessions consist of five speakers, made up of at least three presenters and, at most, two discussants; each speaker has 20 minutes to present.
   - Session proposal includes a session title, general description of the session, list of participants, and tentative talk titles.
