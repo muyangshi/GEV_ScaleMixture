@@ -1,7 +1,5 @@
 # Meeting Summaries on GEV Project
 
-## TODOs
-
 ## Nov. 19 Tuesday Meeting
 
 
@@ -15,8 +13,8 @@ Note:
   - [x] Make the edits that we made to the original main.tex today
   - [x] Change word colors
   - All necessary files and figures have been “flattened” and now reside directly under the root directory of the LaTeX project. Previously, our figures and .tex sections were nested within individual folders, but since arXiv needs a flattened structure, I made this adjustment.
-  - main.tex: “the main branch.” This file contains the single-spaced, original version of the full paper, including the edits we discussed during today’s meeting. 
-  - main_SBSS.tex: a “fork from the main branch.” This is the double-spaced version intended for the SBSS submission. Please use this file for any edits and shrinkings that are specific to the SBSS submission process.
+  - **`main.tex`**: “the main branch.” This file contains the single-spaced, original version of the full paper, including the edits we discussed during today’s meeting. 
+  - **`main_SBSS.tex`**: a “fork from the main branch.” This is the double-spaced version intended for the SBSS submission. Please use this file for any edits and shrinkings that are specific to the SBSS submission process.
 
 - [x] Make predictive log-likelihood for the stationary model
   - Ben: use the first 3,000 iterations as burn in 
@@ -25,11 +23,43 @@ Note:
       - Do we want to include it?
       - Dataset is not particularly nonstationary, so that's why this model perform decent?
       - median of `k13_r4` is better than this
-    - If we want to add it to paper:
-      - [ ] add as a one liner to the paragrah
-      - [ ] add to the boxplot figure
-      - [ ] modify the table?
+    - [ ] If we want to add it to paper:
+      - add as a one liner to the paragrah
+      - [x] add to the boxplot figure
+      - [x] modify the table?
   - QQplot of the out-of-sample sites
+
+- Condense the SBSS paper submission
+  - Combine the station plot with knot configuration plot?
+  - 200 words abstract
+  - 25 pages total
+- Topic-Contributed Session JSM 2025
+  - Topic-contributed paper sessions consist of five speakers, made up of at least three presenters and, at most, two discussants; each speaker has 20 minutes to present.
+  - Session proposal includes a session title, general description of the session, list of participants, and tentative talk titles.
+  - Preparation:
+    - Session title
+      - "XX XX Spatial Extremes?"
+    - General description of the session (abstract)
+      - (1) why this topic is important and relevant, 
+      - (2) the focus and goal of the session, 
+      - (3) what the speakers will discuss.
+    - list of participant & tentative talk titles
+      - Presenter: Ben Shaby
+      - Presenter: Dan Cooley
+      - Presenter: Jennifer Wadsworth
+      - Presenter:
+      - Discussant?
+      - Can I present?
+      - Can I ask Likun?
+    - invitation letters
+      - (1) the details of the conference and session, 
+      - (2) the focus and goal of the session, 
+      - (3) why you are inviting them or why you think they would be a good contribution to the session, 
+      - (4) and the date you need for them to respond to you by
+
+
+
+
 
 To Talk: 
 
