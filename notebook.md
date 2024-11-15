@@ -23,8 +23,9 @@ Note:
       - Do we want to include it?
       - Dataset is not particularly nonstationary, so that's why this model perform decent?
       - median of `k13_r4` is better than this
-    - [ ] If we want to add it to paper:
-      - add as a one liner to the paragrah
+    - [x] If we want to add it to paper:
+      - add as a one liner to the paragraph
+        - Ben: no need to include in the SBSS
       - [x] add to the boxplot figure
       - [x] modify the table?
   - QQplot of the out-of-sample sites
