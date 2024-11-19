@@ -774,10 +774,10 @@ if __name__ == "__main__":
         # Set ticks and labels
         ax.set_xticks(np.linspace(minX, maxX, num=3))
         ax.set_yticks(np.linspace(minY, maxY, num=5))
-        plt.xticks(fontsize=20)
-        plt.yticks(fontsize=20)
-        plt.xlabel('Longitude', fontsize=20)
-        plt.ylabel('Latitude', fontsize=20)
+        plt.xticks(fontsize=25)
+        plt.yticks(fontsize=25)
+        plt.xlabel('Longitude', fontsize=40)
+        plt.ylabel('Latitude', fontsize=40)
 
         # Set limits to match the exact range of your data
         plt.xlim([-106, -88])
@@ -790,14 +790,14 @@ if __name__ == "__main__":
         # Adjust the position of the legend to avoid overlap with the plot
         box = ax.get_position()
         legend_elements = [matplotlib.lines.Line2D([0], [0], marker= '.', linestyle='None', color='b', label='Site'),
-                        matplotlib.lines.Line2D([0], [0], marker='+', linestyle = "None", color='red', label='Knot Center',  markersize=20),
-                        matplotlib.lines.Line2D([0], [0], marker = 'o', linestyle = 'None', label = 'Knot Radius', markerfacecolor = 'grey', markersize = 20, alpha = 0.2),
-                        matplotlib.lines.Line2D([], [], color='None', marker='s', linestyle='None', markeredgecolor = 'black', markersize=20, label='Spatial Domain')]
-        plt.legend(handles = legend_elements, bbox_to_anchor=(1.01,1.01), fontsize = 20)
+                        matplotlib.lines.Line2D([0], [0], marker='+', linestyle = "None", color='red', label='Knot Center',  markersize=30),
+                        matplotlib.lines.Line2D([0], [0], marker = 'o', linestyle = 'None', label = 'Knot Radius', markerfacecolor = 'grey', markersize = 30, alpha = 0.2),
+                        matplotlib.lines.Line2D([], [], color='None', marker='s', linestyle='None', markeredgecolor = 'black', markersize=30, label='Spatial Domain')]
+        plt.legend(handles = legend_elements, bbox_to_anchor=(1.01,1.01), fontsize = 40)
 
         # Save or show plot
         plt.savefig('Plot_stations.pdf', bbox_inches="tight")
-        # plt.show()
+        plt.show()
         plt.close()
 
 
