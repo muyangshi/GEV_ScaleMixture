@@ -11,9 +11,11 @@ Talk:
 
 - [ ] Make paper into JRSSB Format
   - check their website for "guide to the authors"
-    - A4 paper, English spelling (oops), etc.
-  - Move back the tables, the boxplots
-  - Add the talk about stationary model
+  - Already exceeding the 30-page limit
+    - [ ] Move back the tables, the boxplots
+    - [ ] Add the talk about stationary model
+  - [ ] English/UK spelling
+  - [ ] Two latex questions
 - [x] Tweak paper slightly and submit to the [ENVR](https://community.amstat.org/envr/recognitionandawards/envrstudentpapercompetition) paper competition
   - no longer than 26 pages (inclusive of all figures, tables, and bibliography), so appendices is fine?
 
