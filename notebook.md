@@ -6,6 +6,8 @@ Talk:
 - Topic-Contributed Paper session
   - Current list of speakers
   - Co-organize Reetam's session?
+- ENVR paper competition
+- JRSSB
 
 ## Nov. 15 Friday Meeting with Ben
 
