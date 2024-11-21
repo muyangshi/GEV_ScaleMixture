@@ -2,12 +2,39 @@
 
 ## Nov. 21 Thursday Meeting
 
-Talk:
-- Topic-Contributed Paper session
-  - Current list of speakers
-  - Co-organize Reetam's session?
-- ENVR paper competition
-- JRSSB
+- changed figure 2 caption in JRSSB
+- changed figure 3 size in JRSSB
+- give supplementary a standalone section. Tell readers what's included in it?
+  - the supplemntary mateiral contains five appendices, including technical proofs, additioanl results, C,D, and E. 
+
+- [ ] Topic-contributed session:
+  - Email Reetam, see if we can co-organize
+    - If there are more people than spots available, then just keep emailing people
+
+- [ ] ASA `ENVR` paper competition
+  - email Emily to ask if appendices is counted toward the 26 pages limit
+
+- [ ] Update the stationary model result with the most result chain iterations
+  - update the boxplot figure
+
+- [ ] ISBA `EnviBayes` paper competition
+  - Put somthing back, because reference is not counted
+  - [ ] Add stationary model
+    - two sentences about the stationary model
+    - eleven, not ten models
+    - model description table
+    - boxplot comparision figure
+  - Prep this version for arXiv
+- [ ] JRSSB
+  - don't worry about it "looking-ugly"; no need to put anything back because it has already exceeded 30 pages
+  - [ ] Add stationary model
+    - two sentences about the stationary model
+    - eleven, not ten models
+    - model description table
+    - boxplot comparision figure
+  - [ ] use a software or latex package to convert to UK spelling
+  - [ ] Register my ORCID and use mine
+  - [ ] Use `xr` to compile supplementary material separately
 
 ## Nov. 15 Friday Meeting with Ben
 
@@ -18,6 +45,9 @@ Talk:
     - [ ] Add the talk about stationary model
   - [ ] English/UK spelling
   - [ ] Two latex questions
+    - [ ] Enumitem error
+    - [ ] Supplementary Material
+  - [ ] Use my ORCID?
 - [x] Tweak paper slightly and submit to the [ENVR](https://community.amstat.org/envr/recognitionandawards/envrstudentpapercompetition) paper competition
   - no longer than 26 pages (inclusive of all figures, tables, and bibliography), so appendices is fine?
 
