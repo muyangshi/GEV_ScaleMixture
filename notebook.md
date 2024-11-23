@@ -2,17 +2,15 @@
 
 ## Nov. 21 Thursday Meeting
 
-- changed figure 2 caption in JRSSB
-- changed figure 3 size in JRSSB
-- give supplementary a standalone section. Tell readers what's included in it?
-  - the supplemntary mateiral contains five appendices, including technical proofs, additioanl results, C,D, and E. 
-
-- [ ] Topic-contributed session:
+- [x] Topic-contributed session:
   - Email Reetam, see if we can co-organize
     - If there are more people than spots available, then just keep emailing people
+  - <mark>I think I'll just keep emailing people and put together mine</mark>
 
-- [ ] ASA `ENVR` paper competition
-  - email Emily to ask if appendices is counted toward the 26 pages limit
+- [x] ASA `ENVR` paper competition
+  - able to put back 
+    - the computation section
+    - the boxplot
 
 - [ ] Update the stationary model result with the most result chain iterations
   - update the boxplot figure
@@ -35,6 +33,11 @@
   - [ ] use a software or latex package to convert to UK spelling
   - [ ] Register my ORCID and use mine
   - [ ] Use `xr` to compile supplementary material separately
+  - changed figure 2 caption in JRSSB
+  - changed figure 3 size in JRSSB
+  - modified references to delete url
+  - give supplementary a standalone section. Tell readers what's included in it?
+    - the supplemntary mateiral contains five appendices, including technical proofs, additioanl results, C,D, and E. 
 
 ## Nov. 15 Friday Meeting with Ben
 
