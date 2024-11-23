@@ -150,18 +150,31 @@ def get_elevation(longitude, latitude):
 
 # %% specify which chain
 
+# Model 0: Stationary Model
+
+folder           = './data/20241030start_realdata_stationary/'
+name             = 'k1_r100'
+fixGEV           = False
+radius           = 100
+bandwidth_phi    = 100
+bandwidth_rho    = 100
+N_outer_grid_phi = 1
+N_outer_grid_rho = 1
+mark             = True
+burnin           = 3000
+
 # Model 1: k13_r4
 
-folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-name             = 'k13_r4'
-fixGEV           = False
-radius           = 4
-bandwidth_phi    = 4
-bandwidth_rho    = 4
-N_outer_grid_phi = 9
-N_outer_grid_rho = 9
-mark             = True
-burnin           = 5000
+# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
+# name             = 'k13_r4'
+# fixGEV           = False
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 9
+# N_outer_grid_rho = 9
+# mark             = True
+# burnin           = 5000
 
 # Model 2: k13_r4_fixGEV
 
@@ -1995,7 +2008,7 @@ for h in [75, 150, 225]:
         ax.set_aspect('equal', 'box')
         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
         heatmap = ax.imshow(chi_mat, cmap = colormap, interpolation = 'nearest',
-                            vmin = min_chi, vmax = max_chi,
+                            vmin = 0.0, vmax = 1.0,
                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                     min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
@@ -2089,46 +2102,46 @@ fig, axes = plt.subplots(1, 2, figsize=(20, 8), gridspec_kw={'width_ratios': [2,
 ax = axes[0]
 state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
 ax.scatter(sites_x, sites_y, marker='.', c='blue', 
-           edgecolor = 'white', label='training', zorder = 2)
+           edgecolor = 'white', label='training', zorder = 2, s = 50)
 ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
-           edgecolor='white', s = 25, label='testing', zorder=3)
+           edgecolor='white', s = 50, label='testing', zorder=3)
 space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
-                                fill=False, color='black')
+                                fill=False, color='black', linewidth=4)
 ax.add_patch(space_rectangle)
 # Set ticks and labels
 ax.set_xticks(np.linspace(-130, -70, num=7))
 ax.set_yticks(np.linspace(25, 50, num=6))
-ax.tick_params(axis='both', which='major', labelsize=15)
-ax.set_xlabel('Longitude', fontsize = 20)
-ax.set_ylabel('Latitude', fontsize = 20)
+ax.tick_params(axis='both', which='major', labelsize=25)
+ax.set_xlabel('Longitude', fontsize = 40)
+ax.set_ylabel('Latitude', fontsize = 40)
 ax.set_xlim([-130, -65])
 ax.set_ylim([25,50])
 ax.set_aspect('auto')
 
+# customize legend
+legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=30, label='training', linestyle='None')
+legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=20, label='testing', linestyle='None')
+ax.legend(handles=[legend_sites, legend_test_sites], 
+          fontsize=40, loc = 'upper left')
+
 ax = axes[1]
 state_map.boundary.plot(ax=ax, color='lightgrey', zorder = 1)
-ax.scatter(sites_x, sites_y, marker='.', c='blue', s = 85,
+ax.scatter(sites_x, sites_y, marker='.', c='blue', s = 150,
            edgecolor = 'white', label='training', zorder = 2)
 ax.scatter(test_sites_xy[:,0], test_sites_xy[:,1], marker='^', c='orange', 
-           edgecolor='white', s = 85, label='testing', zorder=3)
+           edgecolor='white', s = 150, label='testing', zorder=3)
 space_rectangle = plt.Rectangle(xy=(minX, minY), width=maxX-minX, height=maxY-minY,
-                                fill=False, color='black')
+                                fill=False, color='black', linewidth=4)
 ax.add_patch(space_rectangle)
 # Set ticks and labels
 ax.set_xticks(np.linspace(minX, maxX, num=3))
 ax.set_yticks(np.linspace(minY, maxY, num=5))
-ax.tick_params(axis='both', which='major', labelsize=15)
-ax.set_xlabel('Longitude', fontsize = 20)
-ax.set_ylabel('Latitude', fontsize = 20)
+ax.tick_params(axis='both', which='major', labelsize=25)
+ax.set_xlabel('Longitude', fontsize = 40)
+ax.set_ylabel('Latitude', fontsize = 40)
 ax.set_xlim([-105.5, -88.5])
 ax.set_ylim([30.75,47.25])
 ax.set_aspect('auto')
-
-# customize legend
-legend_sites = mpl.lines.Line2D([], [], color='blue', marker='.', markersize=20, label='training', linestyle='None')
-legend_test_sites = mpl.lines.Line2D([], [], color='orange', marker='^', markersize=15, label='testing', linestyle='None')
-plt.legend(handles=[legend_sites, legend_test_sites], 
-          fontsize=15, loc = 'upper right')
 
 # Adjust layout to avoid overlap
 plt.tight_layout()
@@ -2885,6 +2898,9 @@ plt.show()
 plt.close()
 # %%
 # Draw boxplots of loglikelihoods between different runs --------------------------------------------------------------
+
+# Make sure corresponding .npy files are put into the result folder
+
 try:
     ll_k13_r4          = np.sum(np.load('results/CONVERGED/k13_r4/ll_k13_r4.npy'), axis = (1,2))
 except:
@@ -2925,14 +2941,18 @@ try:
     ll_phik41efr2_rhok13r4 = np.sum(np.load('results/CONVERGED/phik41efr2_rhok13r4/ll_phik41efr2_rhok13r4.npy'), axis = (1,2))
 except:
     ll_phik41efr2_rhok13r4 = []
-
+try:
+    ll_k1_r100 = np.sum(np.load('results/CONVERGED/k1_r100/ll_stationary.npy'), axis = (1,2))
+except:
+    ll_k1_r100 = []
 # %%
 
 ll_list = [ll_k13_r4, ll_k13_r4_fixGEV,
            ll_k25_r2, ll_k25_r2_fixGEV,
            ll_k25_r4, ll_k25_r4_fixGEV,
            ll_k25_efr2, ll_k25_efr2_fixksi,
-           ll_k41_efr2, ll_phik41efr2_rhok13r4]
+           ll_k41_efr2, ll_phik41efr2_rhok13r4,
+           ll_k1_r100]
 fig, ax = plt.subplots()
 fig.set_size_inches((16,10))
 bp = ax.boxplot(ll_list, patch_artist = True)
@@ -2942,7 +2962,8 @@ colors = ['deepskyblue', 'lightsalmon',
           'deepskyblue', 'lightsalmon',
           'deepskyblue', 'lightsalmon',
           'deepskyblue', 'lightsalmon',
-          'deepskyblue', 'deepskyblue']
+          'deepskyblue', 'deepskyblue',
+          'deepskyblue']
 for patch, color in zip(bp['boxes'], colors):
     patch.set_facecolor(color)
     patch.set_edgecolor('black')
@@ -2961,13 +2982,14 @@ ax.set_xticklabels(['k13r4b4', 'k13r4b4m',
                     'k25r2b2', 'k25r2b2m',
                     'k25r4b4', 'k25r4b4m',
                     'k25r2b0.67', r'k25r2b0.67m',
-                    'k41r2b0.67', r'k41r2b0.67k$^{(\rho)}$13b4'],
+                    'k41r2b0.67', r'k41r2b0.67k$^{(\rho)}$13b4',
+                    'stationary'],
                    rotation = 45)
 ax.set_ylabel('log-likelihood', fontsize = 30)
 # ax.set_xlabel('models', fontsize = 30)
 ax.yaxis.offsetText.set_fontsize(20)
 ax.tick_params(axis='both', which='major', labelsize=20)
-plt.title('Ten Models\' log-likelihood of out-of-sample observations', 
+plt.title('Models\' log-likelihood of out-of-sample observations', 
           fontsize = 30)
 
 # Add gridlines for better readability
