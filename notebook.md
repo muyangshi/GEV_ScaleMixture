@@ -12,20 +12,21 @@
     - the computation section
     - the boxplot
 
-- [ ] Update the stationary model result with the most result chain iterations
+- [x] Update the stationary model result with the most result chain iterations
   - update the boxplot figure
 
-- [ ] ISBA `EnviBayes` paper competition
+- [x] ISBA `EnviBayes` paper competition
   - Put somthing back, because reference is not counted
-  - [ ] Add stationary model
+  - [x] Add stationary model
     - two sentences about the stationary model
     - eleven, not ten models
     - model description table
     - boxplot comparision figure
   - Prep this version for arXiv
+  - <mark> Still have space</mark>
 - [ ] JRSSB
   - don't worry about it "looking-ugly"; no need to put anything back because it has already exceeded 30 pages
-  - [ ] Add stationary model
+  - [x] Add stationary model
     - two sentences about the stationary model
     - eleven, not ten models
     - model description table
