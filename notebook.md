@@ -24,15 +24,15 @@
     - boxplot comparision figure
   - Prep this version for arXiv
   - <mark> Still have space</mark>
-- [ ] JRSSB
+- [x] JRSSB
   - don't worry about it "looking-ugly"; no need to put anything back because it has already exceeded 30 pages
   - [x] Add stationary model
     - two sentences about the stationary model
     - eleven, not ten models
     - model description table
     - boxplot comparision figure
-  - [ ] use a software or latex package to convert to UK spelling
-  - [ ] Register my ORCID and use mine
+  - [x] use a software or latex package to convert to UK spelling
+  - [x] Register my ORCID and use mine
   - [ ] Use `xr` to compile supplementary material separately
   - changed figure 2 caption in JRSSB
   - changed figure 3 size in JRSSB
