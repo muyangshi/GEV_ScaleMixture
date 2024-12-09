@@ -1,6 +1,34 @@
 # Meeting Summaries on GEV Project
 
-## Nov. 21 Thursday Meeting
+## Dec. 9 Monday Meeting with Likun/Ben
+
+(JRSSB):
+- edit the section 6,7,8 heading spacings
+- Likun's edit in line
+  - [ ] Copy entire appendix over to the other one
+  - [ ] Likun's in-line changes are tracked
+- Ben's edit in line
+  - [ ] Tracked. Copy Over
+
+(EnviBayes):
+- After copy over the JRSSB changes, okay to submit.
+
+(ArXiv):
+- use the JRSSB's version because easier to match up with future edits (i.e., don't move things back)
+- send Likun the link
+
+
+(JSM 2025 Topic Contributed Paper Session):
+- submitted
+
+## Dec. 3 Tuesday Meeting with Likun/Mark/Ben
+
+(JRSSB):
+- Ben will edit the discussion session about stationary model
+- Likun will add a lemma to the proof by Sunday
+- [ ] Copy over the changes to the EnviBayes version
+
+## Nov. 21 Thursday Meeting with Ben
 
 - [x] Topic-contributed session:
   - Email Reetam, see if we can co-organize
