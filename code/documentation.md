@@ -12,6 +12,7 @@ code/
   ├── utilities.py
   │
   ├── JJA_precip_maxima_nonimputed.RData
+  ├── blockMax_JJA_centralUS_test.RData
   ├── simulate_data.py
   ├── proposal_cov.py
   └── MCMC.py
@@ -73,6 +74,7 @@ Then these compiled functions are "packaged" into `RW_inte.py`, which is then im
 File:
 
 - `JJA_precip_maxima_nonimputed.RData`
+- `blockMax_JJA_centralUS_test.Rdata`
 
 This is an example real dataset of central US summer time block-maxima precipitation. This `.RData` file contains the following items:
 
