@@ -2,30 +2,30 @@
 
 ## Dec. 9 Monday Meeting with Likun/Ben
 
-(JRSSB):
-- [x] link to code
-- [x] grant, double check with Ben
-- [x] cover letter?
-- [x] Data availability statement
-- [x] edit the section 6,7,8 heading spacings
-- Likun's edit in line
-  - [x] Copy entire appendix over to the other one
-  - [x] Likun's in-line changes are tracked
-- Ben's edit in line
-  - [x] Tracked. Copy Over
+- [x] JRSSB:
+  - [x] link to code
+  - [x] grant, double check with Ben
+  - [x] cover letter?
+  - [x] Data availability statement
+  - [x] edit the section 6,7,8 heading spacings
+  - Likun's edit in line
+    - [x] Copy entire appendix over to the other one
+    - [x] Likun's in-line changes are tracked
+  - Ben's edit in line
+    - [x] Tracked. Copy Over
 
-(EnviBayes):
-- After copy over the JRSSB changes, okay to submit.
-- Additional contents not included in JRSSB:
-  - Computation section
-  - Model Setup Table `tabel:application_knot`
-  - Boxplot figure `fig:application_ll`
-  - Posterior Mean table `table:application_estimate`
+- [x] EnviBayes:
+  - After copy over the JRSSB changes, okay to submit.
+  - Additional contents not included in JRSSB:
+    - Computation section
+    - Model Setup Table `tabel:application_knot`
+    - Boxplot figure `fig:application_ll`
+    - Posterior Mean table `table:application_estimate`
 
-(ArXiv):
-- use the JRSSB's version because easier to match up with future edits (i.e., don't move things back)
-  - [x] move things to appendix
-- send the link in email
+- [x] arXiv:
+  - use the JRSSB's version because easier to match up with future edits (i.e., don't move things back)
+    - [x] move things to appendix
+  - send the link in email
 
 
 (JSM 2025 Topic Contributed Paper Session):
