@@ -6,7 +6,7 @@
   - use blue or some colored ink
 - [ ] Do a $X \sim N(0, \Sigma)$ model as pure AI model
 - [ ] Look at marginal GEV fit over time to spot if there is $\sigma_t$
-- [ ] Potentially look at north east US?
+- [ ] Ben: Potentially look at north east US?
 
 
 ## Dec. 9 Monday Meeting with Likun/Ben
