@@ -1,5 +1,42 @@
 # Meeting Summaries on GEV Project
 
+## May 22 (Thursday) Meeting Muyang/Likun/Ben
+
+### Paper
+
+- [x] JASA Format
+  - 35 pages, including the title page, abstract, figures, tables, and references. (Appendices don't count towards the page limit)
+  - 8.5 x 11 inch paper, 12 point fully double-spaced font
+
+#### <u>More Minor edits per the JRSSB review comments</u>
+
+- [ ] Minor edits per the JRSSB review comments
+  - [ ] "Consequently, random scale mixture models ... the tail index $\phi$"; "Neverthelss, the random scale mixture ... for the entire spatial domain".
+    - For a fixed lag, only one class of tail dependence is possible
+  - [ ] Hazra's AD or AI typo
+  - [x] Justification for the distributional choices
+    - JRSSB includes the `Computation` section in the Appendix (where this is justified)
+  - [ ] $C_\alpha$ not yet defined prior to Proposition 1
+  - [ ] Add intuition/interpretation to the margins obtained in Proposition 1
+  - [ ] $C_j$ notation
+  - [ ] $\rho_{ij}$ in the AI theorem
+  - [x] Empirical $\chi$ and $\eta$ plot legend text too small
+    - we provided description in caption
+  - [x] Empirical coverage rates of simulation study, explanation for the over-coverage?
+    - nope we don't have justification
+  - [ ] Be more explicit in Application section that we selected the same subset and compared to the Zhang et al. (2022) model
+
+#### <u>More Major edits per the JRSSB review comments</u>
+
+- [ ] "Major" edits per the JRSSB review comments
+  - [ ] assess to what extent the model is a significant improvement to existing ones
+    - Use a dataset that highlight this model's performance
+      - either real dataset or simulation study
+    - Extend the `simulation and coverage analysis` section by comparing this method to Hazra
+- [ ] Look at marginal GEV fit over time to spot if there is $\sigma_t$
+- [ ] Is it possible to fit a simpler, pure AI submodel? cite some papers proposing models suitable for modeling spatial AI data?
+  - Do a $X \sim N(0, \Sigma)$ model as pure AI model
+
 ## May 6 Meeting with Ben
 
 - [ ] Change the typos in paper
