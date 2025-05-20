@@ -13,7 +13,7 @@
 - [ ] Minor edits per the JRSSB review comments
   - [ ] "Consequently, random scale mixture models ... the tail index $\phi$"; "Neverthelss, the random scale mixture ... for the entire spatial domain".
     - For a fixed lag, only one class of tail dependence is possible
-  - [ ] Hazra's AD or AI typo
+  - [x] Hazra's AD or AI typo
   - [x] Justification for the distributional choices
     - JRSSB includes the `Computation` section in the Appendix (where this is justified)
   - [ ] $C_\alpha$ not yet defined prior to Proposition 1
