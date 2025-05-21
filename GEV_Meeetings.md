@@ -2,6 +2,18 @@
 
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
+### Reviewing old code
+
+- <mark>`like_proposal` in range update</mark>
+  - re-run the `k13r4b4` model to see how big of a difference this makes?
+
+- Imputation does not involve likelihood ratio:
+  - Because it's Gibbs sampling, we sample exactly from the full conditional distribution of the missing data.
+
+- Python Pointer thing
+  - `X_star_1t_current = X_star_1t_proposal` is a pointer copy. However, as long as each time `X_star_1t_proposal` is assigned a brand new generated array, it won't affect `X_star_1t_current` (i.e., as long as we don't do e.g. `X_star_1t_proposal[5] = 3.8`)
+  - `lik_1t_current = lik_1t_proposal` is fine because they are values, so they are not pointer copies.
+
 ### Paper
 
 - [x] JASA Format

@@ -138,6 +138,13 @@ def likelihood_1t(Y_vec, Z_vec, Loc, Scale, Shape, cholesky_U):
     
     return loglik_Z + log_J
 
+def likelihood_1t_detail(Y_vec, Z_vec, Loc, Scale, Shape, cholesky_U):
+    # \varphi_D(Z_vec)
+    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+    loglik_Z = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
+    log_J = np.sum(dgev(Y_vec, Loc=Loc, Scale=Scale, Shape=Shape, log=True) - np.log(dZ(Z_vec)))
+    return loglik_Z, log_J
+
 def impute_ZY_1t(miss_index, obs_index, Z_vec, mu_vec, sigma_vec, ksi_vec, K):
 
     if len(miss_index) == 0: return (None, None)

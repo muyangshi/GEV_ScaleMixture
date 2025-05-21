@@ -1157,7 +1157,7 @@ if __name__ == "__main__":
     if start_iter == 1:
         if rank == 0:
             loglik_trace              = np.full(shape = (n_iters, 1), fill_value = np.nan) # overall likelihood
-            loglik_detail_trace       = np.full(shape = (n_iters, 5), fill_value = np.nan) # detail likelihood
+            loglik_detail_trace       = np.full(shape = (n_iters, 2), fill_value = np.nan) # detail likelihood
             # R_trace_log               = np.full(shape = (n_iters, k, Nt), fill_value = np.nan) # log(R)
             # phi_knots_trace           = np.full(shape = (n_iters, k), fill_value = np.nan) # phi_at_knots
             range_knots_trace         = np.full(shape = (n_iters, k_rho), fill_value = np.nan) # range_at_knots
@@ -1417,13 +1417,13 @@ if __name__ == "__main__":
                 K_proposal = ns_cov(range_vec = range_vec_proposal,
                                     sigsq_vec = sigsq_vec, coords = sites_xy, kappa = nu, cov_model = "matern")
                 cholesky_matrix_proposal = scipy.linalg.cholesky(K_proposal, lower = False)
-                lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                    phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_proposal)
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_current,
+                                                Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                cholesky_matrix_proposal)
             
             # Gather likelihood calculated across time (no prior yet)
-            lik_current_gathered   = comm.gather(lik_1t_current, root = 0)
-            like_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+            lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
+            lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
             # Handle prior and Accept/Reject on worker 0
             if rank == 0:
@@ -1471,18 +1471,16 @@ if __name__ == "__main__":
         ####  Update missing values  ############################################################
         #########################################################################################
 
-        # draw new Y_miss 
-        X_star_1t_miss, Y_1t_miss     = impute_1t(miss_index_1t, obs_index_1t, 
-                                                  Y[:,rank], X_star_1t_current,
-                                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank],Shape_matrix_current[:,rank],
-                                                    phi_vec_current, gamma_vec, R_vec_current, K_current)
+        # draw new Z_miss, Y_miss
+        Z_1t_miss, Y_1t_miss = impute_ZY_1t(miss_index_1t, obs_index_1t, Z_1t_current,
+                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], K_current)
+        Z_1t_current[miss_index_1t] = Z_1t_miss
+        Y[:,rank][miss_index_1t]    = Y_1t_miss
 
-        X_star_1t_current[miss_index_1t] = X_star_1t_miss
-        Y[:,rank][miss_index_1t]      = Y_1t_miss
+        lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current, 
+                                        Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                        cholesky_matrix_current)
 
-        lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-                                                                    Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                                    phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         Y_gathered = comm.gather(Y[:,rank], root = 0)
         if rank == 0:
             Y_trace[iter,:,:] = np.array(Y_gathered).T
@@ -1512,11 +1510,11 @@ if __name__ == "__main__":
             Loc_matrix_proposal   = (C_mu0.T @ Beta_mu0_proposal).T + (C_mu1.T @ Beta_mu1_current).T * Time
 
             # Conditional log likelihood at proposal
-            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_current, gamma_vec)
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+            Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]))
+            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                            cholesky_matrix_current)
+
             # Gather likelihood calculated across time
             lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
             lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1558,7 +1556,7 @@ if __name__ == "__main__":
 
             # Update X_star, mu0 surface, and likelihood
             if Beta_mu0_accepted:
-                X_star_1t_current  = X_star_1t_proposal
+                Z_1t_current = Z_1t_proposal.copy()
                 # Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
                 Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
                 lik_1t_current     = lik_1t_proposal
@@ -1585,11 +1583,10 @@ if __name__ == "__main__":
             Loc_matrix_proposal                    = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_proposal).T * Time
 
             # Conditional log likelihood at proposal
-            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_current, gamma_vec)
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+            Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]))
+            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                            cholesky_matrix_current)
             # Gather likelihood calculated across time
             lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
             lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1628,7 +1625,7 @@ if __name__ == "__main__":
 
             # Update X_star, mu surface, and likelihood
             if Beta_mu1_accepted:
-                X_star_1t_current  = X_star_1t_proposal
+                Z_1t_current = Z_1t_proposal.copy()
                 Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
                 lik_1t_current     = lik_1t_proposal
 
@@ -1663,11 +1660,10 @@ if __name__ == "__main__":
             # X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
         else:
-            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank]),
-                                        phi_vec_current, gamma_vec)
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+            Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank]))
+            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                            Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
+                                            cholesky_matrix_current)
         # Gather likelihood calculated across time
         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1708,7 +1704,7 @@ if __name__ == "__main__":
 
         # Update X_star, sigma surface, and likelihood
         if Beta_logsigma_accepted:
-            X_star_1t_current = X_star_1t_proposal
+            Z_1t_current = Z_1t_proposal.copy()
             Scale_matrix_current = np.exp((C_logsigma.T @ Beta_logsigma_current).T)
             lik_1t_current = lik_1t_proposal
         
@@ -1745,12 +1741,10 @@ if __name__ == "__main__":
             # X_star_1t_proposal = np.NINF
             lik_1t_proposal = np.NINF
         else:
-            X_star_1t_proposal = qRW(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank]),
-                                        phi_vec_current, gamma_vec)
-            lik_1t_proposal = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_proposal, 
-                                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank],
-                                                            phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
-        
+            Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank]))
+            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank],
+                                            cholesky_matrix_current)
         # Gather likelihood calculated across time
         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1792,7 +1786,7 @@ if __name__ == "__main__":
         Beta_ksi_accepted = comm.bcast(Beta_ksi_accepted, root = 0)
 
         if Beta_ksi_accepted:
-            X_star_1t_current = X_star_1t_proposal
+            Z_1t_current = Z_1t_proposal.copy()
             Shape_matrix_current = (C_ksi.T @ Beta_ksi_current).T
             lik_1t_current = lik_1t_proposal
 
@@ -1982,9 +1976,11 @@ if __name__ == "__main__":
         #### ----- Keeping track of likelihood after this iteration ----- ####
         ######################################################################
     
-        lik_final_1t_detail = marg_transform_data_mixture_likelihood_1t_detail(Y[:,rank], X_star_1t_current, 
+
+
+        lik_final_1t_detail = likelihood_1t_detail(Y[:,rank], Z_1t_current, 
                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                                phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
+                                                cholesky_matrix_current)
         lik_final_1t = sum(lik_final_1t_detail)
         lik_final_detail_gathered = comm.gather(lik_final_1t_detail, root = 0)
         lik_final_gathered = comm.gather(lik_final_1t, root = 0)
@@ -2004,42 +2000,8 @@ if __name__ == "__main__":
             gamma1 = 1 / ((iter/adapt_size + offset) ** c_1)
             gamma2 = c_0 * gamma1
 
-            # R_t
-            if norm_pareto == 'shifted':
-                sigma_m_sq_Rt_list = comm.gather(sigma_m_sq_Rt, root = 0)
-                num_accepted_Rt_list = comm.gather(num_accepted_Rt, root = 0)
-                if rank == 0:
-                    for i in range(size):
-                        r_hat = num_accepted_Rt_list[i]/adapt_size
-                        num_accepted_Rt_list[i] = 0
-                        log_sigma_m_sq_hat = np.log(sigma_m_sq_Rt_list[i]) + gamma2*(r_hat - r_opt)
-                        sigma_m_sq_Rt_list[i] = np.exp(log_sigma_m_sq_hat)
-                sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0)
-                num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
-
-            if norm_pareto == 'standard':
-                for i in range(k):
-                    r_hat              = num_accepted_Rt[i]/adapt_size
-                    num_accepted_Rt[i] = 0
-                    log_sigma_m_sq_hat = np.log(sigma_m_sq_Rt[i]) + gamma2 * (r_hat - r_opt)
-                    sigma_m_sq_Rt[i]   = np.exp(log_sigma_m_sq_hat)
-                comm.Barrier()
-                sigma_m_sq_Rt_list     = comm.gather(sigma_m_sq_Rt, root = 0)
-
-
             # phi, range, and GEV
             if rank == 0:
-                # phi block update
-                for key in phi_block_idx_dict.keys():
-                    start_idx          = phi_block_idx_dict[key][0]
-                    end_idx            = phi_block_idx_dict[key][-1]+1
-                    r_hat              = num_accepted[key]/adapt_size
-                    num_accepted[key]  = 0
-                    log_sigma_m_sq_hat = np.log(sigma_m_sq[key]) + gamma2 * (r_hat - r_opt)
-                    sigma_m_sq[key]    = np.exp(log_sigma_m_sq_hat)
-                    Sigma_0_hat        = np.array(np.cov(phi_knots_trace[iter-adapt_size:iter, start_idx:end_idx].T))
-                    Sigma_0[key]       = Sigma_0[key] + gamma1 * (Sigma_0_hat - Sigma_0[key])
-
                 # range block update
                 for key in range_block_idx_dict.keys():
                     start_idx          = range_block_idx_dict[key][0]
@@ -2133,8 +2095,6 @@ if __name__ == "__main__":
                 ## Traceplots of parameters
                 np.save('loglik_trace', loglik_trace)
                 np.save('loglik_detail_trace', loglik_detail_trace)
-                np.save('R_trace_log', R_trace_log)
-                np.save('phi_knots_trace', phi_knots_trace)
                 np.save('range_knots_trace', range_knots_trace)
                 np.save('Beta_mu0_trace', Beta_mu0_trace)
                 np.save('Beta_mu1_trace', Beta_mu1_trace)
@@ -2155,9 +2115,6 @@ if __name__ == "__main__":
                 
                 with open('Sigma_0.pkl', 'wb') as file:
                     pickle.dump(Sigma_0, file)
-                
-                with open('sigma_m_sq_Rt_list.pkl', 'wb') as file:
-                    pickle.dump(sigma_m_sq_Rt_list, file)
 
 
                 # %% Printing -----------------------------------------------------------------------------------------
@@ -2169,8 +2126,6 @@ if __name__ == "__main__":
 
                 loglik_trace_thin              = loglik_trace[0:iter:10,:]
                 loglik_detail_trace_thin       = loglik_detail_trace[0:iter:10,:]
-                R_trace_log_thin               = R_trace_log[0:iter:10,:,:]
-                phi_knots_trace_thin           = phi_knots_trace[0:iter:10,:]
                 range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
                 Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
                 Beta_mu1_trace_thin            = Beta_mu1_trace[0:iter:10,:]
@@ -2202,32 +2157,6 @@ if __name__ == "__main__":
                 plt.ylabel('log likelihood')
                 plt.legend()
                 plt.savefig('Traceplot_loglik_detail.pdf')
-                plt.close()
-
-                # ---- R_t ----
-
-                for t in range(Nt):
-                    label_by_knot = ['knot ' + str(knot) for knot in range(k)]
-                    plt.subplots()
-                    plt.plot(xs_thin2, R_trace_log_thin[:,:,t], label = label_by_knot)
-                    plt.legend(loc = 'upper left')
-                    plt.title('traceplot for log(Rt) at t=' + str(t))
-                    plt.xlabel('iter thinned by 10')
-                    plt.ylabel('log(Rt)s')
-                    plt.savefig('Traceplot_Rt'+str(t)+'.pdf')
-                    plt.close()
-
-                # ---- phi ----
-
-                plt.subplots()
-                for i in range(k):
-                    plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label='knot ' + str(i))
-                    plt.annotate('knot ' + str(i), xy=(xs_thin2[-1], phi_knots_trace_thin[:,i][-1]))
-                plt.title('traceplot for phi')
-                plt.xlabel('iter thinned by 10')
-                plt.ylabel('phi')
-                plt.legend()
-                plt.savefig('Traceplot_phi.pdf')
                 plt.close()
 
                 # ---- range ----
@@ -2328,8 +2257,6 @@ if __name__ == "__main__":
         # print('true R: ', R_at_knots)
         np.save('loglik_trace', loglik_trace)
         np.save('loglik_detail_trace', loglik_detail_trace)
-        np.save('R_trace_log', R_trace_log)
-        np.save('phi_knots_trace', phi_knots_trace)
         np.save('range_knots_trace', range_knots_trace)
         np.save('Beta_mu0_trace', Beta_mu0_trace)
         np.save('Beta_mu1_trace', Beta_mu1_trace)
