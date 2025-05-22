@@ -2,10 +2,23 @@
 
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
+- [x] run the bug fix k13r4b4 model
+  - Currently running on Misspiggy
+  - If eventually we need to re-run all the application models, train a neural network to do the `qRW`
+- [ ] run the pure AI model
+  - Alpine?
+- [x] fix the font size of axis on figures
+  - Likun enlarged legend size on Figure 3
+  - I enlarged Figure 4 axis labels
+  - I enlarge Figure 5 axis labels
+
 ### Reviewing old code
 
-- <mark>`like_proposal` in range update</mark>
+- `like_proposal` in range update
   - re-run the `k13r4b4` model to see how big of a difference this makes?
+  - could be a "cat on keyboard" thing
+    - the simulation/coverage code does not have this typo
+    - only involved in the application (`MCMC_daisychain.py`)
 
 - Imputation does not involve likelihood ratio:
   - Because it's Gibbs sampling, we sample exactly from the full conditional distribution of the missing data.
