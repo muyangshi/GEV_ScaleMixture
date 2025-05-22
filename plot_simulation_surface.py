@@ -146,8 +146,8 @@ if __name__ == "__main__":
 
     # %% Plotting the Simulation Scenarios
 
-    plotgrid_res_x       = 50
-    plotgrid_res_y       = 50
+    plotgrid_res_x       = 500
+    plotgrid_res_y       = 500
     plotgrid_res_xy      = plotgrid_res_x * plotgrid_res_y
     plotgrid_x           = np.linspace(minX,maxX,plotgrid_res_x)
     plotgrid_y           = np.linspace(minY,maxY,plotgrid_res_y)
@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
         phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
         fig, ax = plt.subplots()
-        fig.set_size_inches(8,6)
+        fig.set_size_inches(10,8)
         ax.set_aspect('equal', 'box')
 
         vmin, vmax = (0.3, 0.7)
@@ -185,9 +185,9 @@ if __name__ == "__main__":
                             cmap='RdBu_r', interpolation='nearest')
         cbar = fig.colorbar(heatmap, ax=ax)
 
-        cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
-        ax.set_xticks(np.linspace(0, 10,num=5))
-        ax.set_yticks(np.linspace(0, 10,num=5))
+        cbar.ax.tick_params(labelsize=40)  # Set the fontsize here
+        ax.set_xticks(np.linspace(0, 10,num=3))
+        ax.set_yticks(np.linspace(5, 10,num=2))
 
         # Add contour line at Z = 0.5
         contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
@@ -198,31 +198,87 @@ if __name__ == "__main__":
         # Plot knots and circles
         for i in range(k):
             circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                                color='r', fill=False, fc='None', ec='lightgrey', alpha=0.5)
+                                color='r', fill=False, fc='None', ec='lightgrey', alpha=0.9)
             ax.add_patch(circle_i)
 
         # Scatter plot for sites and knots
-        ax.scatter(knots_x, knots_y, marker='+', c='white', label='knot', s=300)
+        ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
         for index, (x, y) in enumerate(knots_xy):
-            ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left')
+            ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=32, ha='left')
 
         # Set axis limits and labels
         plt.xlim([0, 10])
         plt.ylim([0, 10])
-        plt.xticks(fontsize=20)
-        plt.yticks(fontsize=20)
-        plt.xlabel('x', fontsize=20)
-        plt.ylabel('y', fontsize=20)
-        plt.title(f'$\phi(s)$ Scenario {sim_case}', fontsize=20)
+        plt.xticks(fontsize=50)
+        plt.yticks(fontsize=50)
+        plt.xlabel('x', fontsize=50)
+        plt.ylabel('y', fontsize=50)
+        plt.title(f'$\phi(s)$ scenario {sim_case}', fontsize=50)
 
-        plt.savefig(f'Surface:phi_simcase_{sim_case}.pdf', bbox_inches='tight')
+        plt.savefig(f'Surface_phi_simcase_{sim_case}.pdf', bbox_inches='tight')
         plt.show()
         plt.close()
 
+    for sim_case in [1,2,3]:
+        if sim_case == 1: phi_at_knots = 0.65-np.sqrt((knots_x-3)**2/4 + (knots_y-3)**2/3)/10
+        if sim_case == 2: phi_at_knots = 0.65-np.sqrt((knots_x-5.1)**2/5 + (knots_y-5.3)**2/4)/11.6
+        if sim_case == 3: phi_at_knots = 0.37 + 5*(scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([2.5,3]), cov = 2*np.matrix([[1,0.2],[0.2,1]])) + 
+                                                   scipy.stats.multivariate_normal.pdf(knots_xy, mean = np.array([7,7.5]), cov = 2*np.matrix([[1,-0.2],[-0.2,1]])))
+
+        phi_vec_for_plot = gaussian_weight_matrix_for_plot @ phi_at_knots
+        fig, ax = plt.subplots()
+        fig.set_size_inches(10,8)
+        ax.set_aspect('equal', 'box')
+
+        vmin, vmax = (0.3, 0.7)
+
+        cmap = matplotlib.cm.RdBu_r
+        bounds = np.linspace(0.3, 0.7,num=9)
+        norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+
+        heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_X.shape),
+                            origin='lower', extent=[minX, maxX, minY, maxY],
+                            norm = norm, cmap=cmap, interpolation='nearest')
+
+        cbar = fig.colorbar(heatmap, ax=ax)
+
+        cbar.ax.tick_params(labelsize=40)  # Set the fontsize here
+        ax.set_xticks(np.linspace(0., 10.,num=3))
+        ax.set_yticks(np.linspace(5., 10.,num=2))
+
+        # Add contour line at Z = 0.5
+        contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
+                            levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
+        # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5',
+        #           manual = [(3,3)])  # Label the contour line
+
+        # Plot knots and circles
+        for i in range(k):
+            circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
+                                color='r', fill=False, fc='None', ec='lightgrey', alpha=0.9)
+            ax.add_patch(circle_i)
+
+        # Scatter plot for sites and knots
+        ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
+        for index, (x, y) in enumerate(knots_xy):
+            ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=32, ha='left')
+            
+        # Set axis limits and labels
+        plt.xlim([0, 10])
+        plt.ylim([0, 10])
+        plt.xticks(fontsize=50)
+        plt.yticks(fontsize=50)
+        plt.xlabel('x', fontsize=50)
+        plt.ylabel('y', fontsize=50)
+        plt.title(rf'$\phi(s)$ scenario {sim_case}', fontsize=50)
+        plt.savefig(f'Surface_phi_simcase_{sim_case}.pdf', bbox_inches='tight')
+        plt.show()
+        plt.close()
+    
     # %% 3 phi on 1 plot
 
     # Create the figure and a 1x3 grid for subplots
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 8), constrained_layout=True)
 
     # Define vmin and vmax for colorbar normalization
     vmin, vmax = 0.3, 0.7
@@ -300,7 +356,7 @@ if __name__ == "__main__":
 
     range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
     fig, ax = plt.subplots()
-    fig.set_size_inches(8,6)
+    fig.set_size_inches(10,8)
     ax.set_aspect('equal', 'box')
 
     # vmin, vmax = (0.3, 0.7)
@@ -310,9 +366,9 @@ if __name__ == "__main__":
                         cmap='OrRd', interpolation='nearest')
     cbar = fig.colorbar(heatmap, ax=ax)
 
-    cbar.ax.tick_params(labelsize=20)  # Set the fontsize here
-    ax.set_xticks(np.linspace(0, 10,num=5))
-    ax.set_yticks(np.linspace(0, 10,num=5))
+    cbar.ax.tick_params(labelsize=40)  # Set the fontsize here
+    ax.set_xticks(np.linspace(0, 10,num=3))
+    ax.set_yticks(np.linspace(5, 10,num=2))
 
     # Add contour line at Z = 0.5
     contour = ax.contour(plotgrid_X, plotgrid_Y, range_vec_for_plot.reshape(plotgrid_X.shape),
@@ -323,32 +379,85 @@ if __name__ == "__main__":
     # Plot knots and circles
     for i in range(k):
         circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                            color='r', fill=False, fc='None', ec='lightgrey', alpha=0.5)
+                            color='r', fill=False, fc='None', ec='lightgrey', alpha=0.9)
         ax.add_patch(circle_i)
 
     # Scatter plot for sites and knots
-    ax.scatter(knots_x, knots_y, marker='+', c='white', label='knot', s=300)
+    ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
     for index, (x, y) in enumerate(knots_xy):
-        ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=12, ha='left')
+        ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=32, ha='left')
 
     # Set axis limits and labels
     plt.xlim([0, 10])
     plt.ylim([0, 10])
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
-    plt.xlabel('x', fontsize=20)
-    plt.ylabel('y', fontsize=20)
-    plt.title(r'$\rho(s)$ all scenarios', fontsize=20)
+    plt.xticks(fontsize=50)
+    plt.yticks(fontsize=50)
+    plt.xlabel('x', fontsize=50)
+    plt.ylabel('y', fontsize=50)
+    plt.title(r'$\rho(s)$ all scenarios', fontsize=50)
 
     plt.savefig('Surface:rho_simulation.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
 
+
+    range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(10,8)
+    ax.set_aspect('equal', 'box')
+
+    vmin, vmax = (0.6, 1.2)
+
+    cmap = matplotlib.cm.Reds
+    bounds = np.linspace(vmin, vmax,num=9)
+    norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+
+    heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_X.shape),
+                        origin='lower', extent=[minX, maxX, minY, maxY],
+                        norm = norm, cmap=cmap, interpolation='nearest')
+
+    cbar = fig.colorbar(heatmap, ax=ax)
+
+    cbar.ax.tick_params(labelsize=40)  # Set the fontsize here
+    ax.set_xticks(np.linspace(0, 10,num=3))
+    ax.set_yticks(np.linspace(5.0, 10,num=2))
+
+    # Add contour line at Z = 0.5
+    contour = ax.contour(plotgrid_X, plotgrid_Y, range_vec_for_plot.reshape(plotgrid_X.shape),
+                        levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
+    # ax.clabel(contour, inline=True, fontsize=12, fmt='0.5',
+    #           manual = [(3,3)])  # Label the contour line
+
+    # Plot knots and circles
+    for i in range(k):
+        circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
+                            color='r', fill=False, fc='None', ec='lightgrey', alpha=0.7)
+        ax.add_patch(circle_i)
+
+    # Scatter plot for sites and knots
+    ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
+    for index, (x, y) in enumerate(knots_xy):
+        ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=32, ha='left')
+
+    # Set axis limits and labels
+    plt.xlim([0, 10])
+    plt.ylim([0, 10])
+    plt.xticks(fontsize=50)
+    plt.yticks(fontsize=50)
+    plt.xlabel('x', fontsize=50)
+    plt.ylabel('y', fontsize=50)
+    plt.title(f'$\\rho (s)$ all scenarios', fontsize=50)
+
+    plt.savefig('Surface_rho_simulation.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
     # %% all four plots together
 
     # Create the figure and a 1x4 grid for subplots
-    fig, axes = plt.subplots(1, 4, figsize=(25, 6), constrained_layout=True)
+    fig, axes = plt.subplots(1, 4, figsize=(38, 10.5), constrained_layout=True)
 
     # Define vmin and vmax for the shared colorbar
     vmin, vmax = 0.3, 0.7
@@ -375,8 +484,12 @@ if __name__ == "__main__":
         
         ax.set_aspect('equal', 'box')
         ax.set_xticks(np.linspace(0, 10, num=5))
-        ax.set_yticks(np.linspace(0, 10, num=5))
-        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.set_yticks(np.linspace(5, 10, num=2))
+        if sim_case == 1:
+            ax.tick_params(axis='both', which='major', labelsize=70)
+        else:
+            # only set x axis ticks for the second and third plots
+            ax.tick_params(axis='x', which='major', labelsize=70)
         
         # Add contour line at Z = 0.5
         ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
@@ -385,36 +498,37 @@ if __name__ == "__main__":
         # Plot knots and circles
         for i in range(k):
             circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                                color='r', fill=False, ec='lightgrey', alpha=0.5)
+                                color='r', fill=False, ec='grey', alpha=0.7)
             ax.add_patch(circle_i)
         
         # Scatter plot for sites and knots
-        ax.scatter(knots_x, knots_y, marker='+', c='white', label='knot', s=300)
+        ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
         for index, (x, y) in enumerate(knots_xy):
-            ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=16, ha='left')
+            ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=40, ha='left')
 
         # Set axis limits and labels
         ax.set_xlim([0, 10])
         ax.set_ylim([0, 10])
-        ax.set_xticks(np.linspace(0, 10, 5))
+        ax.set_xticks(np.linspace(0, 10, 3))
         
         if sim_case == 1:
-            ax.set_ylabel('y', fontsize=20)
+            ax.set_ylabel('y', fontsize=70)
         else:
             ax.set_ylabel('')  # Remove y-label for second and third plots
+            ax.set_yticks([])  # Remove y-ticks for second and third plots
 
-        ax.set_xlabel('x', fontsize=20)
-        ax.set_title(f'$\phi(s)$ Scenario {sim_case}', fontsize=20)
+        # ax.set_xlabel('x', fontsize=70)
+        ax.set_title(f'$\phi(s)$ scenario {sim_case}', fontsize=70)
 
     # Create a shared colorbar for the first three heatmaps
     cbar = fig.colorbar(heatmap, ax=axes[:3], orientation='vertical', fraction=0.04, pad=0.01)
-    cbar.ax.tick_params(labelsize=14)
-    cbar.ax.set_xlabel(r'$\phi$', fontsize=16, labelpad=10)
+    cbar.ax.tick_params(labelsize=50)
+    cbar.ax.set_xlabel(r'$\phi$', fontsize=70, labelpad=10)
     cbar.ax.xaxis.set_label_position('top')  # Move label to the top
 
     # Fourth heatmap with its own colorbar
     ax = axes[3]  # Fourth subplot
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=70)
 
     range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y) / 2  # range for spatial Matern Z
     range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
@@ -425,36 +539,40 @@ if __name__ == "__main__":
                         cmap='OrRd', interpolation='nearest')
 
     ax.set_aspect('equal', 'box')
-    ax.set_xticks(np.linspace(0, 10, num=5))
-    ax.set_yticks(np.linspace(0, 10, num=5))
+    ax.set_xticks(np.linspace(0, 10, num=3))
+    ax.set_yticks(np.linspace(5, 10, num=2))
 
     # Plot knots and circles
     for i in range(k):
         circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                            color='r', fill=False, ec='lightgrey', alpha=0.5)
+                            color='r', fill=False, ec='grey', alpha=0.7)
         ax.add_patch(circle_i)
 
     # Scatter plot for sites and knots
-    ax.scatter(knots_x, knots_y, marker='+', c='white', label='knot', s=300)
+    ax.scatter(knots_x, knots_y, marker='+', c='black', label='knot', s=500)
     for index, (x, y) in enumerate(knots_xy):
-        ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=16, ha='left')
+        ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=32, ha='left')
 
     # Set axis limits and labels for the fourth plot
     ax.set_xlim([0, 10])
     ax.set_ylim([0, 10])
-    ax.set_xticks(np.linspace(0, 10, 5))
-    ax.set_yticks(np.linspace(0, 10, 5))
-    ax.set_xlabel('x', fontsize=20)
+    ax.set_xticks(np.linspace(0, 10, 3))
+    # ax.set_yticks(np.linspace(5, 10, 2))
+    ax.set_yticks([])  # Remove y-ticks for the fourth plot
+    # ax.set_xlabel('x', fontsize=70)
     # ax.set_ylabel('y', fontsize=14)
-    ax.set_title(r'$\rho(s)$ all scenarios', fontsize=20)
+    ax.set_title(r'$\rho(s)$ all scenarios', fontsize=70)
 
     # Create a separate colorbar for the fourth heatmap
     cbar2 = fig.colorbar(heatmap, ax=ax, orientation='vertical', fraction=0.06, pad=0.01)
-    cbar2.ax.tick_params(labelsize=14)
-    cbar2.ax.set_xlabel(r'$\rho$', fontsize=16, labelpad=10)
+    cbar2.ax.tick_params(labelsize=50)
+    cbar2.ax.set_xlabel(r' $\rho$', fontsize=70, labelpad=10)
     cbar2.ax.xaxis.set_label_position('top')  # Move label to the top
 
-    plt.savefig('Surface:all_simulation_surfaces.pdf', bbox_inches='tight')
+    fig.supxlabel('x', fontsize=70)
+
+    # plt.savefig('Surface_all_simulation_surfaces.pdf', bbox_inches='tight')
+    plt.savefig('Surface_all_simulation_surfaces.pdf')
     plt.show()
     plt.close()
 

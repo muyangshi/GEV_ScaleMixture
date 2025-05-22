@@ -16,7 +16,7 @@ import scipy
 # %%
 # Coverage Setup ------------------------------------------------------------------------------------------------------
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario1'
+simulation_case = 'scenario2'
 sim_id_from = 1
 sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
@@ -124,14 +124,18 @@ for level_i in range(len(alphas)):
                                             phi_binom_CIs[knot_k, 1, level_i] - avg_phi_covers[knot_k, level_i]]
 
 # plot 1 big plot of k pieces
-fig, axes = plt.subplots(3,3)
-fig.set_size_inches(16,16)
+fig, axes = plt.subplots(3, 3, figsize=(20, 20), constrained_layout=True)
 for knot_k in range(k):
-    ax = axes[knot_k//3, knot_k%3]
-    ax.set_xlim([0.5, 1])
-    ax.set_ylim([0.5, 1])
-    ax.set_xticks([0.5,0.6,0.7,0.8,0.9,1.0])
-    ax.set_yticks([0.5,0.6,0.7,0.8,0.9,1.0])      
+    row = 2 - (knot_k // 3)   # 2 is the bottom row index; flip the row index
+    col = knot_k % 3
+    ax = axes[row, col]
+    # ax = axes[knot_k//3, knot_k%3]
+    ax.set_xlim([0.55, 1])
+    ax.set_ylim([0.55, 1])
+    ax.set_xticks([0.6,0.8,1.0])
+    ax.set_yticks([0.6,0.8,1.0])
+    ax.set_xticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+    ax.set_yticks([0.6,0.7,0.8,0.9,1.0], minor=True)      
     
     ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
     ax.errorbar(x = 1 - alphas,
@@ -141,6 +145,7 @@ for knot_k in range(k):
                 ecolor = 'b')
     
     # Add light gridlines
+    # ax.grid(True, which='major', color='gray', linestyle='-', linewidth=1.5, alpha=0.7)
     ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
 
     # Hide y-ticks and labels for subplots not in the first column
@@ -148,16 +153,19 @@ for knot_k in range(k):
         ax.set_yticklabels([])
         ax.set_ylabel('')  # Remove the y-axis label
     
-    if knot_k // 3 != 2:
+    # if knot_k // 3 != 2:
+    if row != 2:
         ax.set_xticklabels([])
         ax.set_xlabel('')  # Remove the y-axis label  
 
-    ax.set_title(r'k='+str(knot_k+1), fontsize = 28)
-    ax.tick_params(axis='both', which = 'major', labelsize = 24)
-    ax.tick_params(axis='both', which = 'minor', labelsize = 24)
-fig.suptitle(r'Empirical Coverage for $\phi_k$', fontsize = 40, y=0.95)
-fig.text(0.5, 0.05, 'Credible Level', ha='center', va='center', fontsize = 32)
-fig.text(0.05, 0.5, 'Empirical Coverage Rate', fontsize = 32, ha='center', va='center', rotation='vertical')
+    ax.set_title(r'k='+str(knot_k+1), fontsize = 60)
+    ax.tick_params(axis='both', which = 'major', labelsize = 60)
+    # ax.tick_params(axis='both', which = 'minor', labelsize = 60)
+fig.suptitle(r'Empirical Coverage for $\phi_k$', fontsize = 75)
+fig.supxlabel('Credible Level', fontsize = 75)
+# fig.supylabel('Empirical Coverage Rate', fontsize = 60)
+# fig.text(0.5, 0.05, 'Credible Level', ha='center', va='center', fontsize = 60)
+# fig.text(0.05, 0.5, 'Empirical Coverage Rate', fontsize = 60, ha='center', va='center', rotation='vertical')
 fig.savefig(f"Empirical_Coverage_all_Phi_{simulation_case}.pdf")
 plt.show()
 plt.close()
@@ -236,14 +244,18 @@ for level_i in range(len(alphas)):
                                             range_binom_CIs[knot_k, 1, level_i] - avg_range_covers[knot_k, level_i]]
 
 # plot 1 big plot of k pieces
-fig, axes = plt.subplots(3,3)
-fig.set_size_inches(16,16)
+fig, axes = plt.subplots(3, 3, figsize=(20, 20), constrained_layout=True)
 for knot_k in range(k):
-    ax = axes[knot_k//3, knot_k%3]
-    ax.set_xlim([0.5, 1])
-    ax.set_ylim([0.5, 1])
-    ax.set_xticks([0.5,0.6,0.7,0.8,0.9,1.0])
-    ax.set_yticks([0.5,0.6,0.7,0.8,0.9,1.0])  
+    row = 2 - (knot_k // 3)   # 2 is the bottom row index; flip the row index
+    col = knot_k % 3
+    ax = axes[row, col]
+    # ax = axes[knot_k//3, knot_k%3]
+    ax.set_xlim([0.55, 1])
+    ax.set_ylim([0.55, 1])
+    ax.set_xticks([0.6,0.8,1.0])
+    ax.set_yticks([0.6,0.8,1.0])
+    ax.set_xticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+    ax.set_yticks([0.6,0.7,0.8,0.9,1.0], minor=True)      
 
     ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
     ax.errorbar(x = 1 - alphas,
@@ -259,16 +271,19 @@ for knot_k in range(k):
         ax.set_yticklabels([])
         ax.set_ylabel('')  # Remove the y-axis label
     
-    if knot_k // 3 != 2:
+    # if knot_k // 3 != 2:
+    if row != 2:
         ax.set_xticklabels([])
         ax.set_xlabel('')  # Remove the y-axis label  
 
-    ax.set_title(r'k='+str(knot_k+1), fontsize = 28)
-    ax.tick_params(axis='both', which = 'major', labelsize = 24)
-    ax.tick_params(axis='both', which = 'minor', labelsize = 24)
-fig.suptitle(r'Empirical Coverage for $\rho_k$', fontsize = 40, y=0.95)
-fig.text(0.5, 0.05, 'Credible Level', ha='center', va='center', fontsize = 32)
-fig.text(0.05, 0.5, 'Empirical Coverage Rate', fontsize = 32, ha='center', va='center', rotation='vertical')
+    ax.set_title(r'k='+str(knot_k+1), fontsize = 60)
+    ax.tick_params(axis='both', which = 'major', labelsize = 60)
+    ax.tick_params(axis='both', which = 'minor', labelsize = 60)
+fig.suptitle(r'Empirical Coverage for $\rho_k$', fontsize = 75)
+fig.supxlabel('Credible Level', fontsize = 75)
+# fig.supylabel('Empirical Coverage Rate', fontsize = 60)
+# fig.text(0.5, 0.05, 'Credible Level', ha='center', va='center', fontsize = 32)
+# fig.text(0.05, 0.5, 'Empirical Coverage Rate', fontsize = 32, ha='center', va='center', rotation='vertical')
 fig.savefig(f"Empirical_Coverage_all_Range_{simulation_case}.pdf")
 plt.show()
 plt.close()
@@ -344,27 +359,28 @@ for level_i in range(len(alphas)):
     loc_binom_errs[0,:,level_i] = [avg_loc_covers[0,level_i] - loc_binom_CIs[0, 0, level_i],
                                         loc_binom_CIs[0, 1, level_i] - avg_loc_covers[0, level_i]]
 
-fig, ax = plt.subplots()
-fig.set_size_inches(8,8)
-ax.set_xlim([0.5, 1])
-ax.set_ylim([0.5, 1])
-ax.set_xticks([0.5,0.6,0.7,0.8,0.9,1.0])
-ax.set_yticks([0.5,0.6,0.7,0.8,0.9,1.0]) 
-ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
-ax.errorbar(x = 1 - alphas,
-                y = avg_loc_covers[0,:],
-                yerr=loc_binom_errs[0,:,:],
-                fmt = 'bo',
-                ecolor = 'b')
-ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
-ax.set_title(r'Empirical Coverage for $\mu$', fontsize = 30)
-ax.tick_params(axis='both', which = 'major', labelsize = 20)
-ax.tick_params(axis='both', which = 'minor', labelsize = 20)
-fig.text(0.5, 0.04, 'Credible Level', ha='center', va='center', fontsize = 28)
-fig.text(0.04, 0.5, 'Empirical Coverage', fontsize = 28, ha='center', va='center', rotation='vertical')
-fig.savefig(f'Empirical_Coverage_Mu_{simulation_case}.pdf')
-plt.show()
-plt.close()
+# fig, ax = plt.subplots(1, 1, figsize=(7, 7), constrained_layout=True)
+# ax.set_xlim([0.55, 1])
+# ax.set_ylim([0.55, 1])
+# ax.set_xticks([0.6,0.8,1.0])
+# ax.set_yticks([0.6,0.8,1.0])
+# ax.set_xticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+# ax.set_yticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+# ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
+# ax.errorbar(x = 1 - alphas,
+#                 y = avg_loc_covers[0,:],
+#                 yerr=loc_binom_errs[0,:,:],
+#                 fmt = 'bo',
+#                 ecolor = 'b')
+# ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+# ax.set_title(r'Empirical Coverage for $\mu$', fontsize = 60)
+# ax.tick_params(axis='both', which = 'major', labelsize = 60)
+# ax.tick_params(axis='both', which = 'minor', labelsize = 60)
+# fig.supxlabel('Credible Level', fontsize = 60)
+# fig.supylabel('Empirical Coverage Rate', fontsize = 60)
+# fig.savefig(f'Empirical_Coverage_Mu_{simulation_case}.pdf')
+# plt.show()
+# plt.close()
 
 # %%
 # scale sigma
@@ -416,12 +432,57 @@ for level_i in range(len(alphas)):
     scale_binom_errs[0,:,level_i] = [avg_scale_covers[0,level_i] - scale_binom_CIs[0, 0, level_i],
                                         scale_binom_CIs[0, 1, level_i] - avg_scale_covers[0, level_i]]
 
-fig, ax = plt.subplots()
-fig.set_size_inches(8,8)
-ax.set_xlim([0.5, 1])
-ax.set_ylim([0.5, 1])
-ax.set_xticks([0.5,0.6,0.7,0.8,0.9,1.0])
-ax.set_yticks([0.5,0.6,0.7,0.8,0.9,1.0]) 
+# fig, ax = plt.subplots()
+# fig.set_size_inches(8,8)
+# ax.set_xlim([0.5, 1])
+# ax.set_ylim([0.5, 1])
+# ax.set_xticks([0.5,0.6,0.7,0.8,0.9,1.0])
+# ax.set_yticks([0.5,0.6,0.7,0.8,0.9,1.0]) 
+# ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
+# ax.errorbar(x = 1 - alphas,
+#                 y = avg_scale_covers[0,:],
+#                 yerr=scale_binom_errs[0,:,:],
+#                 fmt = 'bo',
+#                 ecolor = 'b')
+# ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+# ax.set_title(r'Empirical Coverage for $\sigma$', fontsize = 30)
+# ax.tick_params(axis='both', which = 'major', labelsize = 20)
+# ax.tick_params(axis='both', which = 'minor', labelsize = 20)
+# fig.text(0.5, 0.04, 'Credible Level', ha='center', va='center', fontsize = 28)
+# fig.text(0.04, 0.5, 'Empirical Coverage', fontsize = 28, ha='center', va='center', rotation='vertical')
+# fig.savefig(f'Empirical_Coverage_Sigma_{simulation_case}.pdf')
+# plt.show()
+# plt.close()
+
+
+# %%
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 20), constrained_layout=True)
+ax = axes[0]
+ax.set_xlim([0.55, 1])
+ax.set_ylim([0.55, 1])
+ax.set_xticks([0.6,0.8,1.0])
+ax.set_yticks([0.6,0.8,1.0])
+ax.set_xticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+ax.set_yticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
+ax.errorbar(x = 1 - alphas,
+                y = avg_loc_covers[0,:],
+                yerr=loc_binom_errs[0,:,:],
+                fmt = 'bo',
+                ecolor = 'b')
+ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
+ax.set_title(r'for $\mu$', fontsize = 60)
+ax.tick_params(axis='both', which = 'major', labelsize = 60)
+ax.tick_params(axis='both', which = 'minor', labelsize = 60)
+
+ax = axes[1]
+ax.set_xlim([0.55, 1])
+ax.set_ylim([0.55, 1])
+ax.set_xticks([0.6,0.8,1.0])
+ax.set_yticks([0.6,0.8,1.0])
+ax.set_xticks([0.6,0.7,0.8,0.9,1.0], minor=True)
+ax.set_yticks([0.6,0.7,0.8,0.9,1.0], minor=True)
 ax.plot([0, 1], [0, 1], transform=ax.transAxes, color = 'black')
 ax.errorbar(x = 1 - alphas,
                 y = avg_scale_covers[0,:],
@@ -429,14 +490,15 @@ ax.errorbar(x = 1 - alphas,
                 fmt = 'bo',
                 ecolor = 'b')
 ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
-ax.set_title(r'Empirical Coverage for $\sigma$', fontsize = 30)
-ax.tick_params(axis='both', which = 'major', labelsize = 20)
-ax.tick_params(axis='both', which = 'minor', labelsize = 20)
-fig.text(0.5, 0.04, 'Credible Level', ha='center', va='center', fontsize = 28)
-fig.text(0.04, 0.5, 'Empirical Coverage', fontsize = 28, ha='center', va='center', rotation='vertical')
-fig.savefig(f'Empirical_Coverage_Sigma_{simulation_case}.pdf')
+ax.set_title(r'for $\sigma$', fontsize = 60)
+ax.tick_params(axis='both', which = 'major', labelsize = 60)
+ax.tick_params(axis='both', which = 'minor', labelsize = 60)
+
+fig.suptitle(r'Empirical Coverage', fontsize = 75)
+fig.supxlabel('Credible Level', fontsize = 75, horizontalalignment='center')
+fig.supylabel('Empirical Coverage Rate', fontsize = 75)
+
+fig.savefig(f'Empirical_Coverage_MuSigma_{simulation_case}.pdf')
 plt.show()
 plt.close()
-
-
 # %%
