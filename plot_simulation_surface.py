@@ -457,7 +457,8 @@ if __name__ == "__main__":
     # %% all four plots together
 
     # Create the figure and a 1x4 grid for subplots
-    fig, axes = plt.subplots(1, 4, figsize=(38, 10.5), constrained_layout=True)
+    fig, axes = plt.subplots(1, 5, figsize=(38, 10), constrained_layout=True,
+                             gridspec_kw={'width_ratios': [1, 1, 1, 0.1, 1]})
 
     # Define vmin and vmax for the shared colorbar
     vmin, vmax = 0.3, 0.7
@@ -486,19 +487,20 @@ if __name__ == "__main__":
         ax.set_xticks(np.linspace(0, 10, num=5))
         ax.set_yticks(np.linspace(5, 10, num=2))
         if sim_case == 1:
-            ax.tick_params(axis='both', which='major', labelsize=70)
+            ax.tick_params(axis='both', which='major', labelsize=60)
         else:
             # only set x axis ticks for the second and third plots
-            ax.tick_params(axis='x', which='major', labelsize=70)
+            ax.tick_params(axis='x', which='major', labelsize=60)
         
         # Add contour line at Z = 0.5
         ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
-                levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
+                levels=[0.5], colors='black', linewidths=5, linestyles='dashed')
         
         # Plot knots and circles
         for i in range(k):
             circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                                color='r', fill=False, ec='grey', alpha=0.7)
+                                color='r', fill=False, ec='grey', alpha=0.7,
+                                linewidth=2.5)
             ax.add_patch(circle_i)
         
         # Scatter plot for sites and knots
@@ -512,23 +514,26 @@ if __name__ == "__main__":
         ax.set_xticks(np.linspace(0, 10, 3))
         
         if sim_case == 1:
-            ax.set_ylabel('y', fontsize=70)
+            ax.set_ylabel('y', fontsize=60)
         else:
             ax.set_ylabel('')  # Remove y-label for second and third plots
             ax.set_yticks([])  # Remove y-ticks for second and third plots
 
-        # ax.set_xlabel('x', fontsize=70)
-        ax.set_title(f'$\phi(s)$ scenario {sim_case}', fontsize=70)
+        # ax.set_xlabel('x', fontsize=60)
+        subtitle = ax.set_title(f'$\phi(s)$ scenario {sim_case}', fontsize=65, pad = 30)
+        subtitle.set_position((0.5, 1.1))  # Adjust the position of the title
 
     # Create a shared colorbar for the first three heatmaps
     cbar = fig.colorbar(heatmap, ax=axes[:3], orientation='vertical', fraction=0.04, pad=0.01)
     cbar.ax.tick_params(labelsize=50)
-    cbar.ax.set_xlabel(r'$\phi$', fontsize=70, labelpad=10)
+    cbar.ax.set_xlabel(r'$\phi$', fontsize=60, labelpad=20)
     cbar.ax.xaxis.set_label_position('top')  # Move label to the top
 
+    axes[3].axis('off')
+
     # Fourth heatmap with its own colorbar
-    ax = axes[3]  # Fourth subplot
-    ax.tick_params(axis='both', which='major', labelsize=70)
+    ax = axes[4]  # Fourth subplot
+    ax.tick_params(axis='both', which='major', labelsize=60)
 
     range_at_knots = np.sqrt(0.3*knots_x + 0.4*knots_y) / 2  # range for spatial Matern Z
     range_vec_for_plot = gaussian_weight_matrix_for_plot @ range_at_knots
@@ -545,7 +550,8 @@ if __name__ == "__main__":
     # Plot knots and circles
     for i in range(k):
         circle_i = plt.Circle((knots_xy[i, 0], knots_xy[i, 1]), radius_from_knots[i],
-                            color='r', fill=False, ec='grey', alpha=0.7)
+                            color='r', fill=False, ec='grey', alpha=0.7,
+                            linewidth=2.5)
         ax.add_patch(circle_i)
 
     # Scatter plot for sites and knots
@@ -559,17 +565,18 @@ if __name__ == "__main__":
     ax.set_xticks(np.linspace(0, 10, 3))
     # ax.set_yticks(np.linspace(5, 10, 2))
     ax.set_yticks([])  # Remove y-ticks for the fourth plot
-    # ax.set_xlabel('x', fontsize=70)
+    # ax.set_xlabel('x', fontsize=60)
     # ax.set_ylabel('y', fontsize=14)
-    ax.set_title(r'$\rho(s)$ all scenarios', fontsize=70)
+    subtitle = ax.set_title(r'$\rho(s)$ all scenarios', fontsize=65, pad=30)
+    subtitle.set_position((0.5, 1.1))  # Adjust the position of the title
 
     # Create a separate colorbar for the fourth heatmap
     cbar2 = fig.colorbar(heatmap, ax=ax, orientation='vertical', fraction=0.06, pad=0.01)
     cbar2.ax.tick_params(labelsize=50)
-    cbar2.ax.set_xlabel(r' $\rho$', fontsize=70, labelpad=10)
+    cbar2.ax.set_xlabel(r'$\rho$', fontsize=60, labelpad=20)
     cbar2.ax.xaxis.set_label_position('top')  # Move label to the top
 
-    fig.supxlabel('x', fontsize=70)
+    fig.supxlabel('x', fontsize=60)
 
     # plt.savefig('Surface_all_simulation_surfaces.pdf', bbox_inches='tight')
     plt.savefig('Surface_all_simulation_surfaces.pdf')

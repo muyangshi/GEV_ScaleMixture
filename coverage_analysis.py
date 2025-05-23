@@ -16,7 +16,7 @@ import scipy
 # %%
 # Coverage Setup ------------------------------------------------------------------------------------------------------
 burnins = 6000 # length of burnin iterations
-simulation_case = 'scenario2'
+simulation_case = 'scenario3'
 sim_id_from = 1
 sim_id_to = 50
 sim_ids = np.arange(start = sim_id_from, stop = sim_id_to + 1)
@@ -472,7 +472,7 @@ ax.errorbar(x = 1 - alphas,
                 fmt = 'bo',
                 ecolor = 'b')
 ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
-ax.set_title(r'for $\mu$', fontsize = 60)
+ax.set_title(r'$\mu$', fontsize = 75)
 ax.tick_params(axis='both', which = 'major', labelsize = 60)
 ax.tick_params(axis='both', which = 'minor', labelsize = 60)
 
@@ -490,7 +490,7 @@ ax.errorbar(x = 1 - alphas,
                 fmt = 'bo',
                 ecolor = 'b')
 ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5, alpha=0.7)
-ax.set_title(r'for $\sigma$', fontsize = 60)
+ax.set_title(r'$\sigma$', fontsize = 75)
 ax.tick_params(axis='both', which = 'major', labelsize = 60)
 ax.tick_params(axis='both', which = 'minor', labelsize = 60)
 
