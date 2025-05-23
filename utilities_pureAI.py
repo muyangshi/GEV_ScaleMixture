@@ -9,7 +9,7 @@ import numpy as np
 import scipy
 import scipy.special as sc
 from scipy.spatial import distance
-import RW_inte
+# import RW_inte
 # import model_sim
 # from ns_cov import *
 # from scipy.linalg import lapack
@@ -129,6 +129,16 @@ def qZ(p):
 # marginal (log) liklihood at 1 t
 
 def likelihood_1t(Y_vec, Z_vec, Loc, Scale, Shape, cholesky_U):
+    if np.any(np.isnan(Z_vec)):
+        print("Z_vec contains NaNs")
+    if np.any(np.isinf(Z_vec)):
+        print("Z_vec contains Infs")
+    # Check cholesky_U
+    if np.any(np.isnan(cholesky_U)):
+        print("cholesky_U contains NaNs")
+    if np.any(np.isinf(cholesky_U)):
+        print("cholesky_U contains Infs")
+
     # \varphi_D(Z_vec)
     Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
     loglik_Z = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))

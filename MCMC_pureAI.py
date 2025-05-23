@@ -66,6 +66,7 @@ if __name__ == "__main__":
     from mpi4py import MPI
     from time import strftime, localtime
     from utilities_pureAI import *
+    import proposal_cov
     import gstools as gs
     import rpy2.robjects as robjects
     from rpy2.robjects import r 
@@ -1012,7 +1013,6 @@ if __name__ == "__main__":
         # R_log_cov               = np.tile(((2.4**2)/k)*np.eye(k)[:,:,None], reps = (1,1,Nt))
 
         # with trial run
-        import proposal_cov
         # if proposal_cov.phi_cov is not None:                 phi_cov                 = proposal_cov.phi_cov
         if proposal_cov.range_cov is not None:               range_cov               = proposal_cov.range_cov
         if proposal_cov.Beta_mu0_cov is not None:            Beta_mu0_cov            = proposal_cov.Beta_mu0_cov

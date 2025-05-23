@@ -1,5 +1,7 @@
 # Meeting Summaries on GEV Project
 
+## May 28 (Wednesday) Meeting Muyang/Likun/Ben
+
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
 - [x] run the bug fix k13r4b4 model
@@ -7,9 +9,14 @@
   - If eventually we need to re-run all the application models, train a neural network to do the `qRW`
     - This might be necessary because
       - $\phi$ seems to be larger (potentially AD?)
+      - ![alt text](image.png)
       - $\rho$ becomes much smaller
+      - ![alt text](image-1.png)
+    - small $\rho$ and large $\phi$: not much spatial correlation in the bulk, the tail dependence is highly localized (local storms)?
 - [ ] run the pure AI model
   - Alpine?
+  - Needs debuging on misspiggy
+    - likelihood prompt ValueError: inf or NaN 
 - [x] fix the font size of axis on figures
   - Likun enlarged legend size on Figure 3
   - I enlarged Figure 4 axis labels
