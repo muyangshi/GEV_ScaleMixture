@@ -1,0 +1,24 @@
+data_seed:  2345
+Pareto:  shifted
+Load previous data
+using 60 cores
+R[write to console]: Warning messages:
+
+R[write to console]: 1: 
+R[write to console]: In taildep(data = X_Exp[, c(1, 5)], u = us, depmeas = "eta", method = list(eta = "hill",  :
+R[write to console]: 
+ 
+R[write to console]:  upper quantile limit is too high or lower quantile limit is too low
+
+R[write to console]: 2: 
+R[write to console]: In taildep(data = X_Exp[, c(3, 6)], u = us, depmeas = "eta", method = list(eta = "hill",  :
+R[write to console]: 
+ 
+R[write to console]:  upper quantile limit is too high or lower quantile limit is too low
+
+R[write to console]: 3: 
+R[write to console]: In taildep(data = X_Exp[, c(1, 4)], u = us, depmeas = "eta", method = list(eta = "hill",  :
+R[write to console]: 
+ 
+R[write to console]:  upper quantile limit is too high or lower quantile limit is too low
+

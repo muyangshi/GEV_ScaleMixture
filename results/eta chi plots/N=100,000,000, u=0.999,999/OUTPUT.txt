@@ -1,0 +1,18 @@
+data_seed:  2345
+Pareto:  shifted
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:480: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:532: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:688: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:740: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:792: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:844: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:896: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)
+/data/accounts/shi/projects/GEV_ScaleMixture/empirical_chi_eta.py:948: RuntimeWarning: divide by zero encountered in log
+  etas = np.where(prob_co_extreme != 0, np.log(1-us) / np.log(prob_co_extreme), np.nan)

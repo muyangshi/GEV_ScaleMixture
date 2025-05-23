@@ -5,6 +5,9 @@
 - [x] run the bug fix k13r4b4 model
   - Currently running on Misspiggy
   - If eventually we need to re-run all the application models, train a neural network to do the `qRW`
+    - This might be necessary because
+      - $\phi$ seems to be larger (potentially AD?)
+      - $\rho$ becomes much smaller
 - [ ] run the pure AI model
   - Alpine?
 - [x] fix the font size of axis on figures
