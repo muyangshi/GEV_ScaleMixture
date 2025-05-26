@@ -26,8 +26,12 @@
 
 #### Pure AI Gaussian Model
 - [ ] run the pure AI model
-  - Alpine?
-  - Needs debugging on misspiggy
+  - [ ] Alpine?
+  - [x] Needs debugging on misspiggy
+    - check marginal parameter ($\mu, \sigma, \xi$) proposals
+  - Sampler working
+    - ![alt text](image-4.png)
+    - ![alt text](image-5.png)
     - likelihood prompt ValueError: inf or NaN 
 
 ### Reviewing old code

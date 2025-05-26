@@ -9,8 +9,8 @@ This is a MCMC sampler
 # mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
 
 Notes on (installation of) Rpy2
-    - Work around of conda+rpy2: conda install rpy2 also installs an r-base; 
-      if using the conda installed R, don't use the default R on machine to avoid issue 
+    - Work around of conda+rpy2: conda install rpy2 also installs an r-base;
+      if using the conda installed R, don't use the default R on machine to avoid issue
       (i.e. change the default R path to the end the $PATH)
     - Alternatively, split the MCMC into three pieces: Python generate data --> R generate X design --> Python run MCMC
     - In importr, lib_loc specifies where an R package is installed
@@ -21,17 +21,17 @@ gs_xy is meshgrid(order='ij') fills vertically (y changes first, then x changes)
 
 Note on mgcv
 - It appears the basis matrix produced by smoothCon is slightly (~ 3 to 4 decimal places) different between machines
-- Note that in the splines constructed by mgcv, the 3rd to last column is a flat plane (which duplicate the intercept term) 
+- Note that in the splines constructed by mgcv, the 3rd to last column is a flat plane (which duplicate the intercept term)
     so remember to remove it!
 
 Note on the marginal model
     for mu:        theta(s) = Beta_0 + Beta_1 * Elev(s) + splines(s) @ Beta_splines
     for sigma/ksi: theta(s) = Beta_0 + Beta_1 * Elev(s)
 More specifically,
-    mu(s,t)       = mu_0(s) + mu_1(s) * t 
+    mu(s,t)       = mu_0(s) + mu_1(s) * t
     logsigma(s,t) = logsigma(s)
     ksi(s,t)      = ksi(s)
-where 
+where
     t           = - Nt/2, -Nt/2 + 1, ..., 0, 1, ..., Nt/2 - 1
     mu_0(s)     = Beta_mu0_0 + Beta_mu0_1 * Elev(s) + splines(s) @ Beta_mu0_splines
     mu_1(s)     = Beta_mu1_0 + Beta_mu1_1 * Elev(s) + splines(s) @ Beta_mu1_splines
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     import proposal_cov
     import gstools as gs
     import rpy2.robjects as robjects
-    from rpy2.robjects import r 
+    from rpy2.robjects import r
     from rpy2.robjects.numpy2ri import numpy2rpy
     from rpy2.robjects.packages import importr
     import pickle
@@ -100,11 +100,11 @@ if __name__ == "__main__":
             start_iter = pickle.load(file) + 1
             if rank == 0: print('start_iter loaded from pickle, set to be:', start_iter)
     except Exception as e:
-        if rank == 0: 
+        if rank == 0:
             print('Exception loading iter.pkl:', e)
             print('Setting start_iter to 1')
         start_iter = 1
-    
+
     if norm_pareto == 'shifted':  n_iters = 20000
     if norm_pareto == 'standard': n_iters = 200000
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     # ---------------------------------------------------------------------------------------------------------------
     # data
-    
+
     r('''load('JJA_precip_maxima_nonimputed.RData')''')
     GEV_estimates      = np.array(r('GEV_estimates')).T
     mu0_estimates      = GEV_estimates[:,0]
@@ -140,14 +140,14 @@ if __name__ == "__main__":
 
     Y           = JJA_maxima.copy()
     miss_matrix = np.isnan(Y)
-    
-    
+
+
     # %% Setup (Covariates and Constants) ----------------------------------------------------------------------------
     # Setup (Covariates and Constants)    ----------------------------------------------------------------------------
-    
+
     # ----------------------------------------------------------------------------------------------------------------
     # Ns, Nt
-    
+
     Nt = JJA_maxima.shape[1] # number of time replicates
     Ns = JJA_maxima.shape[0] # number of sites/stations
     start_year = 1949
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     # ----------------------------------------------------------------------------------------------------------------
     # Sites
-    
+
     sites_xy = stations
     sites_x = sites_xy[:,0]
     sites_y = sites_xy[:,1]
@@ -170,15 +170,15 @@ if __name__ == "__main__":
     minY, maxY = np.floor(np.min(sites_y)), np.ceil(np.max(sites_y))
 
     # ----------------------------------------------------------------------------------------------------------------
-    # Knots 
+    # Knots
 
     # isometric knot grid - for R and phi
     N_outer_grid = 9
     h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
     v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
-    x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
+    x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2,
                                            num = int(2*np.sqrt(N_outer_grid)))
-    y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2, 
+    y_pos                    = np.linspace(minY + v_dist_between_knots/2, maxY + v_dist_between_knots/2,
                                            num = int(2*np.sqrt(N_outer_grid)))
     x_outer_pos              = x_pos[0::2]
     x_inner_pos              = x_pos[1::2]
@@ -199,9 +199,9 @@ if __name__ == "__main__":
     N_outer_grid_rho = 9
     h_dist_between_knots_rho     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_rho))-1)
     v_dist_between_knots_rho     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_rho))-1)
-    x_pos_rho                    = np.linspace(minX + h_dist_between_knots_rho/2, maxX + h_dist_between_knots_rho/2, 
+    x_pos_rho                    = np.linspace(minX + h_dist_between_knots_rho/2, maxX + h_dist_between_knots_rho/2,
                                            num = int(2*np.sqrt(N_outer_grid_rho)))
-    y_pos_rho                    = np.linspace(minY + v_dist_between_knots_rho/2, maxY + v_dist_between_knots_rho/2, 
+    y_pos_rho                    = np.linspace(minY + v_dist_between_knots_rho/2, maxY + v_dist_between_knots_rho/2,
                                            num = int(2*np.sqrt(N_outer_grid_rho)))
     x_outer_pos_rho              = x_pos_rho[0::2]
     x_inner_pos_rho              = x_pos_rho[1::2]
@@ -220,15 +220,15 @@ if __name__ == "__main__":
 
     # ----------------------------------------------------------------------------------------------------------------
     # Copula Splines
-    
+
     # Basis Parameters - for the Gaussian and Wendland Basis
 
     radius            = 4                    # radius of Wendland Basis for R
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
-    
+
     bandwidth         = radius               # range for the gaussian basis for phi
     # eff_range       = 4                    # range for the gaussian basis s.t. effective range is `radius`: exp(-3) = 0.05
-    # bandwidth       = eff_range**2/6       
+    # bandwidth       = eff_range**2/6
 
     bandwidth_rho     = 4                    # range for the gaussian basis for rho
     # eff_range_rho   = 4                    # range for the gaussian basis for rho s.t. effective range is `radius`
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     gaussian_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
     for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
                                         XB = knots_xy)
         # influence coming from each of the knots
         weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
@@ -249,27 +249,27 @@ if __name__ == "__main__":
     wendland_weight_matrix = np.full(shape = (Ns,k), fill_value = np.nan)
     for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
                                         XB = knots_xy)
         # influence coming from each of the knots
         weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
         wendland_weight_matrix[site_id, :] = weight_from_knots
-    
+
     # Gaussian weight matrix specific to the rho/range surface
     gaussian_weight_matrix_rho = np.full(shape = (Ns, k_rho), fill_value = np.nan)
     for site_id in np.arange(Ns):
         # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
                                                     XB = knots_xy_rho)
         # influence coming from each of the knots
         weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
         gaussian_weight_matrix_rho[site_id, :] = weight_from_knots
-    
+
     # # constant weight matrix
     # constant_weight_matrix = np.full(shape = (Ns, k), fill_value = np.nan)
     # for site_id in np.arange(Ns):
     #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
+    #     d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)),
     #                                     XB = knots_xy)
     #     # influence coming from each of the knots
     #     weight_from_knots = np.repeat(1, k)/k
@@ -279,7 +279,7 @@ if __name__ == "__main__":
     # Setup For the Marginal Model - GEV(mu, sigma, ksi)
 
     # ----- using splines for mu0 and mu1 ---------------------------------------------------------------------------
-    # "knots" and prediction sites for splines 
+    # "knots" and prediction sites for splines
     gs_x        = np.linspace(minX, maxX, 50)
     gs_y        = np.linspace(minY, maxY, 50)
     gs_xy       = np.vstack([coords.ravel() for coords in np.meshgrid(gs_x, gs_y, indexing='ij')]).T # indexing='ij' fill vertically, need .T in imshow
@@ -302,7 +302,7 @@ if __name__ == "__main__":
         ''')
 
     # Location mu_0(s) ----------------------------------------------------------------------------------------------
-    
+
     Beta_mu0_splines_m = 12 - 1 # number of splines basis, -1 b/c drop constant column
     Beta_mu0_m         = Beta_mu0_splines_m + 2 # adding intercept and elevation
     C_mu0_splines      = np.array(r('''
@@ -315,9 +315,9 @@ if __name__ == "__main__":
                                         elevations,     # elevation
                                         C_mu0_splines)) # splines (excluding intercept)
     C_mu0              = np.tile(C_mu0_1t.T[:,:,None], reps = (1, 1, Nt))
-    
+
     # Location mu_1(s) ----------------------------------------------------------------------------------------------
-    
+
     Beta_mu1_splines_m = 12 - 1 # drop the 3rd to last column of constant
     Beta_mu1_m         = Beta_mu1_splines_m + 2 # adding intercept and elevation
     C_mu1_splines      = np.array(r('''
@@ -332,14 +332,14 @@ if __name__ == "__main__":
     C_mu1              = np.tile(C_mu1_1t.T[:,:,None], reps = (1, 1, Nt))
 
     # Scale logsigma(s) ----------------------------------------------------------------------------------------------
-    
+
     Beta_logsigma_m   = 2 # just intercept and elevation
     C_logsigma        = np.full(shape = (Beta_logsigma_m, Ns, Nt), fill_value = np.nan)
-    C_logsigma[0,:,:] = 1.0 
+    C_logsigma[0,:,:] = 1.0
     C_logsigma[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
     # Shape ksi(s) ----------------------------------------------------------------------------------------------
-    
+
     Beta_ksi_m   = 2 # just intercept and elevation
     C_ksi        = np.full(shape = (Beta_ksi_m, Ns, Nt), fill_value = np.nan) # ksi design matrix
     C_ksi[0,:,:] = 1.0
@@ -359,7 +359,7 @@ if __name__ == "__main__":
     delta = 0.0 # this is the delta in levy, stays 0
     alpha = 0.5
     gamma_at_knots = np.repeat(gamma, k)
-    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha), 
+    gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
                        axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
 
@@ -409,7 +409,7 @@ if __name__ == "__main__":
             # demeaned_Y               = Y - mu_matrix
             demeaned_Y               = np.full_like(Y, np.nan)
             demeaned_Y[~miss_matrix] = Y[~miss_matrix] - mu_matrix[~miss_matrix]
-            bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
+            bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]),
                                                         np.nanmean(demeaned_Y[selected_sites], axis=1))
             fit_model = gs.Exponential(dim=2)
             fit_model.fit_variogram(bin_center, gamma_variog, nugget=False)
@@ -425,14 +425,14 @@ if __name__ == "__main__":
             if rank == 0: print('estimated range >', range_upper_bound, ' at:', np.where(range_at_knots > range_upper_bound)[0])
             if rank == 0: print('range at those knots set to be at', range_upper_bound)
             range_at_knots[np.where(range_at_knots > range_upper_bound)[0]] = range_upper_bound
-        
+
         # check for unreasonably small values, initialize at some larger ones
         range_lower_bound = 0.01
         if len(np.where(range_at_knots < range_lower_bound)[0]) > 0:
             if rank == 0: print('estimated range <', range_lower_bound, ' at:', np.where(range_at_knots < range_lower_bound)[0])
             if rank == 0: print('range at those knots set to be at', range_lower_bound)
-            range_at_knots[np.where(range_at_knots < range_lower_bound)[0]] = range_lower_bound    
-        
+            range_at_knots[np.where(range_at_knots < range_lower_bound)[0]] = range_lower_bound
+
         # range_vec = gaussian_weight_matrix @ range_at_knots
 
         # Scale Mixture R^phi --------------------------------------------------------------------------------------------
@@ -443,14 +443,14 @@ if __name__ == "__main__":
         # if norm_pareto == 'standard':
         #     R_at_knots = np.full(shape = (k, Nt), fill_value = np.nan)
         #     for t in np.arange(Nt):
-        #         # R_at_knots[:,t] = (np.min(qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]), 
+        #         # R_at_knots[:,t] = (np.min(qRW(pgev(Y[:,t], mu_matrix[:,t], sigma_matrix[:,t], ksi_matrix[:,t]),
         #         #                         phi_vec, gamma_vec))/1.5)**2
-                
+
         #         # only use non-missing values
         #         miss_index_1t = np.where(miss_matrix[:,t] == True)[0]
         #         obs_index_1t  = np.where(miss_matrix[:,t] == False)[0]
-        #         R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t], 
-        #                                            mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]), 
+        #         R_at_knots[:,t] = (np.min(qRW(pgev(Y[obs_index_1t,t],
+        #                                            mu_matrix[obs_index_1t,t], sigma_matrix[obs_index_1t,t], ksi_matrix[obs_index_1t,t]),
         #                                     phi_vec[obs_index_1t], gamma_vec[obs_index_1t]))/1.5)**(1/phi_at_knots)
         # else: # norm_pareto == 'shifted':
         #     # Calculate Rt in Parallel, only use non-missing values
@@ -463,13 +463,13 @@ if __name__ == "__main__":
         #     R_gathered = comm.gather(R_1t, root = 0)
         #     R_at_knots = np.array(R_gathered).T if rank == 0 else None
         #     R_at_knots = comm.bcast(R_at_knots, root = 0)
-    
+
     # %% Load Parameter
     # Load Parameter
 
     # # ----------------------------------------------------------------------------------------------------------------
     # # Marginal Parameters - GEV(mu, sigma, ksi)
-        
+
     # Beta_mu0            = np.array([ 3.33548229e+01, -5.15749144e-03, -1.35501856e+01, -2.79089002e+00,
     #     1.31831870e+00,  2.43392492e+00,  2.33852452e+00,  1.76254921e+00,
     #    -1.39179393e+00, -9.16697094e-01, -3.06398612e-01, -4.64149124e+00,
@@ -633,7 +633,7 @@ if __name__ == "__main__":
 
     # %% Plot Parameter Surface
     # Plot Parameter Surface
-    
+
     if rank == 0 and start_iter == 1:
         # 0. Grids for plots
         plotgrid_res_x = 150
@@ -647,16 +647,16 @@ if __name__ == "__main__":
         gaussian_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy, k), fill_value = np.nan)
         for site_id in np.arange(plotgrid_res_xy):
             # Compute distance between each pair of the two collections of inputs
-            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)),
                                             XB = knots_xy)
             # influence coming from each of the knots
             weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
             gaussian_weight_matrix_for_plot[site_id, :] = weight_from_knots
-        
+
         gaussian_weight_matrix_for_plot_rho = np.full(shape = (plotgrid_res_xy, k_rho), fill_value = np.nan)
         for site_id in np.arange(plotgrid_res_xy):
             # Compute distance between each pair of the two collections of inputs
-            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)),
                                                         XB = knots_xy_rho)
             # influence coming from each of the knots
             weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
@@ -665,7 +665,7 @@ if __name__ == "__main__":
         wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k), fill_value = np.nan)
         for site_id in np.arange(plotgrid_res_xy):
             # Compute distance between each pair of the two collections of inputs
-            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
+            d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)),
                                             XB = knots_xy)
             # influence coming from each of the knots
             weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
@@ -680,7 +680,7 @@ if __name__ == "__main__":
         # n_bins = 50  # Number of discrete color bins
         # cmap_name = "white_to_red"
         # colormap = matplotlib.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-        
+
         # min_w = 0
         # max_w = 1
         # n_ticks = 11  # (total) number of ticks
@@ -692,11 +692,11 @@ if __name__ == "__main__":
 
         # fig, axes = plt.subplots(1,2)
         # state_map.boundary.plot(ax=axes[0], color = 'black', linewidth = 0.5)
-        # heatmap = axes[0].imshow(wendland_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        # heatmap = axes[0].imshow(wendland_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
         #                     cmap = colormap, vmin = min_w, vmax = max_w,
-        #                     interpolation='nearest', 
+        #                     interpolation='nearest',
         #                     extent = [minX, maxX, maxY, minY])
-        # axes[0].invert_yaxis()                    
+        # axes[0].invert_yaxis()
         # # axes[0].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
         # axes[0].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
         # axes[0].set_xlim(minX, maxX)
@@ -705,11 +705,11 @@ if __name__ == "__main__":
         # axes[0].title.set_text('wendland weights knot ' + str(idx))
 
         # state_map.boundary.plot(ax=axes[1], color = 'black', linewidth = 0.5)
-        # heatmap = axes[1].imshow(gaussian_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        # heatmap = axes[1].imshow(gaussian_weights_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
         #                     cmap = colormap, vmin = min_w, vmax = max_w,
-        #                     interpolation='nearest', 
+        #                     interpolation='nearest',
         #                     extent = [minX, maxX, maxY, minY])
-        # axes[1].invert_yaxis()                    
+        # axes[1].invert_yaxis()
         # # axes[1].scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
         # axes[1].scatter(knots_x, knots_y, s = 30, color = 'white', marker = '+')
         # axes[1].set_xlim(minX, maxX)
@@ -814,14 +814,14 @@ if __name__ == "__main__":
         plt.colorbar(elev_scatter)
         plt.savefig('Plot_station_elevation.pdf')
         # plt.show()
-        plt.close()       
-    
+        plt.close()
+
 
         # # 3. phi surface
         # # heatplot of phi surface
         # phi_vec_for_plot = (gaussian_weight_matrix_for_plot @ phi_at_knots).round(3)
         # graph, ax = plt.subplots()
-        # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        # heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
         #                     cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
         # ax.invert_yaxis()
         # graph.colorbar(heatmap)
@@ -834,7 +834,7 @@ if __name__ == "__main__":
         # heatplot of range surface
         range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_at_knots
         graph, ax = plt.subplots()
-        heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x), 
+        heatmap = ax.imshow(range_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                             cmap ='bwr', interpolation='nearest', extent = [minX, maxX, maxY, minY])
         ax.invert_yaxis()
         graph.colorbar(heatmap)
@@ -842,10 +842,10 @@ if __name__ == "__main__":
         plt.savefig('Plot_initial_heatmap_rho_surface.pdf')
         # plt.show()
         plt.close()
-    
+
 
         # 5. GEV Surfaces
-        mu0_matrix      = (C_mu0.T @ Beta_mu0).T  
+        mu0_matrix      = (C_mu0.T @ Beta_mu0).T
         mu1_matrix      = (C_mu1.T @ Beta_mu1).T
         mu_matrix       = mu0_matrix + mu1_matrix * Time
         logsigma_matrix = (C_logsigma.T @ Beta_logsigma).T
@@ -937,11 +937,11 @@ if __name__ == "__main__":
 
     # ----------------------------------------------------------------------------------------------------------------
     # Block Update Specification
-    
+
     if norm_pareto == 'standard':
         phi_block_idx_size   = 1
         range_block_idx_size = 1
-    
+
     if norm_pareto == 'shifted':
         phi_block_idx_size = 4
         range_block_idx_size = 1
@@ -1106,9 +1106,9 @@ if __name__ == "__main__":
         # else:
         #     sigma_m_sq_Rt_list = None
         # sigma_m_sq_Rt = comm.scatter(sigma_m_sq_Rt_list, root = 0) if size>1 else sigma_m_sq_Rt_list[0]
-    else: 
+    else:
         # # start_iter != 1, pickle load the Proposal Variance Scalar, Covariance Matrix
-        
+
         # ## Proposal Variance Scalar for Rt
         # if rank == 0:
         #     with open('sigma_m_sq_Rt_list.pkl', 'rb') as file:
@@ -1127,8 +1127,8 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------------
     # Adaptive Update: Counter
 
-    # ## Counter for Rt   
-    # if norm_pareto == 'shifted':     
+    # ## Counter for Rt
+    # if norm_pareto == 'shifted':
     #     num_accepted_Rt_list = [0] * size if rank == 0 else None
     #     if size != 1: num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
 
@@ -1136,7 +1136,7 @@ if __name__ == "__main__":
     #     num_accepted_Rt_list = [[0] * k] * size if rank == 0 else None
     #     if size > 1: num_accepted_Rt = comm.scatter(num_accepted_Rt_list, root = 0)
     #     if size == 1: num_accepted_Rt = num_accepted_Rt_list[0]
-    
+
     ## Counter for other variables
     if rank == 0:
         num_accepted = { # acceptance counter
@@ -1312,12 +1312,12 @@ if __name__ == "__main__":
 
     # if start_iter == 1: # initial imputation
     #     X_star_1t_current                = np.full(shape = (Ns,), fill_value = np.nan) # contain missing values
-    #     X_star_1t_current[obs_index_1t]  = qRW(pgev(Y[:,rank][obs_index_1t], 
-    #                                             Loc_matrix_current[obs_index_1t,rank], 
-    #                                             Scale_matrix_current[obs_index_1t,rank], 
+    #     X_star_1t_current[obs_index_1t]  = qRW(pgev(Y[:,rank][obs_index_1t],
+    #                                             Loc_matrix_current[obs_index_1t,rank],
+    #                                             Scale_matrix_current[obs_index_1t,rank],
     #                                             Shape_matrix_current[obs_index_1t,rank]),
     #                                         phi_vec_current[obs_index_1t], gamma_vec[obs_index_1t])
-    #     X_star_1t_miss, Y_1t_miss        = impute_1t(miss_index_1t, obs_index_1t, 
+    #     X_star_1t_miss, Y_1t_miss        = impute_1t(miss_index_1t, obs_index_1t,
     #                                                 Y[:,rank], X_star_1t_current,
     #                                                 Loc_matrix_current[:, rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
     #                                                 phi_vec_current, gamma_vec, R_vec_current, K_current)
@@ -1330,9 +1330,9 @@ if __name__ == "__main__":
 
     #     assert len(np.where(np.isnan(Y[:,rank]))[0]) == 0
     # else:
-    #     X_star_1t_current = qRW(pgev(Y[:,rank], 
-    #                                     Loc_matrix_current[:,rank], 
-    #                                     Scale_matrix_current[:,rank], 
+    #     X_star_1t_current = qRW(pgev(Y[:,rank],
+    #                                     Loc_matrix_current[:,rank],
+    #                                     Scale_matrix_current[:,rank],
     #                                     Shape_matrix_current[:,rank]),
     #                                 phi_vec_current, gamma_vec)
 
@@ -1342,13 +1342,13 @@ if __name__ == "__main__":
     miss_index_1t = np.where(miss_vec_1t == True)[0]
     obs_index_1t  = np.where(miss_vec_1t == False)[0]
 
-    if start_iter == 1: 
+    if start_iter == 1:
         Z_1t_current = np.full(shape = (Ns, ), fill_value = np.nan) # contain missing values
-        Z_1t_current[obs_index_1t] = qZ(pgev(Y[:,rank][obs_index_1t], 
-                                            Loc_matrix_current[obs_index_1t,rank], 
-                                            Scale_matrix_current[obs_index_1t,rank], 
+        Z_1t_current[obs_index_1t] = qZ(pgev(Y[:,rank][obs_index_1t],
+                                            Loc_matrix_current[obs_index_1t,rank],
+                                            Scale_matrix_current[obs_index_1t,rank],
                                             Shape_matrix_current[obs_index_1t,rank]))
-        Z_1t_miss, Y_1t_miss = impute_ZY_1t(miss_index_1t, obs_index_1t, Z_1t_current, 
+        Z_1t_miss, Y_1t_miss = impute_ZY_1t(miss_index_1t, obs_index_1t, Z_1t_current,
                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], K_current)
         Z_1t_current[miss_index_1t] = Z_1t_miss
         Y[:,rank][miss_index_1t]    = Y_1t_miss
@@ -1361,11 +1361,11 @@ if __name__ == "__main__":
         if rank == 0:
             Y_trace[0,:,:] = np.array(Y_gathered).T
     else:
-        Z_1t_current = qZ(pgev(Y[:,rank], 
-                                Loc_matrix_current[:,rank], 
-                                Scale_matrix_current[:,rank], 
+        Z_1t_current = qZ(pgev(Y[:,rank],
+                                Loc_matrix_current[:,rank],
+                                Scale_matrix_current[:,rank],
                                 Shape_matrix_current[:,rank]))
-        
+
 
 
     # %% Metropolis-Hasting Updates
@@ -1379,8 +1379,8 @@ if __name__ == "__main__":
     if rank == 0:
         start_time = time.time()
         print('started on:', strftime('%Y-%m-%d %H:%M:%S', localtime(time.time())))
-    # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
-    #                                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], 
+    # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current,
+    #                                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
     #                                                             phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
     # prior_1t_current = np.sum(scipy.stats.levy.logpdf(np.exp(R_current_log), scale = gamma) + R_current_log)
     # if not np.isfinite(lik_1t_current) or not np.isfinite(prior_1t_current):
@@ -1389,7 +1389,7 @@ if __name__ == "__main__":
     #     print('lik_1t_current:',lik_1t_current)
     #     print('prior_1t_current of R:',prior_1t_current)
 
-    lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current, 
+    lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current,
                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                     cholesky_matrix_current)
     if not np.isfinite(lik_1t_current):
@@ -1427,7 +1427,7 @@ if __name__ == "__main__":
                 lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_current,
                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                 cholesky_matrix_proposal)
-            
+
             # Gather likelihood calculated across time (no prior yet)
             lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
             lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1452,7 +1452,7 @@ if __name__ == "__main__":
                     range_vec_update   = range_vec_proposal
                     range_knots_update = range_knots_proposal
                     num_accepted[key] += 1
-                
+
                 # Store the result
                 range_knots_trace[iter,:] = range_knots_update
 
@@ -1470,7 +1470,7 @@ if __name__ == "__main__":
                 K_current               = K_proposal.copy()
                 cholesky_matrix_current = cholesky_matrix_proposal.copy()
                 lik_1t_current          = lik_1t_proposal
-                
+
             comm.Barrier() # block for range_block updates
 
         # %% Update Missing Values
@@ -1487,14 +1487,14 @@ if __name__ == "__main__":
             print('Z_1t_current contains infs, rank:', rank)
             print(np.where(np.isinf(Z_1t_current))[0])
 
-        lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current, 
+        lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current,
                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                         cholesky_matrix_current)
 
         Y_gathered = comm.gather(Y[:,rank], root = 0)
         if rank == 0:
             Y_trace[iter,:,:] = np.array(Y_gathered).T
-            
+
         comm.Barrier()
 
         # %% Update Beta_mu0
@@ -1524,7 +1524,7 @@ if __name__ == "__main__":
             if any(np.isinf(Z_1t_proposal)) or any(np.isnan(Z_1t_proposal)):
                 lik_1t_proposal = np.NINF
             else:
-                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal,
                                                 Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                 cholesky_matrix_current)
 
@@ -1554,7 +1554,7 @@ if __name__ == "__main__":
                     Beta_mu0_update   = Beta_mu0_proposal
                     # num_accepted['Beta_mu0'] += 1
                     num_accepted[key] += 1
-                
+
                 # Store the result
                 Beta_mu0_trace[iter,:] = Beta_mu0_update
 
@@ -1573,14 +1573,14 @@ if __name__ == "__main__":
                 # Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T
                 Loc_matrix_current = (C_mu0.T @ Beta_mu0_current).T + (C_mu1.T @ Beta_mu1_current).T * Time
                 lik_1t_current     = lik_1t_proposal
-            
+
             comm.Barrier() # block for beta_mu0 updates
-        
+
         # %% Update Beta_mu1
         #############################################################
         #### ----- Update covariate coefficients, Beta_mu1 ----- ####
         #############################################################
-        
+
         # Update by blocks
         for key in Beta_mu1_block_idx_dict.keys():
             change_indices = np.array(Beta_mu1_block_idx_dict[key])
@@ -1600,7 +1600,7 @@ if __name__ == "__main__":
             if any(np.isinf(Z_1t_proposal)) or any(np.isnan(Z_1t_proposal)):
                 lik_1t_proposal = np.NINF
             else:
-                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal,
                                                 Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                 cholesky_matrix_current)
             # Gather likelihood calculated across time
@@ -1628,7 +1628,7 @@ if __name__ == "__main__":
                     Beta_mu1_accepted = True
                     Beta_mu1_update   = Beta_mu1_proposal
                     num_accepted[key] += 1
-                
+
                 # Store the result
                 Beta_mu1_trace[iter,:] = Beta_mu1_update
 
@@ -1656,7 +1656,7 @@ if __name__ == "__main__":
         if rank == 0:
             # Beta_logsigma's share a same proposal scale, no proposal matrix
             # Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma'])*random_generator.normal(np.zeros(1), 1, size = Beta_logsigma_m)
-            
+
             # Beta_logsigma's share a smae proposal scale, ALSO HAS proposal matrix
             Beta_logsigma_proposal = Beta_logsigma_current + np.sqrt(sigma_m_sq['Beta_logsigma']) * \
                                                 random_generator.multivariate_normal(np.zeros(Beta_logsigma_m), Sigma_0['Beta_logsigma'])
@@ -1664,10 +1664,10 @@ if __name__ == "__main__":
             Beta_logsigma_proposal = None
         Beta_logsigma_proposal   = comm.bcast(Beta_logsigma_proposal, root = 0)
         Scale_matrix_proposal = np.exp((C_logsigma.T @ Beta_logsigma_proposal).T)
-        
+
         # Conditional log likelihood at Current
         # No need to re-calculate, inherit from above
-        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current,
         #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
         #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # Conditional log likelihood at proposal
@@ -1676,10 +1676,10 @@ if __name__ == "__main__":
         if np.all(Scale_matrix_proposal > 0):
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank]))
             if all(~np.isinf(Z_1t_proposal)) and all(~np.isnan(Z_1t_proposal)):
-                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal,
                                                 Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
                                                 cholesky_matrix_current)
-                
+
         # Gather likelihood calculated across time
         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1713,7 +1713,7 @@ if __name__ == "__main__":
             Beta_logsigma_current  = Beta_logsigma_update
         else:
             Beta_logsigma_accepted = None
-        
+
         # Broadcast the udpated values
         Beta_logsigma_accepted = comm.bcast(Beta_logsigma_accepted, root = 0)
         Beta_logsigma_current  = comm.bcast(Beta_logsigma_current, root = 0)
@@ -1723,7 +1723,7 @@ if __name__ == "__main__":
             Z_1t_current = Z_1t_proposal.copy()
             Scale_matrix_current = np.exp((C_logsigma.T @ Beta_logsigma_current).T)
             lik_1t_current = lik_1t_proposal
-        
+
         comm.Barrier() # block for beta_logsigma updates
 
         # %% Update Beta_ksi
@@ -1735,7 +1735,7 @@ if __name__ == "__main__":
         if rank == 0:
             # Beta_kis's share a same proposal scale, no proposal matrix
             # Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi'])*random_generator.normal(np.zeros(1), 1, size = Beta_ksi_m)
-            
+
             # Beta_ksi's share a same proposal scale, ALSO HAS proposal matrix
             Beta_ksi_proposal = Beta_ksi_current + np.sqrt(sigma_m_sq['Beta_ksi']) * \
                                                 random_generator.multivariate_normal(np.zeros(Beta_ksi_m), Sigma_0['Beta_ksi'])
@@ -1746,20 +1746,20 @@ if __name__ == "__main__":
 
         # Conditional log likelihood at Current
         # No need to re-calculate, inherit from above
-        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current, 
+        # lik_1t_current = marg_transform_data_mixture_likelihood_1t(Y[:,rank], X_star_1t_current,
         #                                                     Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
         #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
 
         # Conditional log likelihood at proposal
         # Shape_out_of_range = np.any([shape <= -0.5 for shape in Shape_matrix_proposal]) or np.any([shape > 0.5 for shape in Shape_matrix_proposal])
         Shape_out_of_range = np.any(Shape_matrix_proposal <= -0.5) or np.any(Shape_matrix_proposal > 0.5)
-        
+
         lik_1t_proposal = np.NINF
 
         if not Shape_out_of_range:
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank]))
             if all(~np.isinf(Z_1t_proposal)) and all(~np.isnan(Z_1t_proposal)):
-                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal,
                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank],
                                                 cholesky_matrix_current)
 
@@ -1772,7 +1772,7 @@ if __name__ == "__main__":
             # use Norm(0, sigma_Beta_ksi) prior on each Beta_ksi, like "shrinkage"
             prior_Beta_ksi_current  = scipy.stats.norm.logpdf(Beta_ksi_current, loc=0, scale=sigma_Beta_ksi_current)
             prior_Beta_ksi_proposal = scipy.stats.norm.logpdf(Beta_ksi_proposal, loc=0, scale=sigma_Beta_ksi_current)
-            
+
             lik_current  = sum(lik_current_gathered)  + sum(prior_Beta_ksi_current)
             lik_proposal = sum(lik_proposal_gathered) + sum(prior_Beta_ksi_proposal)
 
@@ -1795,10 +1795,10 @@ if __name__ == "__main__":
             # Update the current value
             Beta_ksi_current = Beta_ksi_update
         else: # not rank = 1
-            # other workers need to know acceptance, 
+            # other workers need to know acceptance,
             # b/c although adaptive MH is calculated under worker0, need to know if X_star changed
             Beta_ksi_accepted   = None
-        
+
         # Broadcast the update values
         Beta_ksi_current  = comm.bcast(Beta_ksi_current, root = 0)
         Beta_ksi_accepted = comm.bcast(Beta_ksi_accepted, root = 0)
@@ -1820,11 +1820,11 @@ if __name__ == "__main__":
             ## sigma_Beta_mu0  ----------------------------------------------------------------------------------------------------------
 
             sigma_Beta_mu0_proposal = sigma_Beta_mu0_current + np.sqrt(sigma_m_sq['sigma_Beta_mu0']) * random_generator.standard_normal()
-            
+
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_mu0_current       = np.log(dhalft(sigma_Beta_mu0_current, nu = 4))
             lik_sigma_Beta_mu0_proposal      = np.log(dhalft(sigma_Beta_mu0_proposal, nu = 4)) if sigma_Beta_mu0_proposal > 0 else np.NINF
-            
+
             # Beta_mu_xx at current/proposal prior
             lik_Beta_mu0_prior_current       = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_current)
             lik_Beta_mu0_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu0_current, scale = sigma_Beta_mu0_proposal)
@@ -1852,20 +1852,20 @@ if __name__ == "__main__":
                 sigma_Beta_mu0_accepted         = True
                 sigma_Beta_mu0_update           = sigma_Beta_mu0_proposal
                 num_accepted['sigma_Beta_mu0'] += 1
-            
+
             # Store the result
             sigma_Beta_mu0_trace[iter,:] = sigma_Beta_mu0_update
             # Update the current value
             sigma_Beta_mu0_current       = sigma_Beta_mu0_update
-        
+
             ## sigma_Beta_mu1 ----------------------------------------------------------------------------------------------------------
 
             sigma_Beta_mu1_proposal = sigma_Beta_mu1_current + np.sqrt(sigma_m_sq['sigma_Beta_mu1']) * random_generator.standard_normal()
-            
+
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_mu1_current       = np.log(dhalft(sigma_Beta_mu1_current, nu = 4))
             lik_sigma_Beta_mu1_proposal      = np.log(dhalft(sigma_Beta_mu1_proposal, nu = 4)) if sigma_Beta_mu1_proposal > 0 else np.NINF
-            
+
             # Beta_mu_xx at current/proposal prior
             lik_Beta_mu1_prior_current       = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_current)
             lik_Beta_mu1_prior_proposal      = scipy.stats.norm.logpdf(Beta_mu1_current, scale = sigma_Beta_mu1_proposal)
@@ -1893,20 +1893,20 @@ if __name__ == "__main__":
                 sigma_Beta_mu1_accepted         = True
                 sigma_Beta_mu1_update           = sigma_Beta_mu1_proposal
                 num_accepted['sigma_Beta_mu1'] += 1
-            
+
             # Store the result
             sigma_Beta_mu1_trace[iter,:] = sigma_Beta_mu1_update
             # Update the current value
-            sigma_Beta_mu1_current       = sigma_Beta_mu1_update        
+            sigma_Beta_mu1_current       = sigma_Beta_mu1_update
 
             ## sigma_Beta_logsigma ----------------------------------------------------------------------------------------------------------
 
             sigma_Beta_logsigma_proposal = sigma_Beta_logsigma_current + np.sqrt(sigma_m_sq['sigma_Beta_logsigma']) * random_generator.standard_normal()
-            
+
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_logsigma_current       = np.log(dhalft(sigma_Beta_logsigma_current, nu = 4))
             lik_sigma_Beta_logsigma_proposal      = np.log(dhalft(sigma_Beta_logsigma_proposal, nu = 4)) if sigma_Beta_logsigma_proposal > 0 else np.NINF
-            
+
             # Beta_mu_xx at current/proposal prior
             lik_Beta_logsigma_prior_current       = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_current)
             lik_Beta_logsigma_prior_proposal      = scipy.stats.norm.logpdf(Beta_logsigma_current, scale = sigma_Beta_logsigma_proposal)
@@ -1934,7 +1934,7 @@ if __name__ == "__main__":
                 sigma_Beta_logsigma_accepted         = True
                 sigma_Beta_logsigma_update           = sigma_Beta_logsigma_proposal
                 num_accepted['sigma_Beta_logsigma'] += 1
-            
+
             # Store the result
             sigma_Beta_logsigma_trace[iter,:] = sigma_Beta_logsigma_update
             # Update the current value
@@ -1943,11 +1943,11 @@ if __name__ == "__main__":
             ## sigma_Beta_ksi ----------------------------------------------------------------------------------------------------------
 
             sigma_Beta_ksi_proposal = sigma_Beta_ksi_current + np.sqrt(sigma_m_sq['sigma_Beta_ksi']) * random_generator.standard_normal()
-            
+
             # use Half-t(4) hyperprior on the sigma_Beta_xx priors
             lik_sigma_Beta_ksi_current       = np.log(dhalft(sigma_Beta_ksi_current, nu = 4))
             lik_sigma_Beta_ksi_proposal      = np.log(dhalft(sigma_Beta_ksi_proposal, nu = 4)) if sigma_Beta_ksi_proposal > 0 else np.NINF
-            
+
             # Beta_mu_xx at current/proposal prior
             lik_Beta_ksi_prior_current       = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_current)
             lik_Beta_ksi_prior_proposal      = scipy.stats.norm.logpdf(Beta_ksi_current, scale = sigma_Beta_ksi_proposal)
@@ -1975,7 +1975,7 @@ if __name__ == "__main__":
                 sigma_Beta_ksi_accepted         = True
                 sigma_Beta_ksi_update           = sigma_Beta_ksi_proposal
                 num_accepted['sigma_Beta_ksi'] += 1
-            
+
             # Store the result
             sigma_Beta_ksi_trace[iter,:] = sigma_Beta_ksi_update
             # Update the current value
@@ -1986,17 +1986,17 @@ if __name__ == "__main__":
         sigma_Beta_mu1_current      = comm.bcast(sigma_Beta_mu1_current, root = 0)
         sigma_Beta_logsigma_current = comm.bcast(sigma_Beta_logsigma_current, root = 0)
         sigma_Beta_ksi_current      = comm.bcast(sigma_Beta_ksi_current, root = 0)
-        
+
         comm.Barrier() # for updating prior variance for Beta_xx
 
         # %% After iteration likelihood
         ######################################################################
         #### ----- Keeping track of likelihood after this iteration ----- ####
         ######################################################################
-    
 
 
-        lik_final_1t_detail = likelihood_1t_detail(Y[:,rank], Z_1t_current, 
+
+        lik_final_1t_detail = likelihood_1t_detail(Y[:,rank], Z_1t_current,
                                                 Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
                                                 cholesky_matrix_current)
         lik_final_1t = sum(lik_final_1t_detail)
@@ -2014,7 +2014,7 @@ if __name__ == "__main__":
         #####################################################
 
         if iter % adapt_size == 0:
-                
+
             gamma1 = 1 / ((iter/adapt_size + offset) ** c_1)
             gamma2 = c_0 * gamma1
 
@@ -2127,10 +2127,10 @@ if __name__ == "__main__":
                 ## Adaptive Tuning "Parameter" for daisy-chainning the runs
                 with open('iter.pkl', 'wb') as file:
                     pickle.dump(iter, file)
-                
+
                 with open('sigma_m_sq.pkl', 'wb') as file:
                     pickle.dump(sigma_m_sq, file)
-                
+
                 with open('Sigma_0.pkl', 'wb') as file:
                     pickle.dump(Sigma_0, file)
 
@@ -2153,7 +2153,7 @@ if __name__ == "__main__":
                 sigma_Beta_mu1_trace_thin      = sigma_Beta_mu1_trace[0:iter:10,:]
                 sigma_Beta_logsigma_trace_thin = sigma_Beta_logsigma_trace[0:iter:10,:]
                 sigma_Beta_ksi_trace_thin      = sigma_Beta_ksi_trace[0:iter:10,:]
-                
+
                 # ---- log-likelihood ----
 
                 plt.subplots()
@@ -2167,7 +2167,7 @@ if __name__ == "__main__":
                 # ---- log-likelihood in details ----
 
                 plt.subplots()
-                for i in range(5):
+                for i in range(2):
                     plt.plot(xs_thin2, loglik_detail_trace_thin[:,i],label = i)
                     plt.annotate('piece ' + str(i), xy=(xs_thin2[-1], loglik_detail_trace_thin[:,i][-1]))
                 plt.title('traceplot for detail log likelihood')
@@ -2205,7 +2205,7 @@ if __name__ == "__main__":
                     plt.legend()
                     plt.savefig('Traceplot_'+str(key)+'.pdf')
                     plt.close()
-                
+
                 ## location Beta_mu1 in blocks:
 
                 for key in Beta_mu1_block_idx_dict.keys():
@@ -2245,7 +2245,7 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.savefig('Traceplot_Beta_ksi.pdf')
                 plt.close()
-        
+
                 ## location Beta_xx prior variances combined on one plot (since they're updated togeter)
 
                 plt.subplots()
