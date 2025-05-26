@@ -10,17 +10,25 @@
     - This might be necessary because
       - $\phi$ seems to be larger (potentially AD?)
       - ![alt text](image.png)
+      - ![alt text](image-2.png)
       - $\rho$ becomes much smaller
       - ![alt text](image-1.png)
+      - ![alt text](image-3.png)
     - small $\rho$ and large $\phi$: not much spatial correlation in the bulk, the tail dependence is highly localized (local storms)?
-- [ ] run the pure AI model
-  - Alpine?
-  - Needs debuging on misspiggy
-    - likelihood prompt ValueError: inf or NaN 
+
 - [x] fix the font size of axis on figures
   - Likun enlarged legend size on Figure 3
   - I enlarged Figure 4 axis labels
   - I enlarge Figure 5 axis labels
+
+#### `qRW` emulator
+
+
+#### Pure AI Gaussian Model
+- [ ] run the pure AI model
+  - Alpine?
+  - Needs debugging on misspiggy
+    - likelihood prompt ValueError: inf or NaN 
 
 ### Reviewing old code
 
