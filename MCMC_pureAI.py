@@ -2,7 +2,7 @@
 This is a MCMC sampler
 
 # Require:
-#   - utilities.py
+#   - utilities_pureAI.py
 #   - proposal_cov.py
 # Example Usage:
 # mpirun -n 2 --output-filename <put here: folder_name/filename> python3 MCMC.py > combinedoutput.txt &
@@ -43,6 +43,8 @@ so, for example, we have
 and
     Beta_ksi    = (Beta_ksi_0, Beta_ksi_1)
     C_ksi(s)    = (1, elev(s))
+
+    20250520: fixed like_1t_proposal bug --> lik_1t_proposal
 """
 
 if __name__ == "__main__":
@@ -404,7 +406,9 @@ if __name__ == "__main__":
         # empirical variogram estimates
         for key in sites_within_knots.keys():
             selected_sites           = sites_within_knots[key]
-            demeaned_Y               = Y - mu_matrix
+            # demeaned_Y               = Y - mu_matrix
+            demeaned_Y               = np.full_like(Y, np.nan)
+            demeaned_Y[~miss_matrix] = Y[~miss_matrix] - mu_matrix[~miss_matrix]
             bin_center, gamma_variog = gs.vario_estimate((sites_x[selected_sites], sites_y[selected_sites]), 
                                                         np.nanmean(demeaned_Y[selected_sites], axis=1))
             fit_model = gs.Exponential(dim=2)
@@ -940,7 +944,7 @@ if __name__ == "__main__":
     
     if norm_pareto == 'shifted':
         phi_block_idx_size = 4
-        range_block_idx_size = 4
+        range_block_idx_size = 1
 
     Beta_mu0_block_idx_size = 4
     Beta_mu1_block_idx_size = 4
@@ -1349,6 +1353,9 @@ if __name__ == "__main__":
         Z_1t_current[miss_index_1t] = Z_1t_miss
         Y[:,rank][miss_index_1t]    = Y_1t_miss
         assert len(np.where(np.isnan(Y[:,rank]))[0]) == 0
+        if len(np.where(np.isinf(Z_1t_current))[0]) > 0:
+            print('Z_1t_current contains infs, rank:', rank)
+            print(np.where(np.isinf(Z_1t_current))[0])
 
         Y_gathered = comm.gather(Y[:,rank], root = 0)
         if rank == 0:
@@ -1460,8 +1467,8 @@ if __name__ == "__main__":
 
             # Update the K, cholesky_matrix, and likelihood
             if range_accepted:
-                K_current               = K_proposal
-                cholesky_matrix_current = cholesky_matrix_proposal
+                K_current               = K_proposal.copy()
+                cholesky_matrix_current = cholesky_matrix_proposal.copy()
                 lik_1t_current          = lik_1t_proposal
                 
             comm.Barrier() # block for range_block updates
@@ -1476,6 +1483,9 @@ if __name__ == "__main__":
                                             Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank], K_current)
         Z_1t_current[miss_index_1t] = Z_1t_miss
         Y[:,rank][miss_index_1t]    = Y_1t_miss
+        if len(np.where(np.isinf(Z_1t_current))[0]) > 0:
+            print('Z_1t_current contains infs, rank:', rank)
+            print(np.where(np.isinf(Z_1t_current))[0])
 
         lik_1t_current = likelihood_1t(Y[:,rank], Z_1t_current, 
                                         Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
@@ -1511,9 +1521,12 @@ if __name__ == "__main__":
 
             # Conditional log likelihood at proposal
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]))
-            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
-                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                            cholesky_matrix_current)
+            if any(np.isinf(Z_1t_proposal)) or any(np.isnan(Z_1t_proposal)):
+                lik_1t_proposal = np.NINF
+            else:
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                                Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                cholesky_matrix_current)
 
             # Gather likelihood calculated across time
             lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
@@ -1584,9 +1597,12 @@ if __name__ == "__main__":
 
             # Conditional log likelihood at proposal
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank]))
-            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
-                                            Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
-                                            cholesky_matrix_current)
+            if any(np.isinf(Z_1t_proposal)) or any(np.isnan(Z_1t_proposal)):
+                lik_1t_proposal = np.NINF
+            else:
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                                Loc_matrix_proposal[:,rank], Scale_matrix_current[:,rank], Shape_matrix_current[:,rank],
+                                                cholesky_matrix_current)
             # Gather likelihood calculated across time
             lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
             lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1656,14 +1672,14 @@ if __name__ == "__main__":
         #                                                     phi_vec_current, gamma_vec, R_vec_current, cholesky_matrix_current)
         # Conditional log likelihood at proposal
         # if np.any([scale <= 0 for scale in Scale_matrix_proposal]):
-        if np.any(Scale_matrix_proposal <= 0):
-            # X_star_1t_proposal = np.NINF
-            lik_1t_proposal = np.NINF
-        else:
+        lik_1t_proposal = np.NINF
+        if np.all(Scale_matrix_proposal > 0):
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank]))
-            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
-                                            Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
-                                            cholesky_matrix_current)
+            if all(~np.isinf(Z_1t_proposal)) and all(~np.isnan(Z_1t_proposal)):
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                                Loc_matrix_current[:,rank], Scale_matrix_proposal[:,rank], Shape_matrix_current[:,rank],
+                                                cholesky_matrix_current)
+                
         # Gather likelihood calculated across time
         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
@@ -1737,14 +1753,16 @@ if __name__ == "__main__":
         # Conditional log likelihood at proposal
         # Shape_out_of_range = np.any([shape <= -0.5 for shape in Shape_matrix_proposal]) or np.any([shape > 0.5 for shape in Shape_matrix_proposal])
         Shape_out_of_range = np.any(Shape_matrix_proposal <= -0.5) or np.any(Shape_matrix_proposal > 0.5)
-        if Shape_out_of_range:
-            # X_star_1t_proposal = np.NINF
-            lik_1t_proposal = np.NINF
-        else:
+        
+        lik_1t_proposal = np.NINF
+
+        if not Shape_out_of_range:
             Z_1t_proposal = qZ(pgev(Y[:,rank], Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank]))
-            lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
-                                            Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank],
-                                            cholesky_matrix_current)
+            if all(~np.isinf(Z_1t_proposal)) and all(~np.isnan(Z_1t_proposal)):
+                lik_1t_proposal = likelihood_1t(Y[:,rank], Z_1t_proposal, 
+                                                Loc_matrix_current[:,rank], Scale_matrix_current[:,rank], Shape_matrix_proposal[:,rank],
+                                                cholesky_matrix_current)
+
         # Gather likelihood calculated across time
         lik_current_gathered  = comm.gather(lik_1t_current, root = 0)
         lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
