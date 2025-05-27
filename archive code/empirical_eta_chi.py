@@ -1,5 +1,6 @@
 """
-empirical estimate of chi from simulation example 3.
+Using python to estimate the eta and chi
+    - completely empirical approach
 """
 
 if __name__ == "__main__":

@@ -15,6 +15,13 @@
       - ![alt text](image-1.png)
       - ![alt text](image-3.png)
     - small $\rho$ and large $\phi$: not much spatial correlation in the bulk, the tail dependence is highly localized (local storms)?
+    - [ ] make (preliminary) posterior summary plots
+      - cleanup/organize the old code files
+      - make posterior plots for
+        - $\phi$
+        - $\rho$
+        - $\mu$, $\sigma$, $\xi$
+        - $\chi$
 
 - [x] fix the font size of axis on figures
   - Likun enlarged legend size on Figure 3
@@ -23,10 +30,12 @@
 
 #### `qRW` emulator
 
+- [ ] Start all the other ten models on Alpine first
+- [ ] Then while they are running, try to figure out the quantile emulation
 
 #### Pure AI Gaussian Model
-- [ ] run the pure AI model
-  - [ ] Alpine?
+- [x] run the pure AI model
+  - [x] Alpine?
   - [x] Needs debugging on misspiggy
     - check marginal parameter ($\mu, \sigma, \xi$) proposals
   - Sampler working

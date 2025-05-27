@@ -1,6 +1,8 @@
 # %%
 # Read Notes!!
 """
+Meant to be placed on the root GEV folder of misspiggy
+
 Make coverage plots for the parameters:
 phi, rho (range), mu, sigma
 from the 3 scenarios of 50 repeated simulations

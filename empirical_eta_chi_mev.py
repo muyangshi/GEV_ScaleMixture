@@ -1,3 +1,10 @@
+"""
+Using the R package mev to estimate the empirical 
+    - eta: using hill estimator
+    - chi: using mev's empirical estimator
+for the Theorem in the paper
+"""
+
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys

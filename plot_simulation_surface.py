@@ -1,3 +1,9 @@
+"""
+Make the surfaces for the simulation scenarios:
+    - phi(s) for scenarios 1, 2, 3
+    - rho(s) for all scenarios
+"""
+
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys

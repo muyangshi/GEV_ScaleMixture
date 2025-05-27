@@ -419,6 +419,9 @@ if __name__ == "__main__":
         if rank == 0:
             print('estimated range:',range_at_knots)
 
+        range_at_knots = np.array([0.2] * k_rho)
+        if rank == 0: print('range_at_knots set to:', range_at_knots)
+
         # check for unreasonably large values, intialize at some smaller ones
         range_upper_bound = 4
         if len(np.where(range_at_knots > range_upper_bound)[0]) > 0:

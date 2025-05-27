@@ -678,7 +678,7 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 # plt.ylabel('Beta_mu1')
 # plt.legend()
 
-# %% Empirical chi of dataset, using model fitted posterior mean GEV
+# %% (Not used)Empirical chi of dataset, using model fitted posterior mean GEV
 
 # """
 # Moving window empirical chi plot, using fitted (posterior mean) GEV at the observation sites
@@ -974,7 +974,7 @@ if not fixGEV:
         plt.show()
         plt.close()
 
-# %% marginal parameter surface scatterplot
+# %% (Not used) marginal parameter surface scatterplot
 # marginal parameter surface scatterplot
 
 # if not fixGEV:
@@ -1092,7 +1092,7 @@ if not fixGEV:
 #     except:
 #         pass
 
-# %% Externally Smooth GEV Surface
+# %% (Not used) Externally Smooth GEV Surface
 
 # # mu0
 # vmin = np.floor(min((C_mu0.T @ Beta_mu0_mean).T[:,0]))
