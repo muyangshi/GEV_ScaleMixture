@@ -170,7 +170,7 @@ if __name__ == "__main__":
     # Knots 
 
     # isometric knot grid - for R and phi
-    N_outer_grid = 9
+    N_outer_grid = 25
     h_dist_between_knots     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid))-1)
     v_dist_between_knots     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid))-1)
     x_pos                    = np.linspace(minX + h_dist_between_knots/2, maxX + h_dist_between_knots/2, 
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     k                        = len(knots_id_in_domain)
 
     # isometric knot grid - for rho (de-coupled from phi)
-    N_outer_grid_rho = 9
+    N_outer_grid_rho = 25
     h_dist_between_knots_rho     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_rho))-1)
     v_dist_between_knots_rho     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_rho))-1)
     x_pos_rho                    = np.linspace(minX + h_dist_between_knots_rho/2, maxX + h_dist_between_knots_rho/2, 
@@ -220,16 +220,16 @@ if __name__ == "__main__":
     
     # Basis Parameters - for the Gaussian and Wendland Basis
 
-    radius            = 4                    # radius of Wendland Basis for R
+    radius            = 1.6                    # radius of Wendland Basis for R
     radius_from_knots = np.repeat(radius, k) # influence radius from a knot
     
-    bandwidth         = radius               # range for the gaussian basis for phi
-    # eff_range       = 4                    # range for the gaussian basis s.t. effective range is `radius`: exp(-3) = 0.05
-    # bandwidth       = eff_range**2/6       
+    # bandwidth         = radius               # range for the gaussian basis for phi
+    eff_range         = radius                    # range for the gaussian basis s.t. effective range is `radius`: exp(-3) = 0.05
+    bandwidth         = eff_range**2/6       
 
-    bandwidth_rho     = 4                    # range for the gaussian basis for rho
-    # eff_range_rho   = 4                    # range for the gaussian basis for rho s.t. effective range is `radius`
-    # bandwidth_rho   = eff_range_rho**2/6
+    # bandwidth_rho     = 4                    # range for the gaussian basis for rho
+    eff_range_rho     = radius                    # range for the gaussian basis for rho s.t. effective range is `radius`
+    bandwidth_rho     = eff_range_rho**2/6
 
     # Generate the weight matrices
     # Weight matrix generated using Gaussian Smoothing Kernel
