@@ -2,6 +2,10 @@
 
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
+- [x] Put a contour at 0.5 for the $\phi(s)$ surface
+- [ ] Run the fixed marginal models on Alpine
+- [ ] Take a try on emulating the quantile function for GEV
+
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
 - [x] run the bug fix k13r4b4 model
@@ -15,7 +19,7 @@
       - ![alt text](image-1.png)
       - ![alt text](image-3.png)
     - small $\rho$ and large $\phi$: not much spatial correlation in the bulk, the tail dependence is highly localized (local storms)?
-    - [ ] make (preliminary) posterior summary plots
+    - [x] make (preliminary) posterior summary plots
       - cleanup/organize the old code files
       - make posterior plots for
         - $\phi$
@@ -30,8 +34,9 @@
 
 #### `qRW` emulator
 
-- [ ] Start all the other ten models on Alpine first
-- [ ] Then while they are running, try to figure out the quantile emulation
+- [x] Start all the other ten models on Alpine first
+- [-] run the fixed marginal models as well
+- [-] Then while they are running, try to figure out the quantile emulation
 
 #### Pure AI Gaussian Model
 - [x] run the pure AI model
@@ -83,7 +88,7 @@
 
 #### <u>More Major edits per the JRSSB review comments</u>
 
-- [ ] Is it possible to fit a simpler, pure AI submodel? cite some papers proposing models suitable for modeling spatial AI data?
+- [x] Is it possible to fit a simpler, pure AI submodel? cite some papers proposing models suitable for modeling spatial AI data?
   - Do a $X \sim N(0, \Sigma)$ model as pure AI model
   - [x] modify the marginal transformations
     - `dRW` --> `dZ`
@@ -92,13 +97,14 @@
   - [x] modify the likelihood function
     - $$L(\boldsymbol{Y_t} \mid \mu_t, \sigma, \xi, \boldsymbol{\rho}) = \varphi_D(\boldsymbol{Z_t} \mid 0, \boldsymbol{\Sigma_\rho}) \left\lvert\dfrac{\partial \boldsymbol{Z_t}}{\partial \boldsymbol{Y_t}}\right\rvert = \varphi_D(Z_t\mid \boldsymbol{0, \Sigma_\rho}) \cdot \prod_{i=1}^D\dfrac{f_{Y\mid \mu_t, \sigma, \xi}(y_t)}{\phi_{N(0,1)}(z)}$$
   - [x] modify the imputation code
-  - [ ] Modify the sampler code
+  - [x] Modify the sampler code
 
-- [ ] assess to what extent the model is a significant improvement to existing ones
+- [x] assess to what extent the model is a significant improvement to existing ones
   - Use a dataset that highlight this model's performance
     - either real dataset or simulation study
   - Extend the `simulation and coverage analysis` section by comparing this method to Hazra
 - [ ] Look at marginal GEV fit over time to spot if there is $\sigma_t$
+  - Nah
 
 
 ## May 6 Meeting with Ben

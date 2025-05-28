@@ -977,6 +977,8 @@ heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
                     extent=[minX, maxX, minY, maxY],
                     origin = 'lower',
                     cmap = colormaps['coolwarm'], norm = divnorm)
+contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
+                    levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
 ax.set_xticks(np.linspace(minX, maxX,num=3))
 ax.set_yticks(np.linspace(minY, maxY,num=3))
 cbar = fig.colorbar(heatmap, ax=ax)
