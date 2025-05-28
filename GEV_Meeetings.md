@@ -3,7 +3,19 @@
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
 - [x] Put a contour at 0.5 for the $\phi(s)$ surface
-- [ ] Run the fixed marginal models on Alpine
+- [x] Run the fixed marginal models on Alpine
+
+  | Model Config     | Fixed Marginals    |
+  |------------------|---------------------|
+  | k13r4b4          | k13r4b4m            |
+  | k25r2b0.67       | k25r2b0.67m         |
+  | k25r2b2          | k25r2b2m            |
+  | k25r4b4          | k25r4b4m            |
+  | k41r1.6b0.43     | k41r1.6b0.43m       |
+  | k41r2b0.67       | k41r2b0.67m         |
+  | stationary       | —                   |
+
+
 - [ ] Take a try on emulating the quantile function for GEV
 
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
