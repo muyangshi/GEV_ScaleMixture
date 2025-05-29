@@ -1,5 +1,13 @@
 # Meeting Summaries on GEV Project
 
+## June 4 (Wednesday) Muyang/Likun/Ben
+
+## June 2 (Monday) Muyang/Ben
+
+- GEV + *standard* Pareto + trancated proposal range?
+  - Going to be super fast, because no numerical integration
+  - nah, it will require additional coverage analysis
+
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
 - [x] Put a contour at 0.5 for the $\phi(s)$ surface
@@ -15,8 +23,10 @@
   | k41r2b0.67       | k41r2b0.67m         |
   | stationary       | —                   |
 
-
-- [ ] Take a try on emulating the quantile function for GEV
+- Take a try on emulating the quantile function for GEV
+  - [x] Try out what we did for GPD directly moved here
+    - multi-layer perceptron for (p, phi, gamma) --> X
+  - [ ] Try out the EV-GAN transformation
 
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
