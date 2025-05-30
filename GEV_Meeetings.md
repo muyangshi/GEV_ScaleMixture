@@ -26,7 +26,38 @@
 - Take a try on emulating the quantile function for GEV
   - [x] Try out what we did for GPD directly moved here
     - multi-layer perceptron for (p, phi, gamma) --> X
+    - Using the same specification as the GPD's `qRW` function leads to log error too small? But how can the error be negative?? -- `y_true` is also log-transformed, so the weights = 1 + $\alpha \cdot$ `y_true` could be potentially negative and then weights $\times$ squared error gives negative loss. (This didn't happen in GPD because at `p=0.95` we don't have `log(y_true)` that is negative.)
+    ```
+    24415/24415 - 65s - 3ms/step - loss: -2.5071e+05 - val_loss: -8.1675e+05
+    Epoch 2/100
+    24415/24415 - 43s - 2ms/step - loss: -1.9503e+06 - val_loss: -3.3251e+06
+    Epoch 3/100
+    24415/24415 - 45s - 2ms/step - loss: -5.2034e+06 - val_loss: -7.2660e+06
+    Epoch 4/100
+    24415/24415 - 49s - 2ms/step - loss: -9.7970e+06 - val_loss: -1.2459e+07
+    Epoch 5/100
+    24415/24415 - 62s - 3ms/step - loss: -1.5551e+07 - val_loss: -1.8705e+07
+    Epoch 6/100
+    24415/24415 - 104s - 4ms/step - loss: nan - val_loss: nan
+    Epoch 7/100
+    24415/24415 - 50s - 2ms/step - loss: nan - val_loss: nan
+    Epoch 8/100
+    24415/24415 - 43s - 2ms/step - loss: nan - val_loss: nan
+    Epoch 9/100
+    24415/24415 - 43s - 2ms/step - loss: nan - val_loss: nan
+    Epoch 10/100
+    24415/24415 - 46s - 2ms/step - loss: nan - val_loss: nan
+    Epoch 11/100
+    24415/24415 - 55s - 2ms/step - loss: nan - val_loss: nan
+    Epoch 12/100
+    24415/24415 - 112s - 5ms/step - loss: nan - val_loss: nan
+    Epoch 13/100
+    ```
+    - [x] use `weight = 1 + alpha * softplus(y_true)`?
+    - [ ] use piece-wise emulator, one for 0.1 to 0.9, one for 0.9 to 0.9999?
   - [ ] Try out the EV-GAN transformation
+    - $H(y) = -\log(y) / \left[\log(1-p^2) - \log(2)\right]$
+    - $y = \exp \left\{-\hat{H}(y) \cdot \left[\log(1-p^2) - \log(2)\right]\right \}$
 
 ## May 22 (Thursday) Meeting Muyang/Likun/Ben
 
