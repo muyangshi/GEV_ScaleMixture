@@ -64,8 +64,8 @@ np.random.seed(GLOBAL_SEED)
 tf.random.set_seed(GLOBAL_SEED)
 
 N_CORES  = 7 if multiprocessing.cpu_count() < 64 else 64
-GENERATE = True
-TRAIN    = False
+GENERATE = False
+TRAIN    = True
 
 N     = int(1e8)
 N_val = int(1e5)
@@ -83,8 +83,9 @@ BATCH_SIZE            = 4096
 # STEPS_PER_EPOCH       = N // BATCH_SIZE
 VALIDATION_BATCH_SIZE = 4096
 N_EPOCH_PER_DECAY     = 1
-unit_hypercube        = True
-log_response          = True
+UNIT_HYPERCUBE        = True
+LOG_RESPONSE          = False
+EVGAN_RESPONSE        = True
 
 # Helper Functions ------------------------------------------------------------
 
@@ -92,7 +93,7 @@ log_response          = True
 def weighted_mse(alpha=1.0, eps=1e-8):
     def loss_fn(y_true, y_pred):
         # define the weights
-        weights = 1.0 + alpha * y_true
+        weights = 1.0 + alpha * tf.math.softplus(y_true)
 
         # weighted sum of squared errors
         se      = keras.backend.square(y_pred - y_true)
@@ -108,6 +109,9 @@ def weighted_mse(alpha=1.0, eps=1e-8):
 def qRW_par(args): # wrapper to put qRW for multiprocessing
     p, phi, gamma = args
     return(qRW(p, phi, gamma))
+
+def H(y, p):
+    return -np.log(y) / (np.log(1-p**2) - np.log(2))
 
 
 # %% LHS design for the parameter of qRW(p, phi, gamma)
@@ -157,12 +161,17 @@ if TRAIN:
     X_val   = np.load(rf'qRW_X_val_{N_val}.npy')
     y_val   = np.load(rf'qRW_Y_val_{N_val}.npy')
 
-    if log_response:
+    if LOG_RESPONSE:
         print('taking log of response...')
         y_train = np.log(y_train)
         y_val   = np.log(y_val)
+    
+    if EVGAN_RESPONSE:
+        print('using EVGAN response...')
+        y_train = H(y_train, X_train[:,0])
+        y_val   = H(y_val, X_val[:,0])
 
-    if unit_hypercube:
+    if UNIT_HYPERCUBE:
         X_min   = np.min(X_train, axis = 0)
         X_max   = np.max(X_train, axis = 0)
         print('X_min:', X_min)
@@ -186,20 +195,13 @@ if TRAIN:
                 keras.layers.Dense(512, activation = 'tanh'),
                 keras.layers.Dense(1,   activation = 'linear')
         ])
-
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-3,
             decay_steps           = N_EPOCH_PER_DECAY * len(y_train) // BATCH_SIZE,
             decay_rate            = 0.96,
             staircase             = False
         )
-        model.compile(
-            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
-            # loss        = keras.losses.MeanSquaredError(),
-            loss        = weighted_mse(alpha=ALPHA),
-            jit_compile = True)
-        model.summary()
-    else: # load previously defined model
+    else:
         model = keras.models.load_model('./checkpoint.model.keras')
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-4,
@@ -207,23 +209,54 @@ if TRAIN:
             decay_rate            = 0.96,
             staircase             = False
         )
-        model.compile(
-            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
-            # loss        = keras.losses.MeanSquaredError(),
-            loss        = weighted_mse(alpha=ALPHA),
-            jit_compile = True)
-        model.summary()
+    
+    if LOG_RESPONSE:   loss_func = weighted_mse(alpha=ALPHA)
+    if EVGAN_RESPONSE: loss_func = keras.losses.MeanSquaredError()
+
+    model.compile(
+        optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
+        # loss        = keras.losses.MeanSquaredError(),
+        # loss        = weighted_mse(alpha=ALPHA),
+        loss        = loss_func,
+        jit_compile = True)
+    model.summary()
+
 
     # Fitting Model -----------------------------------------------------------
 
-    start_time = time.time()
-    print('started fitting NN:', datetime.datetime.now())
+    class LossHistoryPlotter(keras.callbacks.Callback):
+        def __init__(self, plot_every = 10, output_dir='./'):
+            super().__init__()
+            self.plot_every = plot_every
+            self.output_dir = output_dir
+            self.epoch_loss = []
+            self.epoch_val_loss = []
+
+        def on_epoch_end(self, epoch, logs=None):
+            self.epoch_loss.append(logs['loss'])
+            self.epoch_val_loss.append(logs['val_loss'])
+            if (epoch+1) % self.plot_every == 0:
+                plt.figure()
+                plt.plot(range(1, len(self.epoch_loss)+1), self.epoch_loss, label='Training Loss')
+                plt.plot(range(1, len(self.epoch_val_loss)+1), self.epoch_val_loss, label='Validation Loss')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss')
+                plt.title(f'Loss Curves up to Epoch {epoch}')
+                plt.xlim(INITIAL_EPOCH, INITIAL_EPOCH + N_EPOCHS)
+                plt.legend()
+                plt.savefig(f'Plot_loss_during_train.pdf')
+                plt.close()
+    loss_plotter = LossHistoryPlotter(plot_every = 10)
 
     checkpoint_filepath = './checkpoint.model.keras' # only saves the best performer seen so far after each epoch 
     model_checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath=checkpoint_filepath,
                                                                 monitor='val_loss',
                                                                 mode='min',
                                                                 save_best_only=True)
+
+    start_time = time.time()
+    print('started fitting NN:', datetime.datetime.now())
+
     history = model.fit(
         X_train, 
         y_train, 
@@ -233,13 +266,22 @@ if TRAIN:
         validation_batch_size = VALIDATION_BATCH_SIZE,
         verbose = 2,
         validation_data=(X_val, y_val),
-        callbacks=[model_checkpoint_callback])
+        callbacks=[model_checkpoint_callback, loss_plotter])
 
     end_time = time.time()
     print('done:', round(end_time - start_time, 3))
 
     with open(rf'trainHistoryDict_{INITIAL_EPOCH}to{N_EPOCHS}.pkl', 'wb') as file:
         pickle.dump(history.history, file)
+
+    if LOG_RESPONSE:
+        bestmodel = keras.models.load_model(checkpoint_filepath,
+                                            custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
+    if EVGAN_RESPONSE:
+        bestmodel = keras.models.load_model(checkpoint_filepath)
+    bestmodel.save(rf'./qRW_NN_{N}.keras')
+    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
+        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
 
     plt.plot(history.history['val_loss'])
     plt.xlabel('epoch')
@@ -256,13 +298,6 @@ if TRAIN:
     plt.savefig(rf'Plot_train_loss_{INITIAL_EPOCH}to{N_EPOCHS}.pdf')
     plt.show()
     plt.close()
-
-    bestmodel = keras.models.load_model(checkpoint_filepath,
-                                        custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
-    bestmodel.save(rf'./qRW_NN_{N}.keras')
-    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
-        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
-
 
     # Prediction --------------------------------------------------------------
 
@@ -301,7 +336,12 @@ if TRAIN:
         # make prediction
         X        = np.column_stack((p_vec, phi_vec, gamma_vec))
         X_scaled = qmc.scale(X, X_min, X_max, reverse = True)
-        return np.exp(NN_forward_pass(X_scaled))
+
+        if LOG_RESPONSE:
+            return np.exp(NN_forward_pass(X_scaled))
+        if EVGAN_RESPONSE:
+            Z = NN_forward_pass(X_scaled)
+            return np.exp(-Z * (np.log(1-p_vec**2) - np.log(2)))
 
     def qRW_NN_2p(p_vec, phi_vec, gamma_vec):
         # check input shape and broadcast
@@ -370,8 +410,8 @@ if TRAIN:
 
     X_val = np.load(rf'qRW_X_val_{N_val}.npy')
     y_val = np.load(rf'qRW_Y_val_{N_val}.npy')
-    if log_response:   y_val = np.log(y_val)
-    if unit_hypercube: X_val = (X_val - X_min) / (X_max - X_min)
+    if LOG_RESPONSE:   y_val = np.log(y_val)
+    if UNIT_HYPERCUBE: X_val = (X_val - X_min) / (X_max - X_min)
 
     y_val_pred = qRW_NN(X_val[:,0], X_val[:,1], X_val[:,2])
 
