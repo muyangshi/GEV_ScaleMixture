@@ -4,16 +4,21 @@
 
 ## June 2 (Monday) Muyang/Ben
 
-- GEV + *standard* Pareto + trancated proposal range?
+- [ ] Pure AI model diagnostics and evaluation
+
+- [ ] emulate the quantile function
+
+- [ ] GEV + *standard* Pareto + trancated proposal range?
   - Going to be super fast, because no numerical integration
   - nah, it will require additional coverage analysis
+  - Ben: It's better if the distributions are in closed forms (than emulating the quantile function)
 
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
 - [x] Put a contour at 0.5 for the $\phi(s)$ surface
 - [x] Run the fixed marginal models on Alpine
 
-  | Model Config     | Fixed Marginals    |
+  | Model Config     | Fixed Marginals     |
   |------------------|---------------------|
   | k13r4b4          | k13r4b4m            |
   | k25r2b0.67       | k25r2b0.67m         |
