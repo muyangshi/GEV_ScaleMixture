@@ -4,7 +4,7 @@
 
 ## June 2 (Monday) Muyang/Ben
 
-- [ ] Pure AI model diagnostics and evaluation
+- [x] Pure AI model diagnostics and evaluation
 
 - [ ] emulate the quantile function
 
@@ -12,6 +12,8 @@
   - Going to be super fast, because no numerical integration
   - nah, it will require additional coverage analysis
   - Ben: It's better if the distributions are in closed forms (than emulating the quantile function)
+
+- [x] Requeued the chains
 
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 

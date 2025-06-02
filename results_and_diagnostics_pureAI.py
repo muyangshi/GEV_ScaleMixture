@@ -1,20 +1,18 @@
 """
-Generate the below results and diagnostics.
+Generate the below results and diagnostics for the pure AI model
 Requires:
-    - utilities.py
+    - utilities_pureAI.py
     - predGEV_grid_elev.npy <- the elevation grid for the predicted marginal GEV surface
 
 -------- Numerical Summaries --------
 
 Posterior summaries (posterior mean, 95% CI) for 
-    - phi
     - rho
 
 -------- Posterior Surfaces --------
 
 Posterior mean surfaces for 
     - GEV
-    - phi
     - rho
 
 Dataset empirical chi surface
@@ -49,10 +47,10 @@ from    math                   import sin, cos, sqrt, atan2, radians, asin
 
 # Python Extensions
 import  scipy
-import  numpy                as np
-import  geopandas            as gpd
-import  matplotlib           as mpl
-import  matplotlib.pyplot    as plt
+import  numpy                  as np
+import  geopandas              as gpd
+import  matplotlib             as mpl
+import  matplotlib.pyplot      as plt
 from    matplotlib             import colormaps
 from    rpy2.robjects          import r 
 from    rpy2.robjects.numpy2ri import numpy2rpy
@@ -60,9 +58,9 @@ from    rpy2.robjects.packages import importr
 from    tqdm                   import tqdm
 
 # Custom Extensions and settings
-from    utilities              import *
+from    utilities_pureAI       import *
 
-N_CORES = 30
+N_CORES = 7
 
 np.set_printoptions(threshold=sys.maxsize)
 state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
@@ -174,172 +172,22 @@ def get_elevation(longitude, latitude):
 
 # specify the model -----------------------------------------------------------
 
-# Model 1: k13_r4 -----------------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240306_realdata_t75_s590_k13_r4/'
-# name             = 'k13_r4'
-# fixGEV           = False
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 9
-# N_outer_grid_rho = 9
-# mark             = True
-# burnin           = 5000
-
-# Model 2: k13_r4_fixGEV ----------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240320_realdata_t75_s590_k13_r4_fixGEV/'
-# name             = 'k13_r4_fixGEV'
-# fixGEV           = True
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 9
-# N_outer_grid_rho = 9
-# mark             = True
-# burnin           = 5000
-
-# Model 3: k25_r2 -----------------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240328_realdata_t75_s590_k25_r2/'
-# name             = 'k25_r2'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = 2
-# bandwidth_rho    = 2
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 6000
-
-# Model 4: k25_r2_fixGEV ----------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r2_fixGEV/'
-# name             = 'k25_r2_fixGEV'
-# fixGEV           = True
-# radius           = 2 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-# bandwidth_phi    = 2 # range for the gaussian kernel
-# bandwidth_rho    = 2
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 6000
-
-# Model 5: k25_r4 -----------------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240406_realdata_t75_s590_k25_r4/'
-# name             = 'k25_r4'
-# fixGEV           = False
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 5000
-
-# Model 6: k25_r4_fixGEV ----------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240402_realdata_t75_s590_k25_r4_fixGEV/'
-# name             = 'k25_r4_fixGEV'
-# fixGEV           = True
-# radius           = 4 # radius of infuence for basis, 3.5 might make some points closer to the edge of circle, might lead to numerical issues
-# bandwidth_phi    = 4 # range for the gaussian kernel
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 5000
-
-# Model 7: k25_efr2 ---------------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2/'
-# name             = 'k25_efr2'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-# bandwidth_rho    = radius**2/6
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 5000
-
-# Model 8: k25_efr2_fixksi --------------------------------
-
-# folder           = './data_alpine/CONVERGED/20240410_realdata_t75_s590_k25_efr2_fixksi/'
-# name             = 'k25_efr2_fixksi'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = radius**2/6
-# bandwidth_rho    = radius**2/6
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# mark             = False
-# burnin           = 5000
-
-
-# Model 9: k41_efr2 ---------------------------------------
-
-# folder           = './data_alpine/20240428_copy/20240419_realdata_t75_s590_k41_efr2/'
-# name             = 'k41_efr2'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = radius**2/6 # effective range for gaussian kernel: exp(-3) = 0.05
-# bandwidth_rho    = radius**2/6
-# N_outer_grid_phi = 25
-# N_outer_grid_rho = 25
-# mark             = False
-# burnin           = 7000
-
-# Model 10: phik41efr2_rhok13r4 ---------------------------
-
-# folder           = './data_alpine/20240624_copy/20240504_realdata_t75_s590_phik41efr2_rhok13r4/'
-# name             = 'phik41efr2_rhok13r4'
-# fixGEV           = False
-# radius           = 2
-# bandwidth_phi    = radius**2/6
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 25
-# N_outer_grid_rho = 9
-# mark             = False
-# burnin           = 6000
-
-# Model 11: Stationary Model ------------------------------
-
-# folder           = './data/20241030start_realdata_stationary/'
-# name             = 'k1_r100'
-# fixGEV           = False
-# radius           = 100
-# bandwidth_phi    = 100
-# bandwidth_rho    = 100
-# N_outer_grid_phi = 1
-# N_outer_grid_rho = 1
-# mark             = True
-# burnin           = 3000
-
-# Model 1 Bugfixed: k13r4b4 -------------------------------
-folder           = './'
-name             = 'k13r4b4'
+# Model 0 k13r4 pureAI ------------------------------------
+folder           = './data_alpine/CONVERGED/20250527_realdata_t75_s590_k13_b4_pureAI/'
+name             = 'k13b4AI'
 fixGEV           = False
 fixksi_only      = False
 radius           = 4
-bandwidth_phi    = 4
 bandwidth_rho    = 4
-N_outer_grid_phi = 9
 N_outer_grid_rho = 9
-# mark             = False
-burnin           = 1500
+mark             = False
+burnin           = 1000
 
 # load traceplots -------------------------------------------------------------
 
-phi_knots_trace   = np.load(folder + 'phi_knots_trace.npy')
-R_trace_log       = np.load(folder + 'R_trace_log.npy') # shape [niters, k, Nt]
 range_knots_trace = np.load(folder + 'range_knots_trace.npy')
-Nt                = R_trace_log.shape[2]
-k_phi             = phi_knots_trace.shape[1]
+Nt                = 75
 k_rho             = range_knots_trace.shape[1]
-k_R               = R_trace_log.shape[1]
 
 if not fixGEV:
     Beta_mu0_trace            = np.load(folder + 'Beta_mu0_trace.npy')
@@ -362,11 +210,7 @@ if not fixGEV:
 
 # remove burnins and unfinished cells
 
-phi_knots_trace   = phi_knots_trace[burnin:]
-R_trace_log       = R_trace_log[burnin:]
 range_knots_trace = range_knots_trace[burnin:]
-R_trace_log       = R_trace_log[~np.isnan(R_trace_log)].reshape((-1,k_R,Nt))
-phi_knots_trace   = phi_knots_trace[~np.isnan(phi_knots_trace)].reshape((-1,k_phi))
 range_knots_trace = range_knots_trace[~np.isnan(range_knots_trace)].reshape((-1,k_rho))
 if not fixGEV:
     Beta_mu0_trace            = Beta_mu0_trace[burnin:]
@@ -390,30 +234,6 @@ if not fixGEV:
         pass
 
 # Knots setup -----------------------------------------------------------------
-
-# isometric grid for phi (de-coupled from rho)
-h_dist_between_knots_phi     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_phi))-1)
-v_dist_between_knots_phi     = (maxY - minY) / (int(2*np.sqrt(N_outer_grid_phi))-1)
-x_pos_phi                    = np.linspace(minX + h_dist_between_knots_phi/2, 
-                                            maxX + h_dist_between_knots_phi/2, 
-                                            num = int(2*np.sqrt(N_outer_grid_phi)))
-y_pos_phi                    = np.linspace(minY + v_dist_between_knots_phi/2, 
-                                            maxY + v_dist_between_knots_phi/2, 
-                                            num = int(2*np.sqrt(N_outer_grid_phi)))
-x_outer_pos_phi              = x_pos_phi[0::2]
-x_inner_pos_phi              = x_pos_phi[1::2]
-y_outer_pos_phi              = y_pos_phi[0::2]
-y_inner_pos_phi              = y_pos_phi[1::2]
-X_outer_pos_phi, Y_outer_pos_phi = np.meshgrid(x_outer_pos_phi, y_outer_pos_phi)
-X_inner_pos_phi, Y_inner_pos_phi = np.meshgrid(x_inner_pos_phi, y_inner_pos_phi)
-knots_outer_xy_phi           = np.vstack([X_outer_pos_phi.ravel(), Y_outer_pos_phi.ravel()]).T
-knots_inner_xy_phi           = np.vstack([X_inner_pos_phi.ravel(), Y_inner_pos_phi.ravel()]).T
-knots_xy_phi                 = np.vstack((knots_outer_xy_phi, knots_inner_xy_phi))
-knots_id_in_domain_phi       = [row for row in range(len(knots_xy_phi)) if (minX < knots_xy_phi[row,0] < maxX and minY < knots_xy_phi[row,1] < maxY)]
-knots_xy_phi                 = knots_xy_phi[knots_id_in_domain_phi]
-knots_x_phi                  = knots_xy_phi[:,0]
-knots_y_phi                  = knots_xy_phi[:,1]
-k_phi                        = len(knots_id_in_domain_phi)
 
 # isometric grid for rho (de-coupled from phi)
 h_dist_between_knots_rho     = (maxX - minX) / (int(2*np.sqrt(N_outer_grid_rho))-1)
@@ -439,67 +259,11 @@ knots_x_rho                  = knots_xy_rho[:,0]
 knots_y_rho                  = knots_xy_rho[:,1]
 k_rho                        = len(knots_id_in_domain_rho)
 
-# if mark == True:
-#     # isometric knot grid - Mark's
-#     x_pos_phi                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid_phi)))
-#     y_pos_phi                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid_phi)))
-#     x_outer_pos_phi              = x_pos_phi[0::2]
-#     x_inner_pos_phi              = x_pos_phi[1::2]
-#     y_outer_pos_phi              = y_pos_phi[0::2]
-#     y_inner_pos_phi              = y_pos_phi[1::2]
-#     X_outer_pos_phi, Y_outer_pos_phi = np.meshgrid(x_outer_pos_phi, y_outer_pos_phi)
-#     X_inner_pos_phi, Y_inner_pos_phi = np.meshgrid(x_inner_pos_phi, y_inner_pos_phi)
-#     knots_outer_xy_phi           = np.vstack([X_outer_pos_phi.ravel(), Y_outer_pos_phi.ravel()]).T
-#     knots_inner_xy_phi           = np.vstack([X_inner_pos_phi.ravel(), Y_inner_pos_phi.ravel()]).T
-#     knots_xy_phi                 = np.vstack((knots_outer_xy_phi, knots_inner_xy_phi))
-#     knots_id_in_domain_phi       = [row for row in range(len(knots_xy_phi)) if (minX < knots_xy_phi[row,0] < maxX and minY < knots_xy_phi[row,1] < maxY)]
-#     knots_xy_phi                 = knots_xy_phi[knots_id_in_domain_phi]
-#     knots_x_phi                  = knots_xy_phi[:,0]
-#     knots_y_phi                  = knots_xy_phi[:,1]
-#     k_phi                        = len(knots_id_in_domain_phi)
-
-#     x_pos_rho                    = np.linspace(minX + 1, maxX + 1, num = int(2*np.sqrt(N_outer_grid_rho)))
-#     y_pos_rho                    = np.linspace(minY + 1, maxY + 1, num = int(2*np.sqrt(N_outer_grid_rho)))
-#     x_outer_pos_rho              = x_pos_rho[0::2]
-#     x_inner_pos_rho              = x_pos_rho[1::2]
-#     y_outer_pos_rho              = y_pos_rho[0::2]
-#     y_inner_pos_rho              = y_pos_rho[1::2]
-#     X_outer_pos_rho, Y_outer_pos_rho = np.meshgrid(x_outer_pos_rho, y_outer_pos_rho)
-#     X_inner_pos_rho, Y_inner_pos_rho = np.meshgrid(x_inner_pos_rho, y_inner_pos_rho)
-#     knots_outer_xy_rho           = np.vstack([X_outer_pos_rho.ravel(), Y_outer_pos_rho.ravel()]).T
-#     knots_inner_xy_rho           = np.vstack([X_inner_pos_rho.ravel(), Y_inner_pos_rho.ravel()]).T
-#     knots_xy_rho                 = np.vstack((knots_outer_xy_rho, knots_inner_xy_rho))
-#     knots_id_in_domain_rho       = [row for row in range(len(knots_xy_rho)) if (minX < knots_xy_rho[row,0] < maxX and minY < knots_xy_rho[row,1] < maxY)]
-#     knots_xy_rho                 = knots_xy_rho[knots_id_in_domain_rho]
-#     knots_x_rho                  = knots_xy_rho[:,0]
-#     knots_y_rho                  = knots_xy_rho[:,1]
-#     k_rho                        = len(knots_id_in_domain_rho)
-
 # Splines setup ---------------------------------------------------------------
 
 # Copula Splines - Generate the weight matrices
 
-radius_from_knots = np.repeat(radius, k_phi) # influence radius from a knot
-
-# Weight matrix using wendland basis
-wendland_weight_matrix = np.full(shape = (Ns,k_phi), fill_value = np.nan)
-for site_id in np.arange(Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    wendland_weight_matrix[site_id, :] = weight_from_knots
-
-# Weight matrix using Gaussian Smoothing Kernel
-gaussian_weight_matrix_phi = np.full(shape = (Ns, k_phi), fill_value = np.nan)
-for site_id in np.arange(Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
-    gaussian_weight_matrix_phi[site_id, :] = weight_from_knots
+radius_from_knots = np.repeat(radius, k_rho) # influence radius from a knot
 
 gaussian_weight_matrix_rho = np.full(shape = (Ns, k_rho), fill_value = np.nan)
 for site_id in np.arange(Ns):
@@ -517,25 +281,6 @@ plotgrid_x = np.linspace(minX,maxX,plotgrid_res_x)
 plotgrid_y = np.linspace(minY,maxY,plotgrid_res_y)
 plotgrid_X, plotgrid_Y = np.meshgrid(plotgrid_x, plotgrid_y)
 plotgrid_xy = np.vstack([plotgrid_X.ravel(), plotgrid_Y.ravel()]).T
-
-wendland_weight_matrix_for_plot = np.full(shape = (plotgrid_res_xy,k_phi), fill_value = np.nan)
-for site_id in np.arange(plotgrid_res_xy):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    wendland_weight_matrix_for_plot[site_id, :] = weight_from_knots
-
-gaussian_weight_matrix_for_plot_phi = np.full(shape = (plotgrid_res_xy, k_phi), 
-                                              fill_value = np.nan)
-for site_id in np.arange(plotgrid_res_xy):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = plotgrid_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
-    gaussian_weight_matrix_for_plot_phi[site_id, :] = weight_from_knots
 
 gaussian_weight_matrix_for_plot_rho = np.full(shape = (plotgrid_res_xy, k_rho), 
                                                 fill_value = np.nan)
@@ -622,11 +367,6 @@ C_ksi[1,:,:] = np.tile(elevations, reps = (Nt, 1)).T
 
 # posterior mean ------------------------------------------
 
-phi_mean                 = np.mean(phi_knots_trace, axis = 0)
-R_log_mean               = np.full(shape=(k_R,R_trace_log.shape[2]), fill_value = np.nan)
-for t in range(R_trace_log.shape[2]):
-    # R_log_mean[:,t] = np.mean(R_trace_log[:,:,t], axis = 0)
-    R_log_mean[:,t] = np.log(np.mean(np.exp(R_trace_log[:,:,t]), axis = 0))
 range_mean               = np.mean(range_knots_trace, axis = 0)
 if not fixGEV:
     Beta_mu0_mean            = np.mean(Beta_mu0_trace, axis = 0)
@@ -643,10 +383,6 @@ if not fixGEV:
 
 # posterior median ----------------------------------------
 
-phi_median                 = np.median(phi_knots_trace, axis = 0)
-R_log_median               = np.full(shape=(k_R,R_trace_log.shape[2]), fill_value = np.nan)
-for t in range(R_trace_log.shape[2]):
-    R_log_median[:,t] = np.median(R_trace_log[:,:,t], axis = 0)
 range_median               = np.median(range_knots_trace, axis = 0)
 if not fixGEV:
     Beta_mu0_median            = np.median(Beta_mu0_trace, axis = 0)
@@ -663,21 +399,16 @@ if not fixGEV:
 
 # posterior CI --------------------------------------------
 
-phi_lb = np.percentile(phi_knots_trace, 2.5, axis = 0)
-phi_ub = np.percentile(phi_knots_trace, 97.5, axis = 0)
-
 rho_lb = np.percentile(range_knots_trace, 2.5, axis = 0)
 rho_ub = np.percentile(range_knots_trace, 97.5, axis = 0)
 
 # thinned by 10 -------------------------------------------
 
-iter = phi_knots_trace.shape[0]
+iter = range_knots_trace.shape[0]
 xs       = np.arange(iter)
 xs_thin  = xs[0::10] # index 1, 11, 21, ...
 xs_thin2 = np.arange(len(xs_thin)) # index 1, 2, 3, ...
 
-R_trace_log_thin               = R_trace_log[0:iter:10,:,:]
-phi_knots_trace_thin           = phi_knots_trace[0:iter:10,:]
 range_knots_trace_thin         = range_knots_trace[0:iter:10,:]
 if not fixGEV:
     Beta_mu0_trace_thin            = Beta_mu0_trace[0:iter:10,:]
@@ -694,25 +425,15 @@ if not fixGEV:
 
 # Plot traceplot ------------------------------------------
 
-for i in range(k_phi):
-    plt.subplots()
-    plt.plot(xs_thin2, phi_knots_trace_thin[:,i], label = 'knot'+str(i))
-    plt.title('traceplot for phi knot' + str(i))
-    plt.xlabel('iter thinned by 10')
-    plt.ylabel('phi')
-    plt.savefig('Traceplot_phi_knot' + str(i) + '.pdf')
-    plt.show()
-    plt.close()
-
 for i in range(k_rho):
     plt.subplots()
     plt.plot(xs_thin2, range_knots_trace_thin[:,i], label = 'knot'+str(i))
     plt.title('traceplot for range knot' + str(i))
     plt.xlabel('iter thinned by 10')
     plt.ylabel('range')
-    plt.savefig('Traceplot_range_knot' + str(i) + '.pdf')
+    plt.savefig('Traceplot_range_knot'+str(i)+'.pdf')
     plt.show()
-    plt.close()
+plt.close()
 
 for j in range(Beta_mu0_m):
     plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_'+str(j))
@@ -969,59 +690,6 @@ except:
 
 # %% Copula Posterior Surface Plotting
 
-# phi surface
-phi_vec_for_plot = gaussian_weight_matrix_for_plot_phi @ phi_mean
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
-ax.set_aspect('equal', 'box')
-state_map.boundary.plot(ax=ax, color = 'black')
-vmin      = my_floor(min(phi_vec_for_plot), 2)
-vmax      = my_ceil(max(phi_vec_for_plot), 2)
-tmp_bound = max(np.abs(0.5-vmin), np.abs(0.5-vmax))
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = 0.5, vmin = 0.5-tmp_bound, vmax = 0.5+tmp_bound)
-heatmap = ax.imshow(phi_vec_for_plot.reshape(plotgrid_res_y,plotgrid_res_x),
-                    extent=[minX, maxX, minY, maxY],
-                    origin = 'lower',
-                    cmap = colormaps['coolwarm'], norm = divnorm)
-contour = ax.contour(plotgrid_X, plotgrid_Y, phi_vec_for_plot.reshape(plotgrid_X.shape),
-                    levels=[0.5], colors='black', linewidths=1, linestyles='dashed')
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=3))
-cbar = fig.colorbar(heatmap, ax=ax)
-cbar.ax.tick_params(labelsize=40)
-cbar.locator = mpl.ticker.MaxNLocator(nbins=5)
-cbar.update_ticks()
-# cbar.set_ticks([my_floor(min(phi_vec_for_plot), 2), 0.50, my_ceil(max(phi_vec_for_plot), 2)])
-for i in range(k_phi): # Plot knots and circles
-    circle_i = plt.Circle((knots_xy_phi[i, 0], knots_xy_phi[i, 1]), radius_from_knots[i],
-                        color='r', fill=False, fc='None', ec='lightgrey')
-    ax.add_patch(circle_i)
-# Scatter plot for sites and knots
-ax.scatter(knots_x_phi, knots_y_phi, marker='+', c='black', label='knot', s=500)
-for index, (x, y) in enumerate(knots_xy_phi):
-    ax.text(x+0.1, y+0.2, f'{index+1}', fontsize=25, ha='left', c='black')
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 30)
-plt.yticks(fontsize = 30)
-plt.xlabel('longitude', fontsize = 50)
-plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\phi(s)$ surface', fontsize = 50)
-plt.savefig('Surface_phi.pdf')
-plt.show()
-plt.close()
-
-plt.subplots(figsize = (12,8), constrained_layout=True)
-plt.hist(phi_vec_for_plot, color = 'grey', edgecolor = 'white')
-plt.xticks(fontsize=40)
-plt.yticks(fontsize=40)
-plt.title('Posterior Samples of $\phi(s)$', fontsize = 50)
-plt.xlabel(rf'$\phi(s)$', fontsize = 50)
-plt.savefig('Surface_phi_hist.pdf')
-plt.show()
-plt.close()
-
 # range surface
 range_vec_for_plot = gaussian_weight_matrix_for_plot_rho @ range_mean
 vmin = 0.0
@@ -1251,16 +919,6 @@ sites_y_chi  = sites_xy_chi[:,1]
 
 # setting up the copula splines
 
-wendland_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
-for site_id in np.arange(Ns_chi):
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy_phi)
-        wendland_weight_matrix_chi[site_id, :] = wendland_weights_fun(d_from_knots, radius_from_knots)
-gaussian_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
-for site_id in np.arange(Ns_chi):
-        d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy_phi)
-        gaussian_weight_matrix_chi[site_id, :] = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff=False)
 gaussian_weight_matrix_rho_chi = np.full(shape = (Ns_chi, k_rho), fill_value = np.nan)
 for site_id in np.arange(Ns_chi):
         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
@@ -1270,14 +928,9 @@ for site_id in np.arange(Ns_chi):
 alpha          = 0.5
 nu             = 0.5
 sigsq_vec      = np.repeat(1.0, Ns_chi)
-gamma_at_knots = np.repeat(0.5, k_phi)
-gamma_vec_chi  = np.sum(np.multiply(wendland_weight_matrix_chi, gamma_at_knots)**(alpha),
-                        axis = 1)**(1/alpha)
-assert any(np.isnan(gamma_vec_chi)) != True
 
 # model posterior means
 
-phi_vec_chi = gaussian_weight_matrix_chi     @ phi_mean
 rho_vec_chi = gaussian_weight_matrix_rho_chi @ range_mean
 K_chi       = ns_cov(range_vec = rho_vec_chi,
                      sigsq_vec = sigsq_vec,
@@ -1288,7 +941,6 @@ K_chi       = ns_cov(range_vec = rho_vec_chi,
 
 np.random.seed(910)
 n_draw    = 100 # number of time replicates to draw
-S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
 Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
                                                 cov = K_chi, 
                                                 size = n_draw) # shape(n_draw, Ns_chi)
@@ -1296,12 +948,9 @@ Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None,
 #   1m 23s for 7,500 x 100
 #   no speed difference when drawing size = 1 or 100
 
-R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
-W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
-X_model_chi = (R_vec_chi.T ** phi_vec_chi).T * W_chi   # shape(Ns_chi, n_draw)
+X_model_chi = Z_vec_chi.T   # shape(Ns_chi, n_draw)
 
 np.save('X_model_chi', X_model_chi)
-np.save('phi_vec_chi', phi_vec_chi)
 np.save('rho_vec_chi', rho_vec_chi)
 
 # Empirically estimate chi ----------------------------------------------------
@@ -1323,34 +972,11 @@ e_abs = 0.2
 
 # Threshold quantile qu
 # Note:
-#   Only needs to be calculated once for each u
-#   should parallelize the calculation
+#   rho not involved in the quantile calculation
 
-def qRW_par(args):
-    u, phi, gamma = args
-    return qRW(u, phi, gamma)
-
-args_list090 = []
-args_list095 = []
-args_list099 = []
-for i in range(Ns_chi):
-    args_list090.append((0.9, phi_vec_chi[i], gamma_vec_chi[i]))
-    args_list095.append((0.95, phi_vec_chi[i], gamma_vec_chi[i]))
-    args_list099.append((0.99, phi_vec_chi[i], gamma_vec_chi[i]))
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results090 = list(tqdm(pool.imap(qRW_par, args_list090), total=len(args_list090), desc='u=0.90'))
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results095 = list(tqdm(pool.imap(qRW_par, args_list095), total=len(args_list095), desc='u=0.95')) #pool.map(qRW_par, args_list095)
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results099 = list(tqdm(pool.imap(qRW_par, args_list099), total=len(args_list099), desc='u=0.99')) #pool.map(qRW_par, args_list099)
-
-qu_090 = np.array(results090)
-np.save('qu_090', qu_090)
-qu_095 = np.array(results095)
-np.save('qu_095', qu_095)
-qu_099 = np.array(results099)
-np.save('qu_099', qu_099)
-
+qu_090 = np.array([qZ(0.9)] * Ns_chi).ravel()
+qu_095 = np.array([qZ(0.95)] * Ns_chi).ravel()
+qu_099 = np.array([qZ(0.99)] * Ns_chi).ravel()
 qu_all = (qu_090, qu_095, qu_099)
 
 def calc_model_chi_local(args):
@@ -1438,7 +1064,7 @@ for h in [75, 150, 225]:
         for i in range(knots_xy_chi.shape[0]):
             args = (knots_xy_chi[i], h, u, qu_all[ax_id])
             args_list.append(args)
-        with multiprocessing.Pool(processes = 60) as pool:
+        with multiprocessing.Pool(processes = 5) as pool:
             results = pool.map(calc_model_chi_local, args_list)
         
         chi_mat = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
@@ -1828,14 +1454,7 @@ if not fixGEV: # these are the per iteration marginal parameters
 #     # influence coming from each of the knots
 #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
 #     gaussian_weight_matrix_test[site_id, :] = weight_from_knots
-gaussian_weight_matrix_test_phi = np.full(shape = (test_Ns, k_phi), fill_value = np.nan)
-for site_id in np.arange(test_Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
-    gaussian_weight_matrix_test_phi[site_id, :] = weight_from_knots
+
 gaussian_weight_matrix_test_rho = np.full(shape = (test_Ns, k_rho), fill_value = np.nan)
 for site_id in np.arange(test_Ns):
     # Compute distance between each pair of the two collections of inputs
@@ -1844,41 +1463,23 @@ for site_id in np.arange(test_Ns):
     # influence coming from each of the knots
     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
     gaussian_weight_matrix_test_rho[site_id, :] = weight_from_knots
-wendland_weight_matrix_test = np.full(shape = (test_Ns,k_phi), fill_value = np.nan)
-for site_id in np.arange(test_Ns):
-    # Compute distance between each pair of the two collections of inputs
-    d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                                XB = knots_xy_phi)
-    # influence coming from each of the knots
-    weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-    wendland_weight_matrix_test[site_id, :] = weight_from_knots
+
 
 # constants
-gamma_at_knots = np.repeat(0.5, k_phi)
 alpha          = 0.5
-gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
-                        axis = 1)**(1/alpha)
 sigsq_vec      = np.repeat(1.0, test_Ns)
 nu             = 0.5
 
 # making the per iterations parameters (chains thinned by 100) at testing sites
 #   - mu, sigma, ksi, and 
 #   - phi, range, R
-n_iter      = phi_knots_trace.shape[0]
+n_iter      = range_knots_trace.shape[0]
 idx_thin100 = np.arange(n_iter)[0::100] # thin by 100
 n_thin100   = len(idx_thin100)
 idx_thin100 = np.arange(n_thin100)
 
-phi_knots_trace_thin100 = phi_knots_trace[0:n_iter:100,:]
-phi_vec_test_thin100    = (gaussian_weight_matrix_test_phi @ phi_knots_trace_thin100.T).T
-
 range_knots_trace_thin100 = range_knots_trace[0:n_iter:100,:]
 range_vec_test_thin100    = (gaussian_weight_matrix_test_rho @ range_knots_trace_thin100.T).T
-
-R_trace_log_thin100 = R_trace_log[0:n_iter:100,:,:]
-R_vec_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
-for t in range(Nt):
-    R_vec_test_thin100[:,:,t]  = (wendland_weight_matrix_test @ np.exp(R_trace_log_thin100[:,:,t]).T).T
 
 # # Posterior mean of these parameters at the testing sites
 # phi_vec_test   = gaussian_weight_matrix_test @ phi_mean
@@ -1901,19 +1502,16 @@ for t in range(Nt):
 # 4. Calculate X per iteration -- could really use parallelization here... --------------------------------------------
 print('link function g:', norm_pareto)
 
-def qRW_pgev(args):
+def qZ_pgev(args):
     Y     = args[:,0]
     Loc   = args[:,1]
     Scale = args[:,2]
     Shape = args[:,3]
-    Phi   = args[:,4]
-    Gamma = args[:,5]
-    # Y, Loc, Scale, Shape, Phi, Gamma = args.T # args shaped (noNA, 6)
-    return qRW(pgev(Y, Loc, Scale, Shape), Phi, Gamma)
+    return qZ(pgev(Y, Loc, Scale, Shape))
 
 X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
 for i in range(n_thin100):
-    print('qRW_pgev:', i)
+    print('qZ_pgev:', i)
     args_list = []
     for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
         noNA = ~np.isnan(Y_99[:,t])
@@ -1921,31 +1519,27 @@ for i in range(n_thin100):
             args = np.column_stack((Y_99[noNA, t], 
                                     mu_matrix_thin100[i, noNA, t], 
                                     sigma_matrix_thin100[i,noNA,t],
-                                    ksi_matrix_thin100[i,noNA,t],
-                                    phi_vec_test_thin100[i,noNA],
-                                    gamma_vec_test[noNA]))
+                                    ksi_matrix_thin100[i,noNA,t]))
         if fixGEV:
             args = np.column_stack((Y_99[noNA, t],
                                     mu_initSmooth[noNA, t],
                                     sigma_initSmooth[noNA, t],
-                                    ksi_initSmooth[noNA, t],
-                                    phi_vec_test_thin100[i, noNA],
-                                    gamma_vec_test[noNA]))
+                                    ksi_initSmooth[noNA, t]))
         args_list.append(args)
     with multiprocessing.Pool(processes=N_CORES) as pool:
-        results = pool.map(qRW_pgev, args_list)
+        results = pool.map(qZ_pgev, args_list)
     for t in range(Nt):
         noNA = ~np.isnan(Y_99[:,t])
         X_99_thin100[i,noNA,t] = results[t]
 
 # 5. loglikelihood -- calculation can also be parallelized! -----------------------------------------------------------
 
-def ll(args):
-    Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol = args
-    return(marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol))
+def ll_par(args):
+    Y, Z, Loc, Scale, Shape, K_chol = args
+    return likelihood_1t(Y, Z, Loc, Scale, Shape, K_chol)
 
 # Using per iteration for the parameters
-ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, Nt), fill_value = 0.0)
+ll_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = 0.0)
 for i in range(n_thin100):
     print('ll:', i)
     args_list = []
@@ -1959,15 +1553,15 @@ for i in range(n_thin100):
         cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
         if not fixGEV:
             args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
-                    mu_matrix_thin100[i, noNA, t], sigma_matrix_thin100[i,noNA,t], ksi_matrix_thin100[i,noNA,t],
-                    phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
+                    mu_matrix_thin100[i, noNA, t], sigma_matrix_thin100[i,noNA,t], ksi_matrix_thin100[i,noNA,t], 
+                    cholesky_U)
         if fixGEV:
             args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
                     mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-                    phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
+                    cholesky_U)
         args_list.append(args)
     with multiprocessing.Pool(processes=N_CORES) as pool:
-        results = pool.map(ll, args_list)
+        results = pool.map(ll_par, args_list)
     for t in range(Nt):
         noNA = ~np.isnan(Y_99[:,t])
         ll_test_thin100[i,noNA,t] = results[t]
@@ -1990,7 +1584,7 @@ for i in range(n_thin100):
 #                     mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
 #                     phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
 #         args_list.append(args)
-#     with multiprocessing.Pool(processes=N_CORES) as pool:
+#     with multiprocessing.Pool(processes=30) as pool:
 #         results = pool.map(ll, args_list)
 #     for t in range(Nt):
 #         noNA = ~np.isnan(Y_99[:,t])
@@ -2006,337 +1600,7 @@ plt.savefig('ll_'+name+'_boxplot.pdf')
 plt.show()
 plt.close()
 
-# %%
 
-######################################
-#### fixksi QQPlot and Likelihood ####
-######################################
-if fixksi_only:
-    # %% Gumbel QQPlot fix only ksi
-    # Gumbel QQPlot fix only ksi
-
-    # Gumbel QQPlot with initial smoothed MLE -----------------------------------------------------------------------------
-
-    mu0_initSmooth = (C_mu0.T @ Beta_mu0_initSmooth).T
-    mu1_initSmooth = (C_mu1.T @ Beta_mu1_initSmooth).T
-    mu_initSmooth  = mu0_initSmooth + mu1_initSmooth * Time
-    sigma_initSmooth = np.exp((C_logsigma.T @ Beta_logsigma_initSmooth).T)
-    ksi_initSmooth = (C_ksi.T @ Beta_ksi_initSmooth).T
-
-    pY_initSmooth_test = np.full(shape = (test_Ns, Nt), fill_value = np.nan)
-    for t in range(Nt):
-        pY_initSmooth_test[:,t] = pgev(Y_99[:,t], mu_initSmooth[:,t], sigma_initSmooth[:,t], ksi_initSmooth[:,t])
-    pY_initSmooth_test_ro = numpy2rpy(pY_initSmooth_test)
-    r.assign('pY_initSmooth_test_ro', pY_initSmooth_test_ro)
-    r("save(pY_initSmooth_test_ro, file='pY_initSmooth_test_ro.gzip', compress=TRUE)")
-
-    gumbel_pY_initSmooth_test = np.full(shape = (test_Ns, Nt), fill_value = np.nan)
-    for t in range(Nt):
-        gumbel_pY_initSmooth_test[:,t] = scipy.stats.gumbel_r.ppf(pY_initSmooth_test[:,t])
-    gumbel_pY_initSmooth_test_ro = numpy2rpy(gumbel_pY_initSmooth_test)
-    r.assign('gumbel_pY_initSmooth_test_ro', gumbel_pY_initSmooth_test_ro)
-    r("save(gumbel_pY_initSmooth_test_ro, file='gumbel_pY_initSmooth_test_ro.gzip', compress=TRUE)")
-
-    # Gumbel QQPlot with mean(each MCMC iter GEV --> Gumbel) --------------------------------------------------------------
-
-    if not fixGEV:
-        # with per MCMC iterations of marginal GEV params
-        n = Beta_mu0_trace_thin.shape[0]
-
-        mu0_matrix_mcmc = (C_mu0.T @ Beta_mu0_trace_thin.T).T # shape (n, test_Ns, Nt)
-        mu1_matrix_mcmc = (C_mu1.T @ Beta_mu1_trace_thin.T).T # shape (n, test_Ns, Nt)
-        mu_matrix_mcmc  = mu0_matrix_mcmc + mu1_matrix_mcmc * Time
-        sigma_matrix_mcmc = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin.T).T)
-        ksi_matrix_mcmc = np.tile(ksi_initSmooth, reps = (n, 1, 1))
-
-        pY_mcmc_test = np.full(shape = (n, test_Ns, Nt), fill_value = np.nan)
-        for i in range(n):
-            for t in range(Nt):
-                pY_mcmc_test[i,:,t] = pgev(Y_99[:,t], mu_matrix_mcmc[i,:,t],
-                                            sigma_matrix_mcmc[i,:,t],
-                                            ksi_matrix_mcmc[i,:,t])
-        pY_mcmc_test_ro = numpy2rpy(pY_mcmc_test)
-        r.assign('pY_mcmc_test_ro',pY_mcmc_test_ro)
-        r("save(pY_mcmc_test_ro, file='pY_mcmc_test_ro.gzip', compress=TRUE)")
-
-        gumbel_pY_mcmc_test = np.full(shape = (n, test_Ns, Nt), fill_value = np.nan)
-        for i in range(n):
-            for t in range(Nt):
-                gumbel_pY_mcmc_test[i,:,t] = scipy.stats.gumbel_r.ppf(pY_mcmc_test[i,:,t])
-        gumbel_pY_mcmc_test_ro = numpy2rpy(gumbel_pY_mcmc_test)
-        r.assign('gumbel_pY_mcmc_test_ro',gumbel_pY_mcmc_test_ro)
-        r("save(gumbel_pY_mcmc_test_ro, file='gumbel_pY_mcmc_test_ro.gzip', compress=TRUE)")
-
-    # Drawing the QQ Plots ------------------------------------------------------------------------------------------------
-
-    for _ in range(10):
-        # with MLE initial smooth
-        r('''
-            test_Ns <- 99
-            s <- floor(runif(1, min = 1, max = test_Ns + 1))
-            print(test_sites_xy_ro[s,]) # print coordinates
-            gumbel_s = sort(gumbel_pY_initSmooth_test_ro[s,])
-            nquants = length(gumbel_s)
-            emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
-            emp_q = qgumbel(emp_p)
-            qq_gumbel_s <- extRemes::qqplot(gumbel_s, emp_q, regress=FALSE, legend=NULL,
-                                            xlab="Observed", ylab="Gumbel", main=paste("GEVfit-QQPlot of Site:",s),
-                                            lwd=3)
-            pdf(file=paste("QQPlot_R_Test_initSmooth_Site_",s,".pdf", sep=""), width = 6, height = 5)
-            par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
-            plot(type="n",qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
-            points(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$y, pch=20)
-            lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$lower, lty=2, col="blue", lwd=3)
-            lines(qq_gumbel_s$qdata$x, qq_gumbel_s$qdata$upper, lty=2, col="blue", lwd=3)
-            abline(a=0, b=1, lty=3, col="gray80", lwd=3)
-            legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
-            dev.off()
-        ''')
-        # with per MCMC iteration transformed
-        if not fixGEV:
-            r('''
-                # s <- floor(runif(1, min = 1, max = test_Ns+1))
-                print(test_sites_xy_ro[s,]) # print coordinates
-                gumbel_s_mcmc = sort(apply(gumbel_pY_mcmc_test_ro[,s,],2, mean))
-                nquants = length(gumbel_s_mcmc)
-                emp_p = seq(1/nquants, 1-1/nquants, length=nquants)
-                emp_q = qgumbel(emp_p)
-                qq_gumbel_s_mcmc <- extRemes::qqplot(gumbel_s_mcmc, emp_q, regress=FALSE, legend=NULL,
-                                                xlab="Observed", ylab="Gumbel", main=paste("Modelfit-QQPlot of Site:",s),
-                                                lwd=3)
-                pdf(file=paste("QQPlot_R_Test_MCMC_Site_",s,".pdf", sep=""), width = 6, height = 5)
-                par(mgp=c(1.5,0.5,0), mar=c(3,3,1,1))
-                plot(type="n",qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch = 20, xlab="Observed", ylab="Gumbel")
-                points(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$y, pch=20)
-                lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$lower, lty=2, col="blue", lwd=3)
-                lines(qq_gumbel_s_mcmc$qdata$x, qq_gumbel_s_mcmc$qdata$upper, lty=2, col="blue", lwd=3)
-                abline(a=0, b=1, lty=3, col="gray80", lwd=3)
-                legend("topleft", lty=c(2, 3), lwd=3, legend=c("95% confidence bands", "1:1 line"), col=c("blue", "gray80"), bty="n")
-                dev.off()
-                ''')
-
-    # %% loglikelihood at Testing sample fix only ksi ----------------------------------------------------------------------------------
-    # loglikelihood at Testing sample fix only ksi
-
-    # 1. Y_99 -------------------------------------------------------------------------------------------------------------
-
-    Y_99_noNA = Y_99[~np.isnan(Y_99)]
-
-    # 2. Marginal Parameters ----------------------------------------------------------------------------------------------
-
-    mu0_initSmooth = (C_mu0.T @ Beta_mu0_initSmooth).T
-    mu1_initSmooth = (C_mu1.T @ Beta_mu1_initSmooth).T
-    mu_initSmooth  = mu0_initSmooth + mu1_initSmooth * Time
-    sigma_initSmooth = np.exp((C_logsigma.T @ Beta_logsigma_initSmooth).T)
-    ksi_initSmooth = (C_ksi.T @ Beta_ksi_initSmooth).T
-
-    if not fixGEV: # these are the per iteration marginal parameters
-        Beta_mu0_trace_thin100      = Beta_mu0_trace[0:iter:100,:]
-        Beta_mu1_trace_thin100      = Beta_mu1_trace[0:iter:100,:]
-        Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:iter:100,:]
-        # Beta_ksi_trace_thin100      = Beta_ksi_trace[0:iter:100,:]
-
-        mu0_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
-        mu1_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
-        mu_matrix_thin100    = mu0_matrix_thin100 + mu1_matrix_thin100 * Time
-        sigma_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
-        ksi_matrix_thin100   = np.tile(ksi_initSmooth, reps = (sigma_matrix_thin100.shape[0], 1, 1))
-
-    # if not fixGEV: # these are the posterior mean estimates, which we shouldn't use
-    #     mu0_matrix_test = (C_mu0.T @ Beta_mu0_mean.T).T
-    #     mu1_matrix_test = (C_mu1.T @ Beta_mu1_mean.T).T
-    #     mu_matrix_test  = mu0_matrix_test + mu1_matrix_test * Time
-    #     sigma_matrix_test = np.exp((C_logsigma.T @ Beta_logsigma_mean.T).T)
-    #     ksi_matrix_test = (C_ksi.T @ Beta_ksi_mean.T).T
-
-    # 3. Copula Parameters - should also be per iterations ----------------------------------------------------------------
-
-    # weight matrices at the testing sites
-    # gaussian_weight_matrix_test = np.full(shape = (test_Ns, k), fill_value = np.nan)
-    # for site_id in np.arange(test_Ns):
-    #     # Compute distance between each pair of the two collections of inputs
-    #     d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-    #                                     XB = knots_xy)
-    #     # influence coming from each of the knots
-    #     weight_from_knots = weights_fun(d_from_knots, radius, bandwidth, cutoff = False)
-    #     gaussian_weight_matrix_test[site_id, :] = weight_from_knots
-    gaussian_weight_matrix_test_phi = np.full(shape = (test_Ns, k_phi), fill_value = np.nan)
-    for site_id in np.arange(test_Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy_phi)
-        # influence coming from each of the knots
-        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff = False)
-        gaussian_weight_matrix_test_phi[site_id, :] = weight_from_knots
-    gaussian_weight_matrix_test_rho = np.full(shape = (test_Ns, k_rho), fill_value = np.nan)
-    for site_id in np.arange(test_Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy_rho)
-        # influence coming from each of the knots
-        weight_from_knots = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff = False)
-        gaussian_weight_matrix_test_rho[site_id, :] = weight_from_knots
-    wendland_weight_matrix_test = np.full(shape = (test_Ns,k_phi), fill_value = np.nan)
-    for site_id in np.arange(test_Ns):
-        # Compute distance between each pair of the two collections of inputs
-        d_from_knots = scipy.spatial.distance.cdist(XA = test_sites_xy[site_id,:].reshape((-1,2)), 
-                                                    XB = knots_xy_phi)
-        # influence coming from each of the knots
-        weight_from_knots = wendland_weights_fun(d_from_knots, radius_from_knots)
-        wendland_weight_matrix_test[site_id, :] = weight_from_knots
-
-    # constants
-    gamma_at_knots = np.repeat(0.5, k_phi)
-    alpha          = 0.5
-    gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
-                            axis = 1)**(1/alpha)
-    sigsq_vec      = np.repeat(1.0, test_Ns)
-    nu             = 0.5
-
-    # making the per iterations parameters (chains thinned by 100) at testing sites
-    #   - mu, sigma, ksi, and 
-    #   - phi, range, R
-    n_iter      = phi_knots_trace.shape[0]
-    idx_thin100 = np.arange(n_iter)[0::100] # thin by 100
-    n_thin100   = len(idx_thin100)
-    idx_thin100 = np.arange(n_thin100)
-
-    phi_knots_trace_thin100 = phi_knots_trace[0:n_iter:100,:]
-    phi_vec_test_thin100    = (gaussian_weight_matrix_test_phi @ phi_knots_trace_thin100.T).T
-
-    range_knots_trace_thin100 = range_knots_trace[0:n_iter:100,:]
-    range_vec_test_thin100    = (gaussian_weight_matrix_test_rho @ range_knots_trace_thin100.T).T
-
-    R_trace_log_thin100 = R_trace_log[0:n_iter:100,:,:]
-    R_vec_test_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
-    for t in range(Nt):
-        R_vec_test_thin100[:,:,t]  = (wendland_weight_matrix_test @ np.exp(R_trace_log_thin100[:,:,t]).T).T
-
-    # # Posterior mean of these parameters at the testing sites
-    # phi_vec_test   = gaussian_weight_matrix_test @ phi_mean
-    # range_vec_test = gaussian_weight_matrix_test @ range_mean
-    # gamma_at_knots = np.repeat(0.5, k)
-    # alpha          = 0.5
-    # gamma_vec_test = np.sum(np.multiply(wendland_weight_matrix_test, gamma_at_knots)**(alpha),
-    #                         axis = 1)**(1/alpha)
-    # R_matrix_test     = wendland_weight_matrix_test @ np.exp(R_log_mean) # shape (k, Nt)
-
-    # # 4. K or Cholesky_U
-    # sigsq_vec = np.repeat(1.0, test_Ns)
-    # nu        = 0.5
-    # K_test    = ns_cov(range_vec = range_vec_test,
-    #                    sigsq_vec = sigsq_vec,
-    #                    coords    = test_sites_xy,
-    #                    kappa     = nu, cov_model = "matern")
-    # cholesky_U_test = scipy.linalg.cholesky(K_test, lower = False)
-
-    # 4. Calculate X per iteration -- could really use parallelization here... --------------------------------------------
-    print('link function g:', norm_pareto)
-
-    def qRW_pgev(args):
-        Y     = args[:,0]
-        Loc   = args[:,1]
-        Scale = args[:,2]
-        Shape = args[:,3]
-        Phi   = args[:,4]
-        Gamma = args[:,5]
-        # Y, Loc, Scale, Shape, Phi, Gamma = args.T # args shaped (noNA, 6)
-        return qRW(pgev(Y, Loc, Scale, Shape), Phi, Gamma)
-
-    X_99_thin100 = np.full(shape = (n_thin100, test_Ns, Nt), fill_value = np.nan)
-    for i in range(n_thin100):
-        print('qRW_pgev:', i)
-        args_list = []
-        for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
-            noNA = ~np.isnan(Y_99[:,t])
-            if not fixGEV:
-                args = np.column_stack((Y_99[noNA, t], 
-                                        mu_matrix_thin100[i, noNA, t], 
-                                        sigma_matrix_thin100[i,noNA,t],
-                                        ksi_matrix_thin100[i,noNA,t],
-                                        phi_vec_test_thin100[i,noNA],
-                                        gamma_vec_test[noNA]))
-            if fixGEV:
-                args = np.column_stack((Y_99[noNA, t],
-                                        mu_initSmooth[noNA, t],
-                                        sigma_initSmooth[noNA, t],
-                                        ksi_initSmooth[noNA, t],
-                                        phi_vec_test_thin100[i, noNA],
-                                        gamma_vec_test[noNA]))
-            args_list.append(args)
-        with multiprocessing.Pool(processes=N_CORES) as pool:
-            results = pool.map(qRW_pgev, args_list)
-        for t in range(Nt):
-            noNA = ~np.isnan(Y_99[:,t])
-            X_99_thin100[i,noNA,t] = results[t]
-
-    # 5. loglikelihood -- calculation can also be parallelized! -----------------------------------------------------------
-
-    def ll(args):
-        Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol = args
-        return(marg_transform_data_mixture_likelihood_1t(Y, X, Loc, Scale, Shape, phi, gamma, R, K_chol))
-
-    # Using per iteration for the parameters
-    ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, Nt), fill_value = 0.0)
-    for i in range(n_thin100):
-        print('ll:', i)
-        args_list = []
-        for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
-            noNA       = ~np.isnan(Y_99[:,t])
-            K_test     = ns_cov(range_vec = range_vec_test_thin100[i,:],
-                                sigsq_vec = sigsq_vec,
-                                coords    = test_sites_xy,
-                                kappa     = nu, cov_model = "matern")
-            K_subset   = K_test[noNA,:][:,noNA]
-            cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
-            if not fixGEV:
-                args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
-                        mu_matrix_thin100[i, noNA, t], sigma_matrix_thin100[i,noNA,t], ksi_matrix_thin100[i,noNA,t],
-                        phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
-            if fixGEV:
-                args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
-                        mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-                        phi_vec_test_thin100[i,noNA], gamma_vec_test[noNA], R_vec_test_thin100[i,noNA,t], cholesky_U)
-            args_list.append(args)
-        with multiprocessing.Pool(processes=N_CORES) as pool:
-            results = pool.map(ll, args_list)
-        for t in range(Nt):
-            noNA = ~np.isnan(Y_99[:,t])
-            ll_test_thin100[i,noNA,t] = results[t]
-
-    # # Using the posterior mean for the parameters
-    # ll_test_thin100 = np.full(shape= (n_thin100, test_Ns, Nt), fill_value = 0.0)
-    # for i in range(n_thin100):
-    #     print('ll:', i)
-    #     args_list = []
-    #     for t in range(Nt): # parallel compute the times (distribute the Nt times to n_processes)
-    #         noNA       = ~np.isnan(Y_99[:,t])
-    #         K_subset   = K_test[noNA,:][:,noNA]
-    #         cholesky_U = scipy.linalg.cholesky(K_subset, lower = False)
-    #         if not fixGEV:
-    #             args = (Y_99[noNA, t], X_99_thin100[i, noNA, t],
-    #                     mu_matrix_test[noNA,t], sigma_matrix_test[noNA,t], ksi_matrix_test[noNA,t],
-    #                     phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-    #         if fixGEV:
-    #             args = (Y_99[noNA,t], X_99_thin100[i,noNA,t],
-    #                     mu_initSmooth[noNA,t], sigma_initSmooth[noNA,t], ksi_initSmooth[noNA,t],
-    #                     phi_vec_test[noNA], gamma_vec_test[noNA], R_matrix_test[noNA,t], cholesky_U)
-    #         args_list.append(args)
-    #     with multiprocessing.Pool(processes=N_CORES) as pool:
-    #         results = pool.map(ll, args_list)
-    #     for t in range(Nt):
-    #         noNA = ~np.isnan(Y_99[:,t])
-    #         ll_test_thin100[i,noNA,t] = results[t]
-
-    np.save('ll_'+name, ll_test_thin100)
-
-    plt.boxplot(np.sum(ll_test_thin100, axis = (1,2)))
-    plt.xticks([1], [name])
-    plt.xlabel('Knot Radius Configuration')
-    plt.ylabel('log-likelihood @ test sites')
-    plt.savefig('ll_'+name+'_boxplot.pdf')
-    plt.show()
-    plt.close()
 # # %%
 # # Draw boxplots of loglikelihoods between different runs --------------------------------------------------------------
 
@@ -3087,7 +2351,7 @@ if fixksi_only:
 # # for i in range(knots_xy_chi.shape[0]):
 # #     args = (knots_xy_chi[i], u, h)
 # #     args_list.append(args)
-# # with multiprocessing.Pool(processes=N_CORES) as pool:
+# # with multiprocessing.Pool(processes=30) as pool:
 # #     results = pool.map(calc_chi, args_list)
 
 # # chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
@@ -3123,7 +2387,7 @@ if fixksi_only:
 #         for i in range(knots_xy_chi.shape[0]):
 #             args = (knots_xy_chi[i], u, h)
 #             args_list.append(args)
-#         with multiprocessing.Pool(processes=N_CORES) as pool:
+#         with multiprocessing.Pool(processes=30) as pool:
 #             results = pool.map(calc_chi, args_list)
         
 #         chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
