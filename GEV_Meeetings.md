@@ -5,15 +5,23 @@
 ## June 2 (Monday) Muyang/Ben
 
 - [x] Pure AI model diagnostics and evaluation
+  - results generated. 
+    - $\chi$-plot looks flat. 
+    - Show predicative likelihood boxplot.
 
 - [ ] emulate the quantile function
+  - fix bug and carry out the weighted MSE method
+  - tryout the EV-GAN method
 
 - [ ] GEV + *standard* Pareto + trancated proposal range?
   - Going to be super fast, because no numerical integration
   - nah, it will require additional coverage analysis
   - Ben: It's better if the distributions are in closed forms (than emulating the quantile function)
 
-- [x] Requeued the chains
+- [x] Backup and Requeue the chains
+  - 20250601
+  - 20250602
+  - 20250603
 
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
@@ -61,8 +69,8 @@
     Epoch 13/100
     ```
     - [x] use `weight = 1 + alpha * softplus(y_true)`?
-    - [ ] use piece-wise emulator, one for 0.1 to 0.9, one for 0.9 to 0.9999?
-  - [ ] Try out the EV-GAN transformation
+    - [-] use piece-wise emulator, one for 0.1 to 0.9, one for 0.9 to 0.9999?
+  - [-] Try out the EV-GAN transformation
     - $H(y) = -\log(y) / \left[\log(1-p^2) - \log(2)\right]$
     - $y = \exp \left\{-\hat{H}(y) \cdot \left[\log(1-p^2) - \log(2)\right]\right \}$
 

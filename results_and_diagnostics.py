@@ -1998,6 +1998,7 @@ for i in range(n_thin100):
 
 np.save('ll_'+name, ll_test_thin100)
 
+ax, fig = plt.subplots(figsize = (6,4))
 plt.boxplot(np.sum(ll_test_thin100, axis = (1,2)))
 plt.xticks([1], [name])
 plt.xlabel('Knot Radius Configuration')

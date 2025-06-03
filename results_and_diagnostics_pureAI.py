@@ -433,7 +433,7 @@ for i in range(k_rho):
     plt.ylabel('range')
     plt.savefig('Traceplot_range_knot'+str(i)+'.pdf')
     plt.show()
-plt.close()
+    plt.close()
 
 for j in range(Beta_mu0_m):
     plt.plot(xs_thin2, Beta_mu0_trace_thin[:,j], label = 'Beta_'+str(j))
