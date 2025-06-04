@@ -2,7 +2,19 @@
 
 ## June 4 (Wednesday) Muyang/Likun/Ben
 
+- Priority is to keep running the current chains
+
+- Not a huge rush, but would be good to see if GEV + *standard* Pareto work
+
+- Emulate the quantile funciton in time conflict with the Meijer G fucntion. 
+  - Meijer G is more important.
+
 ## June 2 (Monday) Muyang/Ben
+
+- [x] Backup and Requeue the chains
+  - 20250601
+  - 20250602
+  - 20250603
 
 - [x] Pure AI model diagnostics and evaluation
   - results generated. 
@@ -18,10 +30,7 @@
   - nah, it will require additional coverage analysis
   - Ben: It's better if the distributions are in closed forms (than emulating the quantile function)
 
-- [x] Backup and Requeue the chains
-  - 20250601
-  - 20250602
-  - 20250603
+
 
 ## May 28 (Wednesday) Meeting Muyang/Likun/Ben
 
