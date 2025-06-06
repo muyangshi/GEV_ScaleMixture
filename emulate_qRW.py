@@ -78,13 +78,14 @@ phi_min,   phi_max   = 0.05, 0.95
 gamma_min, gamma_max = 0.5,  5
 
 INITIAL_EPOCH         = 0
-N_EPOCHS              = 100
+N_EPOCHS              = 200
 BATCH_SIZE            = 4096
 # STEPS_PER_EPOCH       = N // BATCH_SIZE
 VALIDATION_BATCH_SIZE = 4096
 N_EPOCH_PER_DECAY     = 1
 UNIT_HYPERCUBE        = True
-LOG_RESPONSE          = True
+LOG_RESPONSE          = False
+EVGAN_RESPONSE        = True
 
 # Helper Functions ------------------------------------------------------------
 
@@ -108,6 +109,12 @@ def weighted_mse(alpha=1.0, eps=1e-8):
 def qRW_par(args): # wrapper to put qRW for multiprocessing
     p, phi, gamma = args
     return(qRW(p, phi, gamma))
+
+def H(y, p):
+    return -np.log(y) / (np.log(1-p**2) - np.log(2))
+
+def H_inv(y, p):
+    return np.exp(-np.log(y) * (np.log(1-p**2) - np.log(2)))
 
 
 # %% LHS design for the parameter of qRW(p, phi, gamma)
@@ -162,6 +169,11 @@ if TRAIN:
         y_train = np.log(y_train)
         y_val   = np.log(y_val)
 
+    if EVGAN_RESPONSE:
+        print('taking EVGAN response...')
+        y_train = H(y_train, X_train[:,0])
+        y_val   = H(y_val, X_val[:,0])
+
     if UNIT_HYPERCUBE:
         X_min   = np.min(X_train, axis = 0)
         X_max   = np.max(X_train, axis = 0)
@@ -186,20 +198,13 @@ if TRAIN:
                 keras.layers.Dense(512, activation = 'tanh'),
                 keras.layers.Dense(1,   activation = 'linear')
         ])
-
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-3,
             decay_steps           = N_EPOCH_PER_DECAY * len(y_train) // BATCH_SIZE,
             decay_rate            = 0.96,
             staircase             = False
         )
-        model.compile(
-            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
-            # loss        = keras.losses.MeanSquaredError(),
-            loss        = weighted_mse(alpha=ALPHA),
-            jit_compile = True)
-        model.summary()
-    else: # load previously defined model
+    else:
         model = keras.models.load_model('./checkpoint.model.keras')
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-4,
@@ -207,12 +212,18 @@ if TRAIN:
             decay_rate            = 0.96,
             staircase             = False
         )
-        model.compile(
-            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
-            # loss        = keras.losses.MeanSquaredError(),
-            loss        = weighted_mse(alpha=ALPHA),
-            jit_compile = True)
-        model.summary()
+
+    if LOG_RESPONSE:   loss_func = weighted_mse(alpha=ALPHA)
+    if EVGAN_RESPONSE: loss_func = keras.losses.MeanSquaredError()
+
+    model.compile(
+        optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
+        # loss        = keras.losses.MeanSquaredError(),
+        # loss        = weighted_mse(alpha=ALPHA),
+        loss        = loss_func,
+        jit_compile = True)
+    model.summary()
+
 
     # Fitting Model -----------------------------------------------------------
 
@@ -266,6 +277,13 @@ if TRAIN:
     with open(rf'trainHistoryDict_{INITIAL_EPOCH}to{N_EPOCHS}.pkl', 'wb') as file:
         pickle.dump(history.history, file)
 
+    if LOG_RESPONSE: bestmodel = keras.models.load_model(checkpoint_filepath,
+                                                         custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
+    if EVGAN_RESPONSE: bestmodel = keras.models.load_model(checkpoint_filepath)
+    bestmodel.save(rf'./qRW_NN_{N}.keras')
+    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
+        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
+
     plt.plot(history.history['val_loss'])
     plt.xlabel('epoch')
     plt.ylabel('MSE loss')
@@ -281,13 +299,6 @@ if TRAIN:
     plt.savefig(rf'Plot_train_loss_{INITIAL_EPOCH}to{N_EPOCHS}.pdf')
     plt.show()
     plt.close()
-
-    bestmodel = keras.models.load_model(checkpoint_filepath,
-                                        custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
-    bestmodel.save(rf'./qRW_NN_{N}.keras')
-    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
-        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
-
 
     # %% Prediction --------------------------------------------------------------
 
@@ -325,7 +336,12 @@ if TRAIN:
         # make prediction
         X        = np.column_stack((p_vec, phi_vec, gamma_vec))
         X_scaled = qmc.scale(X, X_min, X_max, reverse = True)
-        return np.exp(NN_forward_pass(X_scaled))
+
+        if LOG_RESPONSE:
+            return np.exp(NN_forward_pass(X_scaled))
+        if EVGAN_RESPONSE:
+            Z = NN_forward_pass(X_scaled)
+            return H_inv(Z, p_vec)
 
     def qRW_NN_2p(p_vec, phi_vec, gamma_vec):
         # check input shape and broadcast
