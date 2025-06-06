@@ -84,8 +84,7 @@ BATCH_SIZE            = 4096
 VALIDATION_BATCH_SIZE = 4096
 N_EPOCH_PER_DECAY     = 1
 UNIT_HYPERCUBE        = True
-LOG_RESPONSE          = False
-EVGAN_RESPONSE        = True
+LOG_RESPONSE          = True
 
 # Helper Functions ------------------------------------------------------------
 
@@ -110,9 +109,6 @@ def qRW_par(args): # wrapper to put qRW for multiprocessing
     p, phi, gamma = args
     return(qRW(p, phi, gamma))
 
-def H(y, p):
-    return -np.log(y) / (np.log(1-p**2) - np.log(2))
-
 
 # %% LHS design for the parameter of qRW(p, phi, gamma)
 
@@ -124,7 +120,7 @@ if GENERATE:
     # linear scaling for phi, gamma;
     # exponentially scale p towards 1
     l_bounds   = [0, phi_min, gamma_min]
-    u_bounds   = [1, phi_max, gamma_max] 
+    u_bounds   = [1, phi_max, gamma_max]
     X_lhs      = qmc.scale(lhs_samples, l_bounds, u_bounds)
     X_lhs[:,0] = p_min + (p_max - p_min) * (1 - np.exp(-BETA * X_lhs[:,0]))/(1-np.exp(-BETA))
 
@@ -165,11 +161,6 @@ if TRAIN:
         print('taking log of response...')
         y_train = np.log(y_train)
         y_val   = np.log(y_val)
-    
-    if EVGAN_RESPONSE:
-        print('using EVGAN response...')
-        y_train = H(y_train, X_train[:,0])
-        y_val   = H(y_val, X_val[:,0])
 
     if UNIT_HYPERCUBE:
         X_min   = np.min(X_train, axis = 0)
@@ -195,13 +186,20 @@ if TRAIN:
                 keras.layers.Dense(512, activation = 'tanh'),
                 keras.layers.Dense(1,   activation = 'linear')
         ])
+
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-3,
             decay_steps           = N_EPOCH_PER_DECAY * len(y_train) // BATCH_SIZE,
             decay_rate            = 0.96,
             staircase             = False
         )
-    else:
+        model.compile(
+            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
+            # loss        = keras.losses.MeanSquaredError(),
+            loss        = weighted_mse(alpha=ALPHA),
+            jit_compile = True)
+        model.summary()
+    else: # load previously defined model
         model = keras.models.load_model('./checkpoint.model.keras')
         lr_schedule = keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate = 1e-4,
@@ -209,18 +207,12 @@ if TRAIN:
             decay_rate            = 0.96,
             staircase             = False
         )
-    
-    if LOG_RESPONSE:   loss_func = weighted_mse(alpha=ALPHA)
-    if EVGAN_RESPONSE: loss_func = keras.losses.MeanSquaredError()
-
-    model.compile(
-        optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
-        # loss        = keras.losses.MeanSquaredError(),
-        # loss        = weighted_mse(alpha=ALPHA),
-        loss        = loss_func,
-        jit_compile = True)
-    model.summary()
-
+        model.compile(
+            optimizer   = keras.optimizers.Adam(learning_rate=lr_schedule),
+            # loss        = keras.losses.MeanSquaredError(),
+            loss        = weighted_mse(alpha=ALPHA),
+            jit_compile = True)
+        model.summary()
 
     # Fitting Model -----------------------------------------------------------
 
@@ -248,7 +240,7 @@ if TRAIN:
                 plt.close()
     loss_plotter = LossHistoryPlotter(plot_every = 10)
 
-    checkpoint_filepath = './checkpoint.model.keras' # only saves the best performer seen so far after each epoch 
+    checkpoint_filepath = './checkpoint.model.keras' # only saves the best performer seen so far after each epoch
     model_checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath=checkpoint_filepath,
                                                                 monitor='val_loss',
                                                                 mode='min',
@@ -258,10 +250,10 @@ if TRAIN:
     print('started fitting NN:', datetime.datetime.now())
 
     history = model.fit(
-        X_train, 
-        y_train, 
+        X_train,
+        y_train,
         initial_epoch         = INITIAL_EPOCH,
-        epochs                = N_EPOCHS, 
+        epochs                = N_EPOCHS,
         batch_size            = BATCH_SIZE,
         validation_batch_size = VALIDATION_BATCH_SIZE,
         verbose = 2,
@@ -273,15 +265,6 @@ if TRAIN:
 
     with open(rf'trainHistoryDict_{INITIAL_EPOCH}to{N_EPOCHS}.pkl', 'wb') as file:
         pickle.dump(history.history, file)
-
-    if LOG_RESPONSE:
-        bestmodel = keras.models.load_model(checkpoint_filepath,
-                                            custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
-    if EVGAN_RESPONSE:
-        bestmodel = keras.models.load_model(checkpoint_filepath)
-    bestmodel.save(rf'./qRW_NN_{N}.keras')
-    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
-        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
 
     plt.plot(history.history['val_loss'])
     plt.xlabel('epoch')
@@ -299,7 +282,14 @@ if TRAIN:
     plt.show()
     plt.close()
 
-    # Prediction --------------------------------------------------------------
+    bestmodel = keras.models.load_model(checkpoint_filepath,
+                                        custom_objects={'loss_fn': weighted_mse(alpha=ALPHA)})
+    bestmodel.save(rf'./qRW_NN_{N}.keras')
+    with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'wb') as file:
+        pickle.dump(bestmodel.get_weights(), file, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+    # %% Prediction --------------------------------------------------------------
 
     # load model weights
     with open(rf'qRW_NN_{N}_weights_and_biases.pkl', 'rb') as f:
@@ -326,34 +316,27 @@ if TRAIN:
         p_vec     = np.atleast_1d(p_vec)
         phi_vec   = np.atleast_1d(phi_vec)
         gamma_vec = np.atleast_1d(gamma_vec)
-        if not (len(x_vec) == len(phi_vec) == len(gamma_vec)): max_length = np.max([len(x_vec), len(phi_vec), len(gamma_vec)])
-        if len(x_vec)      == 1: x_vec     = np.full(max_length, x_vec[0])
+        if not (len(p_vec) == len(phi_vec) == len(gamma_vec)): max_length = np.max([len(p_vec), len(phi_vec), len(gamma_vec)])
+        if len(p_vec)      == 1: p_vec     = np.full(max_length, p_vec[0])
         if len(phi_vec)    == 1: phi_vec   = np.full(max_length, phi_vec[0])
         if len(gamma_vec)  == 1: gamma_vec = np.full(max_length, gamma_vec[0])
-        if len(tau_vec)    == 1: tau_vec   = np.full(max_length, tau_vec[0])
-        if not (len(x_vec) == len(phi_vec) == len(gamma_vec)): raise ValueError('Cannot broadcast with different lengths.')
+        if not (len(p_vec) == len(phi_vec) == len(gamma_vec)): raise ValueError('Cannot broadcast with different lengths.')
 
         # make prediction
         X        = np.column_stack((p_vec, phi_vec, gamma_vec))
         X_scaled = qmc.scale(X, X_min, X_max, reverse = True)
-
-        if LOG_RESPONSE:
-            return np.exp(NN_forward_pass(X_scaled))
-        if EVGAN_RESPONSE:
-            Z = NN_forward_pass(X_scaled)
-            return np.exp(-Z * (np.log(1-p_vec**2) - np.log(2)))
+        return np.exp(NN_forward_pass(X_scaled))
 
     def qRW_NN_2p(p_vec, phi_vec, gamma_vec):
         # check input shape and broadcast
         p_vec     = np.atleast_1d(p_vec)
         phi_vec   = np.atleast_1d(phi_vec)
         gamma_vec = np.atleast_1d(gamma_vec)
-        if not (len(x_vec) == len(phi_vec) == len(gamma_vec)): max_length = np.max([len(x_vec), len(phi_vec), len(gamma_vec)])
-        if len(x_vec)      == 1: x_vec     = np.full(max_length, x_vec[0])
+        if not (len(p_vec) == len(phi_vec) == len(gamma_vec)): max_length = np.max([len(p_vec), len(phi_vec), len(gamma_vec)])
+        if len(p_vec)      == 1: p_vec     = np.full(max_length, p_vec[0])
         if len(phi_vec)    == 1: phi_vec   = np.full(max_length, phi_vec[0])
         if len(gamma_vec)  == 1: gamma_vec = np.full(max_length, gamma_vec[0])
-        if len(tau_vec)    == 1: tau_vec   = np.full(max_length, tau_vec[0])
-        if not (len(x_vec) == len(phi_vec) == len(gamma_vec)): raise ValueError('Cannot broadcast with different lengths.')
+        if not (len(p_vec) == len(phi_vec) == len(gamma_vec)): raise ValueError('Cannot broadcast with different lengths.')
 
         # check proportion within interpolation range
         condition_p     = (0.1  <= p_vec)     & (p_vec     <= 0.9999)
@@ -365,103 +348,150 @@ if TRAIN:
             print('Proportion p interpolated:',     np.mean(condition_p))
             print('Proportion phi interpolated:',   np.mean(condition_phi))
             print('Proportion gamma interpolated:', np.mean(condition_gamma))
-        
+
         # make prediction
         outputs = np.full((len(p_vec),), fill_value=np.nan)
         outputs[condition] = qRW_NN(p_vec[condition], phi_vec[condition], gamma_vec[condition]).ravel()
         outputs[~condition] = qRW(p_vec[~condition], phi_vec[~condition], gamma_vec[~condition]).ravel()
         return outputs
 
-    # Evaluation --------------------------------------------------------------
+    # %% Evaluation --------------------------------------------------------------
 
-    # Make example qRW plots ------------------------------
+    # Prediction Plots ------------------------------------
 
-    phi   = 0.5
-    gamma = 0.5
-    tau   = 1
-    ps    = np.linspace(0.1, 0.999, 100)
-    plt.plot(ps, qRW(ps, phi, gamma), 'k.-', label = 'truth')
-    plt.plot(ps, qRW_NN(ps, phi, gamma), 'b.-', label = 'emulated')
+    phi      = 0.5
+    gamma    = 0.5
+    ps       = np.linspace(0.1, 0.9999, 100)
+    qRW_true = qRW(ps, phi, gamma)
+    qRW_pred = qRW_NN(ps, phi, gamma)
+
+    plt.plot(ps, qRW_true, 'k.-', label = 'truth')
+    plt.plot(ps, qRW_pred, 'b.-', label = 'emulated')
     plt.legend(loc = 'upper left')
     plt.xlabel('p')
-    plt.ylabel('quantile')
-    plt.xticks(np.linspace(0.1, 0.999, 10))
-    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma} $\tau$={tau})')
-    plt.savefig(rf'Plot_qRW_{INITIAL_EPOCH}to{N_EPOCHS}.pdf')
+    plt.ylabel('qRW')
+    plt.xticks(np.linspace(0.1, 0.9999, 10))
+    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    plt.savefig(rf'Plot_qRW_phi{phi}_gamma{gamma}.pdf')
     plt.show()
     plt.close()
-
-    phi   = 0.7
-    gamma = 5
-    tau   = 25
-    ps    = np.linspace(0.1, 0.999, 100)
-    plt.plot(ps, qRW(ps, phi, gamma), 'k.-', label = 'truth')
-    plt.plot(ps, qRW_NN(ps, phi, gamma), 'b.-', label = 'qRW NN')
-    plt.legend(loc = 'upper left')
-    plt.xlabel('p')
-    plt.ylabel('quantile')
-    plt.xticks(np.linspace(0.1, 0.999, 5))
-    plt.title(rf'qRW(p with $\phi$={phi} $\gamma$={gamma} $\tau$={tau})')
-    plt.savefig(rf'Plot_qRW2_{INITIAL_EPOCH}to{N_EPOCHS}.pdf')
-    plt.show()
-    plt.close()
-
-    # Goodness of Fit plot --------------------------------
-
-    X_val = np.load(rf'qRW_X_val_{N_val}.npy')
-    y_val = np.load(rf'qRW_Y_val_{N_val}.npy')
-    if LOG_RESPONSE:   y_val = np.log(y_val)
-    if UNIT_HYPERCUBE: X_val = (X_val - X_min) / (X_max - X_min)
-
-    y_val_pred = qRW_NN(X_val[:,0], X_val[:,1], X_val[:,2])
 
     fig, ax = plt.subplots()
     ax.set_aspect('equal', 'datalim')
-    ax.scatter(y_val, np.log(y_val_pred.ravel()))
+    ax.scatter(qRW_true, qRW_pred)
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    ax.set_xlabel('True qRW')
+    ax.set_ylabel('Emulated qRW')
+    plt.savefig(rf'GOF_Prediction_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+    plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
+    plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
+    plt.legend(loc = 'upper left')
+    plt.xlabel('p')
+    plt.ylabel('log(qRW)')
+    plt.xticks(np.linspace(0.1, 0.9999, 10))
+    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(np.log(qRW_true), np.log(qRW_pred))
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    ax.set_xlabel('True log(qRW)')
+    ax.set_ylabel('Emulated log(qRW)')
+    plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+
+
+    phi      = 0.7
+    gamma    = 5
+    ps       = np.linspace(0.1, 0.9999, 100)
+    qRW_true = qRW(ps, phi, gamma)
+    qRW_pred = qRW_NN(ps, phi, gamma)
+
+    plt.plot(ps, qRW_true, 'k.-', label = 'truth')
+    plt.plot(ps, qRW_pred, 'b.-', label = 'emulated')
+    plt.legend(loc = 'upper left')
+    plt.xlabel('p')
+    plt.ylabel('qRW')
+    plt.xticks(np.linspace(0.1, 0.9999, 10))
+    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    plt.savefig(rf'Plot_qRW_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(qRW_true, qRW_pred)
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    ax.set_xlabel('True qRW')
+    ax.set_ylabel('Emulated qRW')
+    plt.savefig(rf'GOF_Prediction_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+    plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
+    plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
+    plt.legend(loc = 'upper left')
+    plt.xlabel('p')
+    plt.ylabel('log(qRW)')
+    plt.xticks(np.linspace(0.1, 0.9999, 10))
+    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(np.log(qRW_true), np.log(qRW_pred))
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+    ax.set_xlabel('True log(qRW)')
+    ax.set_ylabel('Emulated log(qRW)')
+    plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
+    plt.show()
+    plt.close()
+
+
+    # Goodness of Fit plot on Validation Dataset ----------
+
+    X_val      = np.load(rf'qRW_X_val_{N_val}.npy')
+    y_val      = np.load(rf'qRW_Y_val_{N_val}.npy')
+    y_val_pred = qRW_NN(X_val[:,0], X_val[:,1], X_val[:,2])
+
+    idx        = np.where((0.1 <= X_val[:,0]) & (X_val[:,0] <= 0.9999))[0]
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(y_val[idx], y_val_pred[idx])
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
+    ax.set_xlabel('True qRW')
+    ax.set_ylabel('Emulated qRW')
+    plt.savefig(r'GOF_validation_reduced.pdf')
+    plt.show()
+    plt.close()
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(np.log(y_val[idx]), np.log(y_val_pred[idx]))
     ax.axline((0, 0), slope=1, color='black', linestyle='--')
     ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
     ax.set_xlabel('True log(qRW)')
     ax.set_ylabel('Emulated log(qRW)')
-    plt.savefig(r'GOF_validation_log.pdf')
-    plt.show()
-    plt.close()
-
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(np.exp(y_val), y_val_pred.ravel())
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
-    ax.set_xlabel('True qRW')
-    ax.set_ylabel('Emulated qRW')
-    plt.savefig(r'GOF_validation_original.pdf')
-    plt.show()
-    plt.close()
-
-    # Goodness of Fit plot in reduced range ---------------
-
-    idx = np.where(0.1 <= X_val[:,0] & X_val[:,0] <= 0.9999)[0]
-
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(y_val[idx], np.log(y_val_pred[idx]))
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
-    ax.set_xlabel('True qRW')
-    ax.set_ylabel('Emulated qRW')
     plt.savefig(r'GOF_validation_log_reduced.pdf')
     plt.show()
     plt.close()
 
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(np.exp(y_val[idx]), y_val_pred[idx])
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
-    ax.set_xlabel('True qRW')
-    ax.set_ylabel('Emulated qRW')
-    plt.savefig(r'GOF_validation_original_reduced.pdf')
-    plt.show()
-    plt.close()
 
 # # %% Marginal Likelihood
 
@@ -476,9 +506,9 @@ if TRAIN:
 # ''')
 
 # # Load from .RData file the following
-# #   Y, 
-# #   GP_estimates (u, logsigma, xi), 
-# #   elev, 
+# #   Y,
+# #   GP_estimates (u, logsigma, xi),
+# #   elev,
 # #   stations
 
 # Y                  = np.array(r('Y'))
@@ -488,7 +518,7 @@ if TRAIN:
 # elevations         = np.array(r('elev'))
 # stations           = np.array(r('stations')).T
 
-# # this `u_vec` is the threshold, 
+# # this `u_vec` is the threshold,
 # # spatially varying but temporally constant
 # # ie, each site has its own threshold
 # u_vec              = GP_estimates[:,0]
@@ -736,7 +766,7 @@ if TRAIN:
 #     X_star = (R_vec ** phi_vec) * g(Z_vec)
 #     X      = qRW(pCGP(Y, p, u_vec, scale_vec, shape_vec), phi_vec, gamma_bar_vec, tau)
 #     dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-    
+
 #     # log censored likelihood of y on censored sites
 #     censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
 #     # log censored likelihood of y on exceedance sites
@@ -764,7 +794,7 @@ if TRAIN:
 #     X      = qRW_NN_2p(np.column_stack((pY, phi_vec, gamma_bar_vec, np.full((len(Y),), tau))),
 #                   Ws, bs, acts)
 #     dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-    
+
 #     # log censored likelihood of y on censored sites
 #     censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
 #     # log censored likelihood of y on exceedance sites
@@ -788,7 +818,7 @@ if TRAIN:
 
 #     X_star = (R_vec ** phi_vec) * g(Z_vec)
 #     dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-    
+
 #     # log censored likelihood of y on censored sites
 #     censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
 #     # log censored likelihood of y on exceedance sites
@@ -855,7 +885,7 @@ if TRAIN:
 
 #         X_nn = qRW_NN_2p(np.vstack(input_list), Ws, bs, acts)
 
-#         # Split the X to each t, and use the 
+#         # Split the X to each t, and use the
 #         # calculated X to calculate likelihood
 #         X_nn = X_nn.reshape(Nt, Ns).T
 
@@ -882,7 +912,7 @@ if TRAIN:
 #                             R_vec, Z_1t, K, phi_vec_test, gamma_bar_vec, tau,
 #                             logS_vec, gamma_k_vec, censored_idx_1t, exceed_idx_1t,
 #                             X_1t, Ws, bs, acts))
-        
+
 #         with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
 #             results = pool.map(ll_1t_par_NN_2p_opt, args_list)
 #         ll_phi_NN_2p_opt.append(np.array(results))
@@ -896,7 +926,7 @@ if TRAIN:
 #     ll_phi     = []
 #     start_time = time.time()
 #     for phi_x in phi_grid:
-        
+
 #         args_list = []
 #         print('elapsed:', round(time.time() - start_time, 3), phi_x)
 
@@ -929,7 +959,7 @@ if TRAIN:
 #         ll_phi.append(np.array(results))
 
 #     ll_phi = np.array(ll_phi, dtype = object)
-#     np.save(rf'll_phi_k{i}', ll_phi)    
+#     np.save(rf'll_phi_k{i}', ll_phi)
 
 #     plt.plot(phi_grid, np.sum(ll_phi, axis = 1), 'b.-', label = 'actual')
 #     plt.plot(phi_grid, np.sum(ll_phi_NN_2p_opt, axis = 1), 'r.-', label = 'qRW_NN_2p emulator')
@@ -943,3 +973,5 @@ if TRAIN:
 #     plt.show()
 #     plt.close()
 # # %%
+
+# %%
