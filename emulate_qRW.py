@@ -113,8 +113,8 @@ def qRW_par(args): # wrapper to put qRW for multiprocessing
 def H(y, p):
     return -np.log(y) / (np.log(1-p**2) - np.log(2))
 
-def H_inv(y, p):
-    return np.exp(-np.log(y) * (np.log(1-p**2) - np.log(2)))
+def H_inv(h, p):
+    return np.exp(-h * (np.log(1-p**2) - np.log(2)))
 
 
 # %% LHS design for the parameter of qRW(p, phi, gamma)
@@ -340,7 +340,7 @@ if TRAIN:
         if LOG_RESPONSE:
             return np.exp(NN_forward_pass(X_scaled))
         if EVGAN_RESPONSE:
-            Z = NN_forward_pass(X_scaled)
+            Z = NN_forward_pass(X_scaled).ravel()
             return H_inv(Z, p_vec)
 
     def qRW_NN_2p(p_vec, phi_vec, gamma_vec):
@@ -403,27 +403,51 @@ if TRAIN:
     plt.show()
     plt.close()
 
-    plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
-    plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
-    plt.legend(loc = 'upper left')
-    plt.xlabel('p')
-    plt.ylabel('log(qRW)')
-    plt.xticks(np.linspace(0.1, 0.9999, 10))
-    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
-    plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
-    plt.show()
-    plt.close()
+    if LOG_RESPONSE:
+        plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
+        plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
+        plt.legend(loc = 'upper left')
+        plt.xlabel('p')
+        plt.ylabel('log(qRW)')
+        plt.xticks(np.linspace(0.1, 0.9999, 10))
+        plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
 
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(np.log(qRW_true), np.log(qRW_pred))
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
-    ax.set_xlabel('True log(qRW)')
-    ax.set_ylabel('Emulated log(qRW)')
-    plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
-    plt.show()
-    plt.close()
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(np.log(qRW_true), np.log(qRW_pred))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        ax.set_xlabel('True log(qRW)')
+        ax.set_ylabel('Emulated log(qRW)')
+        plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
+    
+    if EVGAN_RESPONSE:
+        plt.plot(ps, H(qRW_true, ps), 'k.-', label = 'truth')
+        plt.plot(ps, H(qRW_pred, ps), 'b.-', label = 'emulated')
+        plt.legend(loc = 'upper left')
+        plt.xlabel('p')
+        plt.ylabel('H(qRW)')
+        plt.xticks(np.linspace(0.1, 0.9999, 10))
+        plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        plt.savefig(rf'Plot_HqRW_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
+
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(H(qRW_true, ps), H(qRW_pred, ps))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        ax.set_xlabel('True H(qRW)')
+        ax.set_ylabel('Emulated H(qRW)')
+        plt.savefig(rf'GOF_Prediction_H_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
 
 
 
@@ -455,27 +479,51 @@ if TRAIN:
     plt.show()
     plt.close()
 
-    plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
-    plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
-    plt.legend(loc = 'upper left')
-    plt.xlabel('p')
-    plt.ylabel('log(qRW)')
-    plt.xticks(np.linspace(0.1, 0.9999, 10))
-    plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
-    plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
-    plt.show()
-    plt.close()
+    if LOG_RESPONSE:
+        plt.plot(ps, np.log(qRW_true), 'k.-', label = 'truth')
+        plt.plot(ps, np.log(qRW_pred), 'b.-', label = 'emulated')
+        plt.legend(loc = 'upper left')
+        plt.xlabel('p')
+        plt.ylabel('log(qRW)')
+        plt.xticks(np.linspace(0.1, 0.9999, 10))
+        plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        plt.savefig(rf'Plot_logqRW_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
 
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(np.log(qRW_true), np.log(qRW_pred))
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
-    ax.set_xlabel('True log(qRW)')
-    ax.set_ylabel('Emulated log(qRW)')
-    plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
-    plt.show()
-    plt.close()
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(np.log(qRW_true), np.log(qRW_pred))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        ax.set_xlabel('True log(qRW)')
+        ax.set_ylabel('Emulated log(qRW)')
+        plt.savefig(rf'GOF_Prediction_log_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
+    
+    if EVGAN_RESPONSE:
+        plt.plot(ps, H(qRW_true, ps), 'k.-', label = 'truth')
+        plt.plot(ps, H(qRW_pred, ps), 'b.-', label = 'emulated')
+        plt.legend(loc = 'upper left')
+        plt.xlabel('p')
+        plt.ylabel('H(qRW)')
+        plt.xticks(np.linspace(0.1, 0.9999, 10))
+        plt.title(rf'qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        plt.savefig(rf'Plot_HqRW_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
+
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(H(qRW_true, ps), H(qRW_pred, ps))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'GOF Prediction qRW(p, $\phi$={phi} $\gamma$={gamma})')
+        ax.set_xlabel('True H(qRW)')
+        ax.set_ylabel('Emulated H(qRW)')
+        plt.savefig(rf'GOF_Prediction_H_phi{phi}_gamma{gamma}.pdf')
+        plt.show()
+        plt.close()
 
 
     # Goodness of Fit plot on Validation Dataset ----------
@@ -497,16 +545,30 @@ if TRAIN:
     plt.show()
     plt.close()
 
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal', 'datalim')
-    ax.scatter(np.log(y_val[idx]), np.log(y_val_pred[idx]))
-    ax.axline((0, 0), slope=1, color='black', linestyle='--')
-    ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
-    ax.set_xlabel('True log(qRW)')
-    ax.set_ylabel('Emulated log(qRW)')
-    plt.savefig(r'GOF_validation_log_reduced.pdf')
-    plt.show()
-    plt.close()
+    if LOG_RESPONSE:
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(np.log(y_val[idx]), np.log(y_val_pred[idx]))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
+        ax.set_xlabel('True log(qRW)')
+        ax.set_ylabel('Emulated log(qRW)')
+        plt.savefig(r'GOF_validation_log_reduced.pdf')
+        plt.show()
+        plt.close()
+    
+    if EVGAN_RESPONSE:
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal', 'datalim')
+        ax.scatter(H(y_val[idx], X_val[:,0][idx]), H(y_val_pred[idx], X_val[:,0][idx]))
+        ax.axline((0, 0), slope=1, color='black', linestyle='--')
+        ax.set_title(rf'Goodness of Fit Plot on Validation Dataset')
+        ax.set_xlabel('True H(qRW)')
+        ax.set_ylabel('Emulated H(qRW)')
+        plt.savefig(r'GOF_validation_H_reduced.pdf')
+        plt.show()
+        plt.close()
+
 
 
 # # %% Marginal Likelihood
