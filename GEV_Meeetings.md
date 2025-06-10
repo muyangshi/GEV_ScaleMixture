@@ -1,17 +1,26 @@
 # Meeting Summaries on GEV Project
 
-## June 11 (Wednesday) Muyang/Likun/Ben
+## June 12 (Thursday) Muyang/Ben
+
 
 
 ## June 4 (Wednesday) Muyang/Likun/Ben
 
 - Priority is to keep running the current chains
-  - 20250606 backed up and requeued
-    - stationary converged?
-    - `k13r4b4m` converged?
+  - Additional Alpine Allocation
+    - [Form](https://colostate.sharepoint.com/sites/Division_Research_Computing_and_Cyberinfrastructure/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FDivision%5FResearch%5FComputing%5Fand%5FCyberinfrastructure%2FShared%20Documents%2FGeneral%2FPUBLIC%2DWEB%2DCONTENT%2FAlpine%20Project%20Allocation%20Request%20Process%2Epdf&parent=%2Fsites%2FDivision%5FResearch%5FComputing%5Fand%5FCyberinfrastructure%2FShared%20Documents%2FGeneral%2FPUBLIC%2DWEB%2DCONTENT&p=true&ga=1)
+  - History
+    - 20250606 backed up and requeued
+      - stationary converged?
+      - `k13r4b4m` converged?
+    - 20250608 backed up and requeued
+      - `k25r2b0.67m` converged?
+      - `k25r4b4m` converged?
+      - `k25r2b2m` converged?
+    - 20250610 backed up and requeued
 
 - Emulate the quantile funciton
-  - Current results
+  - Current results - MLP-WMSE-softplus
     - ![alt text](image-6.png)
     - ![alt text](image-7.png)
     - ![alt text](image-8.png)
@@ -22,7 +31,22 @@
     - ![alt text](image-13.png)
     - ![alt text](image-14.png)
     - ![alt text](image-15.png)
-  - [ ] $H(y)$ transformed
+  - [x] $H(y)$ transformed
+    - ![alt text](image-16.png)
+    - ![alt text](image-17.png)
+    - ![alt text](image-18.png)
+    - ![alt text](image-19.png)
+    - ![alt text](image-20.png)
+    - ![alt text](image-21.png)
+    - ![alt text](image-22.png)
+    - ![alt text](image-23.png)
+    - ![alt text](image-24.png)
+    - ![alt text](image-25.png)
+    - ![alt text](image-26.png)
+    - ![alt text](image-27.png)
+    - ![alt text](image-28.png)
+    - ![alt text](image-29.png)
+    - ![alt text](image-30.png)
   - [ ] Simulate dataset marginal/profile likelihood
   - [ ] piece-wise like Likun suggested
 
@@ -42,11 +66,11 @@
     - $\chi$-plot looks flat. 
     - Show predicative likelihood boxplot.
 
-- [ ] emulate the quantile function
+- [-] emulate the quantile function
   - fix bug and carry out the weighted MSE method
   - tryout the EV-GAN method
 
-- [ ] GEV + *standard* Pareto + trancated proposal range?
+- [-] GEV + *standard* Pareto + trancated proposal range?
   - Going to be super fast, because no numerical integration
   - nah, it will require additional coverage analysis
   - Ben: It's better if the distributions are in closed forms (than emulating the quantile function)
