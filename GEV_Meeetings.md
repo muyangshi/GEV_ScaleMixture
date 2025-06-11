@@ -8,6 +8,7 @@
 
 - Priority is to keep running the current chains
   - Additional Alpine Allocation
+    - Queue time starts to lengthen to days...
     - [Form](https://colostate.sharepoint.com/sites/Division_Research_Computing_and_Cyberinfrastructure/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FDivision%5FResearch%5FComputing%5Fand%5FCyberinfrastructure%2FShared%20Documents%2FGeneral%2FPUBLIC%2DWEB%2DCONTENT%2FAlpine%20Project%20Allocation%20Request%20Process%2Epdf&parent=%2Fsites%2FDivision%5FResearch%5FComputing%5Fand%5FCyberinfrastructure%2FShared%20Documents%2FGeneral%2FPUBLIC%2DWEB%2DCONTENT&p=true&ga=1)
   - History
     - 20250606 backed up and requeued
@@ -18,6 +19,7 @@
       - `k25r4b4m` converged?
       - `k25r2b2m` converged?
     - 20250610 backed up and requeued
+    - 20250611 backed up and requeued
 
 - Emulate the quantile funciton
   - Current results - MLP-WMSE-softplus
@@ -47,7 +49,15 @@
     - ![alt text](image-28.png)
     - ![alt text](image-29.png)
     - ![alt text](image-30.png)
-  - [ ] Simulate dataset marginal/profile likelihood
+  - [x] Simulate dataset marginal/profile likelihood
+    - using $H(y)$ transformation:
+    - ![alt text](image-31.png)
+    - ![alt text](image-32.png)
+    - ![alt text](image-33.png)
+    - ![alt text](image-34.png)
+    - ![alt text](image-35.png)
+    - ![alt text](image-36.png)
+    - ![alt text](image-37.png)
   - [ ] piece-wise like Likun suggested
 
 - Not a huge rush, but would be good to see if GEV + *standard* Pareto work
