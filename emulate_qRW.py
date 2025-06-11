@@ -61,12 +61,13 @@ keras.mixed_precision.set_global_policy('mixed_float16')
 GLOBAL_SEED = 531
 np.random.seed(GLOBAL_SEED)
 tf.random.set_seed(GLOBAL_SEED)
-N_CORES  = 7 if multiprocessing.cpu_count() < 64 else 64
+CPU_COUNT = multiprocessing.cpu_count()
+N_CORES   = 7 if CPU_COUNT < 16 else 16
 
 # script settings -----------------------------------------
 GENERATE = False # Generate design points and true qRW values
 TRAIN    = False # Train qRW_NN on generated data
-SIMULATE = True  # simulate data for marginal likelihood surface
+SIMULATE = False  # simulate data for marginal likelihood surface
 
 # GENERATE settings ---------------------------------------
 N     = int(1e8)
@@ -90,6 +91,8 @@ LOG_RESPONSE          = False
 EVGAN_RESPONSE        = True
 
 # Helper Functions ------------------------------------------------------------
+
+# Helpers for Emulator ------------------------------------
 
 # @keras.utils.register_keras_serializable(package="Custom")
 def weighted_mse(alpha=1.0, eps=1e-8):
@@ -118,6 +121,28 @@ def H(y, p):
 def H_inv(h, p):
     return np.exp(-h * (np.log(1-p**2) - np.log(2)))
 
+# Likelihood function -------------------------------------
+
+def loglik_1t_par(args):
+    """
+    The marg_transform_data_mixture_likelihood_1t_shifted function in utilities;
+    Here adapted to be called by multiprocessing
+
+    Notes that
+        - X_vec should be calculated outside of the likelihood function
+    """
+    Y_vec, X_vec, mu_vec, sigma_vec, xi_vec, phi_vec, gamma_vec, R_vec, cholesky_U = args
+
+    W_vec             = X_vec/(R_vec**phi_vec)
+    Z_vec             = pareto_to_Norm(W_vec)
+    Z_standard_normal = scipy.linalg.solve_triangular(cholesky_U, Z_vec, trans=1)
+
+    phi_D = -0.5*np.sum(Z_standard_normal**2) - np.sum(np.log(np.diag(cholesky_U)))
+    Jacob = 0.5*np.sum(Z_vec**2) + \
+            np.sum(-phi_vec*np.log(R_vec)-2*np.log(W_vec+1)) + \
+            np.sum(dgev(Y_vec, Loc=mu_vec, Scale=sigma_vec, Shape=xi_vec, log=True)-np.log(dRW(X_vec, phi_vec, gamma_vec)))
+    return phi_D + Jacob
+
 
 # %% LHS design for the parameter of qRW(p, phi, gamma)
 
@@ -135,7 +160,7 @@ if GENERATE:
 
     # Calculate the design points
 
-    with multiprocessing.get_context('fork').Pool(processes=N_CORES) as pool:
+    with multiprocessing.get_context('fork').Pool(processes=CPU_COUNT) as pool:
         Y_lhs = list(tqdm(pool.imap(qRW_par, list(X_lhs)), total=len(X_lhs), desc='qRW'))
     Y_lhs = np.array(Y_lhs)
 
@@ -152,7 +177,7 @@ if GENERATE:
     X_lhs_val       = qmc.scale(lhs_samples_val, l_bounds, u_bounds)
     X_lhs_val[:,0]  = p_min + (p_max - p_min) * (1 - np.exp(-BETA * X_lhs_val[:,0]))/(1-np.exp(-BETA))
 
-    with multiprocessing.get_context('fork').Pool(processes=N_CORES) as pool:
+    with multiprocessing.get_context('fork').Pool(processes=CPU_COUNT) as pool:
         Y_lhs_val = list(tqdm(pool.imap(qRW_par, list(X_lhs_val)), total=len(X_lhs_val), desc='qRW_val'))
     Y_lhs_val = np.array(Y_lhs_val)
 
@@ -677,6 +702,7 @@ xi_matrix    = np.full(shape = (Ns, Nt), fill_value = 0.15)
 range_vec  = gaussian_weight_matrix @ range_at_knots
 K          = ns_cov(range_vec = range_vec, sigsq_vec = sigsq_vec,
                     coords = sites_xy, kappa = nu, cov_model = "matern")
+cholesky_U = scipy.linalg.cholesky(K, lower = False)
 Z          = scipy.stats.multivariate_normal.rvs(mean=np.zeros(shape=(Ns,)),cov=K,size=Nt).T
 W          = norm_to_Pareto(Z)
 
@@ -712,247 +738,120 @@ if SIMULATE:
 # %%
 # Marginal Likelihood ---------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# %% the likelihood functions ----------------------------------------------------------------------------------------
-
-def ll_1t_par(args):
-    Y, p, u_vec, scale_vec, shape_vec, \
-    R_vec, Z_vec, K, phi_vec, gamma_bar_vec, tau, \
-    logS_vec, gamma_at_knots, censored_idx, exceed_idx = args
-
-    X_star = (R_vec ** phi_vec) * g(Z_vec)
-    X      = qRW(pCGP(Y, p, u_vec, scale_vec, shape_vec), phi_vec, gamma_bar_vec, tau)
-    dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-
-    # log censored likelihood of y on censored sites
-    censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
-    # log censored likelihood of y on exceedance sites
-    exceed_ll   = scipy.stats.norm.logpdf(X[exceed_idx], loc = X_star[exceed_idx], scale = tau) \
-                    + np.log(dCGP(Y[exceed_idx], p, u_vec[exceed_idx], scale_vec[exceed_idx], shape_vec[exceed_idx])) \
-                    - np.log(dX[exceed_idx])
-
-    # log likelihood of S
-    S_ll = scipy.stats.levy.logpdf(np.exp(logS_vec),  scale = gamma_at_knots) + logS_vec # 0.5 here is the gamma_k, not \bar{\gamma}
-
-    # log likelihood of Z
-    Z_ll = scipy.stats.multivariate_normal.logpdf(Z_vec, mean = None, cov = K)
-
-    return np.sum(censored_ll) + np.sum(exceed_ll) + np.sum(S_ll) + np.sum(Z_ll)
-
-def ll_1t_par_NN_2p(args):
-    Y, p, u_vec, scale_vec, shape_vec, \
-    R_vec, Z_vec, K, phi_vec, gamma_bar_vec, tau, \
-    logS_vec, gamma_at_knots, censored_idx, exceed_idx, \
-    Ws, bs, acts = args
-
-    # calculate X using qRW_NN_2p
-    X_star = (R_vec ** phi_vec) * g(Z_vec)
-    pY     = pCGP(Y, p, u_vec, scale_vec, shape_vec)
-    X      = qRW_NN_2p(np.column_stack((pY, phi_vec, gamma_bar_vec, np.full((len(Y),), tau))),
-                  Ws, bs, acts)
-    dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-
-    # log censored likelihood of y on censored sites
-    censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
-    # log censored likelihood of y on exceedance sites
-    exceed_ll   = scipy.stats.norm.logpdf(X[exceed_idx], loc = X_star[exceed_idx], scale = tau) \
-                    + np.log(dCGP(Y[exceed_idx], p, u_vec[exceed_idx], scale_vec[exceed_idx], shape_vec[exceed_idx])) \
-                    - np.log(dX[exceed_idx])
-
-    # log likelihood of S
-    S_ll = scipy.stats.levy.logpdf(np.exp(logS_vec),  scale = gamma_at_knots) + logS_vec # 0.5 here is the gamma_k, not \bar{\gamma}
-
-    # log likelihood of Z
-    Z_ll = scipy.stats.multivariate_normal.logpdf(Z_vec, mean = None, cov = K)
-
-    return np.sum(censored_ll) + np.sum(exceed_ll) + np.sum(S_ll) + np.sum(Z_ll)
-
-def ll_1t_par_NN_2p_opt(args):
-    Y, p, u_vec, scale_vec, shape_vec, \
-    R_vec, Z_vec, K, phi_vec, gamma_bar_vec, tau, \
-    logS_vec, gamma_at_knots, censored_idx, exceed_idx, \
-    X, Ws, bs, acts = args
-
-    X_star = (R_vec ** phi_vec) * g(Z_vec)
-    dX     = dRW(X, phi_vec, gamma_bar_vec, tau)
-
-    # log censored likelihood of y on censored sites
-    censored_ll = scipy.stats.norm.logcdf((X[censored_idx] - X_star[censored_idx])/tau)
-    # log censored likelihood of y on exceedance sites
-    exceed_ll   = scipy.stats.norm.logpdf(X[exceed_idx], loc = X_star[exceed_idx], scale = tau) \
-                    + np.log(dCGP(Y[exceed_idx], p, u_vec[exceed_idx], scale_vec[exceed_idx], shape_vec[exceed_idx])) \
-                    - np.log(dX[exceed_idx])
-
-    # log likelihood of S
-    S_ll = scipy.stats.levy.logpdf(np.exp(logS_vec),  scale = gamma_at_knots) + logS_vec # 0.5 here is the gamma_k, not \bar{\gamma}
-
-    # log likelihood of Z
-    Z_ll = scipy.stats.multivariate_normal.logpdf(Z_vec, mean = None, cov = K)
-
-    return np.sum(censored_ll) + np.sum(exceed_ll) + np.sum(S_ll) + np.sum(Z_ll)
-
-# %%
-# phi -------------------------------------------------------------------------------------------------------------
-
-# for i in range(k_phi):
-for i in [0]:
-
-    print(phi_at_knots[i]) # which phi_k value to plot a "profile" for
-
-    lb = 0.2
-    ub = 0.8
-    grids = 5 # fast
-    # grids = 13
-    phi_grid = np.linspace(lb, ub, grids)
-    phi_grid = np.sort(np.insert(phi_grid, 0, phi_at_knots[i]))
-
-    # unchanged from above:
-    #   - range_vec
-    #   - K
-    #   - tau
-    #   - gamma_bar_vec
-    #   - p
-    #   - u_matrix
-    #   - Scale_matrix
-    #   - Shape_matrix
-
-    # %% Optimized using qRW_NN_2p -----------------------------------------------
-
-    """
-    Idea:
-        It might be much better to call NN once for a big X
-        than call NN for each t separately
-    """
-
-    ll_phi_NN_2p_opt = []
-    start_time = time.time()
-    for phi_x in phi_grid:
-        print('elapsed:', round(time.time() - start_time, 3), phi_x)
-
-        phi_k        = phi_at_knots.copy()
-        phi_k[i]     = phi_x
-        phi_vec_test = gaussian_weight_matrix_phi @ phi_k
-
-        # Calculate the X all at once
-        input_list = [] # used to calculate X
-        for t in range(Nt):
-            pY_t = pCGP(Y[:,t], p, u_matrix[:,t], Scale_matrix[:,t], Shape_matrix[:,t])
-            X_t = np.column_stack((pY_t, phi_vec_test, gamma_bar_vec, np.full((len(pY_t),), tau)))
-            input_list.append(X_t)
-
-        X_nn = qRW_NN_2p(np.vstack(input_list), Ws, bs, acts)
-
-        # Split the X to each t, and use the
-        # calculated X to calculate likelihood
-        X_nn = X_nn.reshape(Nt, Ns).T
-
-        args_list = []
-
-        for t in range(Nt):
-            # marginal process
-            Y_1t      = Y[:,t]
-            u_vec     = u_matrix[:,t]
-            Scale_vec = Scale_matrix[:,t]
-            Shape_vec = Shape_matrix[:,t]
-
-            # copula process
-            R_vec     = wendland_weight_matrix_S @ S_at_knots[:,t]
-            Z_1t      = Z[:,t]
-            logS_vec  = np.log(S_at_knots[:,t])
-
-            censored_idx_1t = np.where(Y_1t <= u_vec)[0]
-            exceed_idx_1t   = np.where(Y_1t  > u_vec)[0]
-
-            X_1t      = X_nn[:,t]
-
-            args_list.append((Y_1t, p, u_vec, Scale_vec, Shape_vec,
-                            R_vec, Z_1t, K, phi_vec_test, gamma_bar_vec, tau,
-                            logS_vec, gamma_k_vec, censored_idx_1t, exceed_idx_1t,
-                            X_1t, Ws, bs, acts))
-
-        with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
-            results = pool.map(ll_1t_par_NN_2p_opt, args_list)
-        ll_phi_NN_2p_opt.append(np.array(results))
-
-    ll_phi_NN_2p_opt = np.array(ll_phi_NN_2p_opt)
-    np.save(rf'll_phi_NN_2p_opt_k{i}', ll_phi_NN_2p_opt)
-
-
-    # %% actual calculation ------------------------------------------------------
-
-    ll_phi     = []
-    start_time = time.time()
-    for phi_x in phi_grid:
-
-        args_list = []
-        print('elapsed:', round(time.time() - start_time, 3), phi_x)
-
-        phi_k        = phi_at_knots.copy()
-        phi_k[i]     = phi_x
-        phi_vec_test = gaussian_weight_matrix_phi @ phi_k
-
-        for t in range(Nt):
-            # marginal process
-            Y_1t      = Y[:,t]
-            u_vec     = u_matrix[:,t]
-            Scale_vec = Scale_matrix[:,t]
-            Shape_vec = Shape_matrix[:,t]
-
-            # copula process
-            R_vec     = wendland_weight_matrix_S @ S_at_knots[:,t]
-            Z_1t      = Z[:,t]
-
-            logS_vec  = np.log(S_at_knots[:,t])
-
-            censored_idx_1t = np.where(Y_1t <= u_vec)[0]
-            exceed_idx_1t   = np.where(Y_1t  > u_vec)[0]
-
-            args_list.append((Y_1t, p, u_vec, Scale_vec, Shape_vec,
-                            R_vec, Z_1t, K, phi_vec_test, gamma_bar_vec, tau,
-                            logS_vec, gamma_k_vec, censored_idx_1t, exceed_idx_1t))
-
-        with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
-            results = pool.map(ll_1t_par, args_list)
-        ll_phi.append(np.array(results))
-
-    ll_phi = np.array(ll_phi, dtype = object)
-    np.save(rf'll_phi_k{i}', ll_phi)
-
-    plt.plot(phi_grid, np.sum(ll_phi, axis = 1), 'b.-', label = 'actual')
-    plt.plot(phi_grid, np.sum(ll_phi_NN_2p_opt, axis = 1), 'r.-', label = 'qRW_NN_2p emulator')
-    plt.yscale('symlog')
-    plt.axvline(x=phi_at_knots[i], color='r', linestyle='--')
-    plt.legend(loc = 'upper left')
-    plt.title(rf'marginal loglike against $\phi_{i}$')
-    plt.xlabel(r'$\phi$')
-    plt.ylabel('log likelihood')
-    plt.savefig(rf'profile_ll_phi_k{i}.pdf')
+Y  = np.load('Y_simulated.npy')
+pY = np.full(shape = (Ns, Nt), fill_value = np.nan)
+for t in np.arange(Nt):
+    pY[:,t] = pgev(Y[:,t], Loc=mu_matrix[:,t],
+                           Scale=sigma_matrix[:,t],
+                           Shape=xi_matrix[:,t])
+pY_flat = pY.flatten(order='F')
+
+# phi surface -----------------------------------------------------------------
+
+knot_i = 0 # range(k)
+phi_grid = np.linspace(0.2, 0.8, 5)
+phi_grid = np.sort(np.insert(phi_grid, 0, phi_at_knots[knot_i]))
+
+# true likelihood surface ---------------------------------
+
+ll_true    = []
+ll_true_Nt = []
+for phi_knot_i_exp in phi_grid:
+    # Make phi_vec experiment by modifying phi_at_knots[knot_i]
+    phi_at_knots_exp         = phi_at_knots.copy()
+    phi_at_knots_exp[knot_i] = phi_knot_i_exp
+    phi_vec_exp              = gaussian_weight_matrix @ phi_at_knots_exp
+
+    # Calculate X in parallel
+    input_list_for_X = [] # used to calculate X
+    for t in range(Nt):
+        pY_t = pgev(Y[:,t], Loc=mu_matrix[:,t], Scale=sigma_matrix[:,t], Shape=xi_matrix[:,t])
+        input_list_for_X.append((pY_t, phi_vec_exp, gamma_vec))
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results = list(tqdm(pool.imap(qRW_par, input_list_for_X), total = Nt))
+    X_exp = np.array(results).T
+
+    # Calculate log-likelihood in parallel
+    input_list_for_ll = [] # used to calculate log-likelihood
+    for t in range(Nt):
+        input_list_for_ll.append((Y[:,t], X_exp[:,t], mu_matrix[:,t], sigma_matrix[:,t], xi_matrix[:,t],
+                                  phi_vec_exp, gamma_vec, R_at_sites[:,t], cholesky_U))
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results = list(tqdm(pool.imap(loglik_1t_par, input_list_for_ll), total = Nt))
+    ll_exp_Nt = np.array(results)
+
+    ll_true_Nt.append(ll_exp_Nt)
+    ll_true.append(np.sum(ll_exp_Nt))
+
+# Save results
+np.save(rf'll_true_Nt_phi_k{knot_i}.npy', ll_true_Nt)
+np.save(rf'll_true_phi_k{knot_i}.npy', ll_true)
+
+# emulated qRW likelihood surface -------------------------
+
+ll_NN    = []
+ll_NN_Nt = []
+for phi_knot_i_exp in phi_grid:
+    # Make phi_vec experiment by modifying phi_at_knots[knot_i]
+    phi_at_knots_exp         = phi_at_knots.copy()
+    phi_at_knots_exp[knot_i] = phi_knot_i_exp
+    phi_vec_exp              = gaussian_weight_matrix @ phi_at_knots_exp
+
+    # Calculate X using emulated qRW
+    phi_brodcasted    = np.tile(phi_vec_exp, Nt)
+    gamma_broadcasted = np.tile(gamma_vec, Nt)
+    X_exp_flat        = qRW_NN_2p(pY_flat, phi_brodcasted, gamma_broadcasted)
+    X_exp             = X_exp_flat.reshape((Ns, Nt), order='F')
+
+    # Calculate log-likelihood in parallel
+    input_list_for_ll = [] # used to calculate log-likelihood
+    for t in range(Nt):
+        input_list_for_ll.append((Y[:,t], X_exp[:,t], mu_matrix[:,t], sigma_matrix[:,t], xi_matrix[:,t],
+                                  phi_vec_exp, gamma_vec, R_at_sites[:,t], cholesky_U))
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results = list(tqdm(pool.imap(loglik_1t_par, input_list_for_ll), total = Nt))
+    ll_exp_Nt = np.array(results)
+
+    ll_NN_Nt.append(ll_exp_Nt)
+    ll_NN.append(np.sum(ll_exp_Nt))
+
+# Save results
+np.save(rf'll_NN_Nt_phi_k{knot_i}.npy', ll_NN_Nt)
+np.save(rf'll_NN_phi_k{knot_i}.npy', ll_NN)
+
+# compare true and emulated qRW likelihood surface ----------------------------
+
+ll_true    = np.load(rf'll_true_phi_k{knot_i}.npy')
+ll_NN      = np.load(rf'll_NN_phi_k{knot_i}.npy')
+ll_true_Nt = np.load(rf'll_true_Nt_phi_k{knot_i}.npy')
+ll_NN_Nt   = np.load(rf'll_NN_Nt_phi_k{knot_i}.npy')
+
+# surface plot
+
+plt.plot(phi_grid, ll_true, 'b.-', label = 'true qRW')
+plt.plot(phi_grid, ll_NN, 'g.-', label = 'emulated qRW')
+plt.yscale('symlog')
+plt.axvline(x=phi_at_knots[knot_i], color='r', linestyle='--')
+plt.legend(loc = 'upper left')
+plt.title(rf'marginal loglikelihood against $\phi_{knot_i}$')
+plt.xlabel(r'$\phi$')
+plt.ylabel('log-likelihood')
+plt.savefig(rf'profile_ll_phi_k{knot_i}.pdf')
+plt.show()
+plt.close()
+
+# goodness of fit plot
+
+for i in range(len(phi_grid)):
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal', 'datalim')
+    ax.scatter(ll_true_Nt[i].ravel(), ll_NN_Nt[i].ravel())
+    ax.axline((0, 0), slope=1, color='black', linestyle='--')
+    ax.set_title(rf'Goodness of Fit Plot for $\phi_{knot_i}$ = {phi_grid[i]}')
+    ax.set_xlabel('True log-likelihood')
+    ax.set_ylabel('Emulated log-likelihood')
+    ax.set_xlim((np.min(ll_true_Nt), np.max(ll_true_Nt)))
+    ax.set_ylim((np.min(ll_NN_Nt), np.max(ll_NN_Nt)))
+    plt.savefig(rf'gof_phi_k{knot_i}_{phi_grid[i]}.pdf')
     plt.show()
     plt.close()
-# %%
