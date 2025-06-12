@@ -5,11 +5,11 @@
 - keep queueing chains until they finish (for the paper)
 
 For EVA:
-- Use the current chains to make posterior plots
+- [ ] Use the current chains to make posterior plots
   - Send the boxplot comparisons to Ben
-- Make edits to the slides
+- [ ] Make edits to the slides
 
-- Run shortest chains using emulated `qRW`
+- [ ] Run shortest chains using emulated `qRW` (Modify sampler)
 
 ## June 4 (Wednesday) Muyang/Likun/Ben
 

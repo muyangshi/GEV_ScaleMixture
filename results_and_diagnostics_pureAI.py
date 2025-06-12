@@ -173,7 +173,7 @@ def get_elevation(longitude, latitude):
 # specify the model -----------------------------------------------------------
 
 # Model 0 k13r4 pureAI ------------------------------------
-folder           = './data_alpine/CONVERGED/20250527_realdata_t75_s590_k13_b4_pureAI/'
+folder           = './data_alpine/CONVERGED/k13_b4_pureAI/'
 name             = 'k13b4AI'
 fixGEV           = False
 fixksi_only      = False
