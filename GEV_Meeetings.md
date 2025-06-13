@@ -1,14 +1,54 @@
 # Meeting Summaries on GEV Project
 
+## June 19 (Thursday) Muyang/Likun/Ben
+
+## June 17 (Tuesday) Muyang/Ben
+
 ## June 12 (Thursday) Muyang/Ben
 
 - keep queueing chains until they finish (for the paper)
+  - 20250613 one chain backed-up and requeued
 
 For EVA:
-- [ ] Use the current chains to make posterior plots
-  - Send the boxplot comparisons to Ben
-- [ ] Make edits to the slides
+- Use the current chains to make posterior plots
+  - [x] Considered converged chains:
+    - `HuserWadsworth`
+    - `k13b4AI`
+    - `k13r4b4`
+    - `k13r4b4m`
+    - `k25r2b0.67m`
+    - `k25r2b2m`
+    - `k25r4b4m`
+    - | Model Config     | Fixed Marginals     |
+      |------------------|---------------------|
+      | k13r4b4          | k13r4b4m            |
+      | ---              | k25r2b0.67m         |
+      | ---              | k25r2b2m            |
+      | ---              | k25r4b4m            |
+      | ---              | ---                 |
+      | ---              | ---                 |
+      | HuserWadsworth   | k13b4AI             |
 
+  - [ ] Preliminary results from chains:
+    - Wait until those seven jobs finish.
+    - `k25r2b0.67` v
+    - `k25r2b2` v
+    - `k25r4b4` v
+    - `k41r1.6b0.43`
+    - `k41r1.6b0.43m`
+    - `k41r2b0.67` v
+    - `k41r2b0.67m` v
+    - | Model Config     | Fixed Marginals     |
+      |------------------|---------------------|
+      | ---              | ---                 |
+      | k25r2b0.67       | ---                 |
+      | k25r2b2          | ---                 |
+      | k25r4b4          | ---                 |
+      | k41r1.6b0.43     | k41r1.6b0.43m       |
+      | k41r2b0.67       | k41r2b0.67m         |
+      | ---              | ---                 |
+- Make edits to the slides
+  - [ ] Make overall boxplot and send to Ben
 - [ ] Run shortest chains using emulated `qRW` (Modify sampler)
 
 ## June 4 (Wednesday) Muyang/Likun/Ben
