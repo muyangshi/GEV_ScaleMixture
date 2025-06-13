@@ -955,6 +955,137 @@ if not fixGEV:
     plt.show()
     plt.close()
 
+if fixGEV:
+    Beta_mu0_initSmooth      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+    Beta_mu1_initSmooth      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+    Beta_logsigma_initSmooth = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+    Beta_ksi_initSmooth      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+
+    # mu0 -------------------------------------------------
+
+    predmu0 = (C_mu0_pred.T @ Beta_mu0_initSmooth).T[:,0]
+    vmin    = np.floor(min(predmu0))
+    vmax    = np.ceil(max(predmu0))
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=5)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\mu_0(s)$ surface', fontsize = 50)
+    plt.savefig('Surface_mu0_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    # mu1 -------------------------------------------------
+
+    predmu1   = (C_mu1_pred.T @ Beta_mu1_initSmooth).T[:,0]
+    vmin      = np.floor(min(predmu1))
+    vmax      = np.ceil(max(predmu1))
+    tmp_bound = max(np.abs(vmin), np.abs(vmax))
+    divnorm   = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
+    # fig, ax   = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = colormaps['coolwarm'], norm = divnorm)
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\mu_1(s)$ surface', fontsize = 50)
+    plt.savefig('Surface_mu1_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    # logsigma --------------------------------------------
+
+    predlogsigma = (C_logsigma_pred.T @ Beta_logsigma_initSmooth).T[:,0]
+    vmin    = my_floor(min(predlogsigma), 2)
+    vmax    = my_ceil(max(predlogsigma), 2)
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\log(\sigma(s))$ surface', fontsize = 50)
+    plt.savefig('Surface_logsigma_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    # xi --------------------------------------------------
+
+    predksi = (C_ksi_pred.T @ Beta_ksi_initSmooth).T[:,0]
+    vmin    = my_floor(min(predksi), 2)
+    vmax    = my_ceil(max(predksi), 2)
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predksi.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\xi(s)$ surface', fontsize = 50)
+    plt.savefig('Surface_xi_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
 # %% Copula Posterior Surface Plotting
 
 # phi surface
@@ -1211,6 +1342,8 @@ if not fixGEV:
         plt.savefig('Surface_mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
         plt.show()
         plt.close()
+
+# %% Empirical chi of dataset, initSmooth MLE GEV
 
 if fixGEV:
     
