@@ -828,102 +828,104 @@ C_ksi_pred[1,:,:] = np.tile(predGEV_grid_elev/200, reps = (Nt, 1)).T
 
 # Plotting Predicted GEV Surface ----------------------------------------------
 
-# mu0
+if not fixGEV:
 
-predmu0 = (C_mu0_pred.T @ Beta_mu0_mean).T[:,0]
-vmin    = np.floor(min(predmu0))
-vmax    = np.ceil(max(predmu0))
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
-ax.set_aspect('equal','box')
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
-                    extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=3))
-cbar    = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=40)
-cbar.locator = mpl.ticker.MaxNLocator(nbins=5)
-cbar.update_ticks()
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 30)
-plt.yticks(fontsize = 30)
-plt.xlabel('longitude', fontsize = 50)
-plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\mu_0(s)$ surface', fontsize = 50)
-plt.savefig('Surface_mu0_pred.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+    # mu0 -------------------------------------------------
 
-# mu1
+    predmu0 = (C_mu0_pred.T @ Beta_mu0_mean).T[:,0]
+    vmin    = np.floor(min(predmu0))
+    vmax    = np.ceil(max(predmu0))
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predmu0.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=5)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\mu_0(s)$ surface', fontsize = 50)
+    plt.savefig('Surface_mu0_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
 
-predmu1   = (C_mu1_pred.T @ Beta_mu1_mean).T[:,0]
-vmin      = np.floor(min(predmu1))
-vmax      = np.ceil(max(predmu1))
-tmp_bound = max(np.abs(vmin), np.abs(vmax))
-divnorm   = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
-# fig, ax   = plt.subplots()
-# fig.set_size_inches(8,6)
-fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
-ax.set_aspect('equal','box')
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
-                    extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = colormaps['coolwarm'], norm = divnorm)
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=3))
-cbar    = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=40)
-cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
-cbar.update_ticks()
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 30)
-plt.yticks(fontsize = 30)
-plt.xlabel('longitude', fontsize = 50)
-plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\mu_1(s)$ surface', fontsize = 50)
-plt.savefig('Surface_mu1_pred.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+    # mu1 -------------------------------------------------
 
-# logsigma
+    predmu1   = (C_mu1_pred.T @ Beta_mu1_mean).T[:,0]
+    vmin      = np.floor(min(predmu1))
+    vmax      = np.ceil(max(predmu1))
+    tmp_bound = max(np.abs(vmin), np.abs(vmax))
+    divnorm   = mpl.colors.TwoSlopeNorm(vcenter = 0, vmin = -tmp_bound, vmax = tmp_bound)
+    # fig, ax   = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predmu1.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = colormaps['coolwarm'], norm = divnorm)
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\mu_1(s)$ surface', fontsize = 50)
+    plt.savefig('Surface_mu1_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
 
-predlogsigma = (C_logsigma_pred.T @ Beta_logsigma_mean).T[:,0]
-vmin    = my_floor(min(predlogsigma), 2)
-vmax    = my_ceil(max(predlogsigma), 2)
-divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
-# fig, ax = plt.subplots()
-# fig.set_size_inches(8,6)
-fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
-ax.set_aspect('equal','box')
-state_map.boundary.plot(ax=ax, color = 'black')
-heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
-                    extent=[minX, maxX, minY, maxY],
-                    origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
-ax.set_xticks(np.linspace(minX, maxX,num=3))
-ax.set_yticks(np.linspace(minY, maxY,num=3))
-cbar    = fig.colorbar(heatmap, ax = ax)
-cbar.ax.tick_params(labelsize=40)
-cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
-cbar.update_ticks()
-plt.xlim([-104,-90])
-plt.ylim([30,47])
-plt.xticks(fontsize = 30)
-plt.yticks(fontsize = 30)
-plt.xlabel('longitude', fontsize = 50)
-plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\log(\sigma(s))$ surface', fontsize = 50)
-plt.savefig('Surface_logsigma_pred.pdf', bbox_inches='tight')
-plt.show()
-plt.close()
+    # logsigma --------------------------------------------
 
-# xi
-try:
+    predlogsigma = (C_logsigma_pred.T @ Beta_logsigma_mean).T[:,0]
+    vmin    = my_floor(min(predlogsigma), 2)
+    vmax    = my_ceil(max(predlogsigma), 2)
+    divnorm = mpl.colors.TwoSlopeNorm(vcenter = (vmin + vmax)/2, vmin = vmin, vmax = vmax)
+    # fig, ax = plt.subplots()
+    # fig.set_size_inches(8,6)
+    fig, ax = plt.subplots(figsize = (10,8), constrained_layout=True)
+    ax.set_aspect('equal','box')
+    state_map.boundary.plot(ax=ax, color = 'black')
+    heatmap = ax.imshow(predlogsigma.reshape(predGEV_grid_X.shape),
+                        extent=[minX, maxX, minY, maxY],
+                        origin = 'lower', cmap = warm_cmap, norm = divnorm) # colormaps['OrRd']
+    ax.set_xticks(np.linspace(minX, maxX,num=3))
+    ax.set_yticks(np.linspace(minY, maxY,num=3))
+    cbar    = fig.colorbar(heatmap, ax = ax)
+    cbar.ax.tick_params(labelsize=40)
+    cbar.locator = mpl.ticker.MaxNLocator(nbins=4)
+    cbar.update_ticks()
+    plt.xlim([-104,-90])
+    plt.ylim([30,47])
+    plt.xticks(fontsize = 30)
+    plt.yticks(fontsize = 30)
+    plt.xlabel('longitude', fontsize = 50)
+    plt.ylabel('latitude', fontsize = 50)
+    plt.title(r'$\log(\sigma(s))$ surface', fontsize = 50)
+    plt.savefig('Surface_logsigma_pred.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    # xi --------------------------------------------------
+
     predksi = (C_ksi_pred.T @ Beta_ksi_mean).T[:,0]
     vmin    = my_floor(min(predksi), 2)
     vmax    = my_ceil(max(predksi), 2)
@@ -952,8 +954,6 @@ try:
     plt.savefig('Surface_xi_pred.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
-except:
-    pass
 
 # %% Copula Posterior Surface Plotting
 
@@ -1211,6 +1211,154 @@ if not fixGEV:
         plt.savefig('Surface_mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
         plt.show()
         plt.close()
+
+if fixGEV:
+    
+    # these are the initial MLE GEV parameters smoothed
+    Beta_mu0_initSmooth      = np.linalg.lstsq(a=C_mu0[:,:,0].T, b=mu0_estimates,rcond=None)[0]
+    Beta_mu1_initSmooth      = np.linalg.lstsq(a=C_mu1[:,:,0].T, b=mu1_estimates,rcond=None)[0]
+    Beta_logsigma_initSmooth = np.linalg.lstsq(a=C_logsigma[:,:,0].T, b=logsigma_estimates,rcond=None)[0]
+    Beta_ksi_initSmooth      = np.linalg.lstsq(a=C_ksi[:,:,0].T, b=ksi_estimates,rcond=None)[0]
+
+    mu0_initSmooth_matrix    = (C_mu0.T @ np.atleast_2d(Beta_mu0_initSmooth).T).T # shape (1, Ns, Nt)
+    mu1_initSmooth_matrix    = (C_mu1.T @ np.atleast_2d(Beta_mu1_initSmooth).T).T # shape (1, Ns, Nt)
+    mu_initSmooth_matrix     = mu0_initSmooth_matrix + mu1_initSmooth_matrix * Time
+    sigma_initSmooth_matrix  = np.exp((C_logsigma.T @ np.atleast_2d(Beta_logsigma_initSmooth).T).T) 
+    ksi_initSmooth_matrix    = (C_ksi.T @ np.atleast_2d(Beta_ksi_initSmooth).T).T
+
+    pY_mcmc = np.full(shape = (1, Ns, Nt), fill_value = np.nan)
+    for i in range(1):
+        for t in range(Nt):
+            pY_mcmc[i,:,t] = pgev(Y[:,t], 
+                                  mu_initSmooth_matrix[i,:,t],
+                                  sigma_initSmooth_matrix[i,:,t],
+                                  ksi_initSmooth_matrix[i,:,t])
+
+    # place knots for chi plot
+    res_x_chi = 9
+    res_y_chi = 19
+    k_chi = res_x_chi * res_y_chi # number of knots
+    # create one-dimensional arrays for x and y
+    x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
+    y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
+    # create the mesh based on these arrays
+    X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
+    knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
+    knots_x_chi = knots_xy_chi[:,0]
+    knots_y_chi = knots_xy_chi[:,1]   
+
+    rect_width = (knots_xy_chi[0][0] - minX)*2
+    rect_height = (knots_xy_chi[0][1] - minY)*2
+
+    # Plot chi with same h in same figure
+
+    e_abs = 0.2
+
+    # Create a LinearSegmentedColormap from white to red
+    colors = ["#ffffff", "#ff0000"]
+    min_chi = 0.0
+    max_chi = 0.5
+    n_bins = 100  # Number of discrete bins
+    n_ticks = 10
+    cmap_name = "white_to_red"
+    colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+    ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
+
+    def calculate_chi_mat(args):
+        pY, h, u = args
+        # print('h:',h,'u:',u)
+
+        h_low = h * (1 - e_abs)
+        h_up  = h * (1 + e_abs)
+
+        chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+
+        for i in range(knots_xy_chi.shape[0]):
+
+            # select sites within the rectangle
+            rect_left   = knots_xy_chi[i][0] - rect_width/2
+            rect_right  = knots_xy_chi[i][0] + rect_width/2
+            rect_top    = knots_xy_chi[i][1] + rect_height/2
+            rect_bottom = knots_xy_chi[i][1] - rect_height/2
+            sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
+                                                np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
+            sites_in_rect = sites_xy[sites_in_rect_mask]
+
+            # calculate the distance between sites inside rectangle (coords --> km)
+            n_sites = sites_in_rect.shape[0]
+            sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
+            for si in range(n_sites):
+                for sj in range(n_sites):
+                    sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
+
+            # select pairs: sites that are ~h km apart
+            sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
+                                        np.triu(sites_dist_mat) < h_up)
+            n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
+            site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
+
+            # large pairs
+            # Y_in_rect     = Y[sites_in_rect_mask]
+            pY_in_rect    = pY[sites_in_rect_mask]
+
+            # Calculate empirical chi
+            count_co_extreme = 0
+            for site_pair in site_pairs_to_check:
+                # for this pair, over time, how many co-occured extremes?
+                count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
+                                                        pY_in_rect[site_pair[1]] >= u))
+            prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
+            prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
+            chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+            if np.isnan(chi): chi = 0
+
+            # chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
+            chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
+        
+        return chi_mat2
+
+
+    for h in [75, 150, 225]:
+
+        fig, axes = plt.subplots(1,3)
+        fig.set_size_inches(10,6)
+
+        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+            args_list = [(pY_mcmc[i,:,:],h,u) for i in range(1)]
+            with multiprocessing.Pool(processes=N_CORES) as pool:
+                results = pool.map(calculate_chi_mat, args_list)
+            chi_mats = np.array(results)
+            chi_mat_mean = np.mean(chi_mats, axis = 0)
+
+
+            ax = axes[ax_id]
+            ax.set_aspect('equal', 'box')
+            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+            heatmap = ax.imshow(chi_mat_mean, cmap = colormap, vmin = min_chi, vmax = max_chi,
+                                interpolation='nearest', 
+                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+            ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+            ax.set_xlim(-101,-93)
+            ax.set_ylim(32.5, 45)
+            ax.tick_params(axis='both', which='major', labelsize=14)
+
+            ax.title.set_text(rf'$\chi_{{{u}}}$')
+            ax.title.set_fontsize(20)
+            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+
+        fig.subplots_adjust(right=0.8)
+        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        colorbar.ax.tick_params(labelsize=14)
+        plt.savefig('Surface_mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.show()
+        plt.close()    
 
 # %%
 # Empirical chi from Model Realizaiton
