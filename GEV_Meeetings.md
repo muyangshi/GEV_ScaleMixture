@@ -8,6 +8,7 @@
 
 - keep queueing chains until they finish (for the paper)
   - 20250613 one chain backed-up and requeued
+  - 20250616 `k25r2b0.67` backed-up and requeued
 
 For EVA:
 - Use the current chains to make posterior plots
@@ -29,7 +30,7 @@ For EVA:
       | ---              | ---                 |
       | HuserWadsworth   | k13b4AI             |
 
-  - [ ] Preliminary results from chains:
+  - [x] Preliminary results from chains:
     - Wait until those seven jobs finish.
     - `k25r2b0.67` v
     - `k25r2b2` v
@@ -48,7 +49,9 @@ For EVA:
       | k41r2b0.67       | k41r2b0.67m         |
       | ---              | ---                 |
 - Make edits to the slides
-  - [ ] Make overall boxplot and send to Ben
+  - [x] Make overall boxplot and send to Ben
+  - ![alt text](image-38.png)
+  - ![alt text](image-40.png)
 - [ ] Run shortest chains using emulated `qRW` (Modify sampler)
 
 ## June 4 (Wednesday) Muyang/Likun/Ben
