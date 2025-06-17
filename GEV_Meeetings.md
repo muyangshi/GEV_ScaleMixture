@@ -4,7 +4,7 @@
 
 ## June 17 (Tuesday) Muyang/Ben
 
-Boxplot figure edit
+- [x] Boxplot figure edit
   - 1-step full joint model
   - 2-step fixed GEV margins
   - H-W Model
@@ -13,9 +13,12 @@ Keep queueing chains until they finish
   - 20250617 `k41r1.6b0.43m` and `k41r2b0.67m` converged?
 
 Priority:
-  - modify the slides
-  - personal statements
-  - wait until the results are finalized, modify the paper
+  - [x] modify the slides
+    - `np.max(predmu1) = 1.542896` and `1.542489627807904 * 100 / np.std(all_years, ddof=1) = 7.0774277990256`
+    - `np.min(predmu1) = -0.8318549311606168` and `-0.8318549311606168 * 100 / np.std(all_years, ddof=1) = -3.8168121901211705`
+  - [ ] personal statements
+  - [ ] qRW swapped out
+  - [ ] wait until the results are finalized, modify the paper
 
 ## June 12 (Thursday) Muyang/Ben
 
