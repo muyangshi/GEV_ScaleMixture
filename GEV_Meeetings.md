@@ -4,6 +4,19 @@
 
 ## June 17 (Tuesday) Muyang/Ben
 
+Boxplot figure edit
+  - 1-step full joint model
+  - 2-step fixed GEV margins
+  - H-W Model
+
+Keep queueing chains until they finish
+  - 20250617 `k41r1.6b0.43m` and `k41r2b0.67m` converged?
+
+Priority:
+  - modify the slides
+  - personal statements
+  - wait until the results are finalized, modify the paper
+
 ## June 12 (Thursday) Muyang/Ben
 
 - keep queueing chains until they finish (for the paper)
