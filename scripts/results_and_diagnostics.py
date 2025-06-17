@@ -2395,7 +2395,7 @@ plt.title('Predictive log likelihoods of out-of-sample observations', fontsize=7
 
 # Adjust yticks and spacing
 yticklabels = list(reversed([
-    'HuserWadsworth', 'k13r4b4', 'k13r4b4m',
+    'H-W Stationary', 'k13r4b4', 'k13r4b4m',
     'k25r2b0.67', 'k25r2b0.67m',
     'k25r2b2', 'k25r2b2m',
     'k25r4b4', 'k25r4b4m',
@@ -2426,9 +2426,9 @@ plt.subplots_adjust(left=0.15, right=0.95, top=0.92, bottom=0.08)
 # Legend
 legend_elements = [
     mpl.patches.Patch(facecolor='deepskyblue', edgecolor='black',
-                      label='no marginal restriction'),
+                      label='1-step Full Joint Model'),
     mpl.patches.Patch(facecolor='lightsalmon', edgecolor='black',
-                      label='restriction on GEV params')
+                      label='2-step Fixed GEV Margins')
 ]
 ax.legend(handles=legend_elements, 
           loc='lower left', fontsize=50, frameon=True)
