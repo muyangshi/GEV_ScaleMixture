@@ -2,6 +2,12 @@
 
 ## June 19 (Thursday) Muyang/Likun/Ben
 
+- [x] NSF on thank you page
+- [x] Award number on thank you page
+- [x] remove knot numbers on phi and rho plots
+
+- Eventually, modify the color scale on $\chi$ plot to make the shallow red show up more.
+
 ## June 17 (Tuesday) Muyang/Ben
 
 - [x] Boxplot figure edit
