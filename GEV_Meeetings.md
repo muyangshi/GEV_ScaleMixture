@@ -1,5 +1,15 @@
 # Meeting Summaries on GEV Project
 
+## June 27 EVA2025
+
+- Likun: think about packaing the python package for people to use it
+- The `k25...` chains mostly seem to have converge/finished. redo their diagnostic plots
+  - `k25r2b2`
+  - `k25r4b4`
+  - `k25r2b0.67`
+  - [x] remake diagnostic plots
+- wait until the `k41` finish, edit the manuscript
+
 ## June 19 (Thursday) Muyang/Likun/Ben
 
 - [x] NSF on thank you page
