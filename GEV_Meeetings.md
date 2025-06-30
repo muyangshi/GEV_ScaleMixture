@@ -8,7 +8,15 @@
   - `k25r4b4`
   - `k25r2b0.67`
   - [x] remake diagnostic plots
+    - [x] `k25r2b2`
+    - [x] `k25r4b4`
+    - [x] `k25r2b0.67`
+    - [ ] `k41r2b0.67m`
+    - [ ] `k41r1.6b0.43m`
+  - [ ] remake boxplots
 - wait until the `k41` finish, edit the manuscript
+  - 20250629 backed-up and requeued
+- add a set of $\chi$-plots for the H-W model?
 
 ## June 19 (Thursday) Muyang/Likun/Ben
 

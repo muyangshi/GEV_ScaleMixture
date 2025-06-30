@@ -53,7 +53,7 @@ import  numpy                as np
 import  geopandas            as gpd
 import  matplotlib           as mpl
 import  matplotlib.pyplot    as plt
-import  matplotlib.ticker    as mtick
+import matplotlib.ticker     as mtick
 from    matplotlib             import colormaps
 from    rpy2.robjects          import r 
 from    rpy2.robjects.numpy2ri import numpy2rpy
@@ -2285,16 +2285,16 @@ ll_HuserWadsworth  = np.sum(np.load('../results/HuserWadsworth/ll_HuserWadsworth
 ll_k13b4AI         = np.sum(np.load('../results/k13b4AI/ll_k13b4AI.npy'), axis = (1,2))
 ll_k13r4b4         = np.sum(np.load('../results/k13r4b4/ll_k13r4b4.npy'), axis = (1,2))
 ll_k13r4b4m        = np.sum(np.load('../results/k13r4b4m/ll_k13r4b4m.npy'), axis = (1,2))
-ll_k25r2b067       = np.sum(np.load('../results_tmp/k25r2b0.67/ll_k25r2b0.67.npy'), axis = (1,2))
+ll_k25r2b067       = np.sum(np.load('../results/k25r2b0.67/ll_k25r2b0.67.npy'), axis = (1,2))
 ll_k25r2b067m      = np.sum(np.load('../results/k25r2b0.67m/ll_k25r2b0.67m.npy'), axis = (1,2))
-ll_k25r2b2         = np.sum(np.load('../results_tmp/k25r2b2/ll_k25r2b2.npy'), axis = (1,2))
+ll_k25r2b2         = np.sum(np.load('../results/k25r2b2/ll_k25r2b2.npy'), axis = (1,2))
 ll_k25r2b2m        = np.sum(np.load('../results/k25r2b2m/ll_k25r2b2m.npy'), axis = (1,2))
-ll_k25r4b4         = np.sum(np.load('../results_tmp/k25r4b4/ll_k25r4b4.npy'), axis = (1,2))
+ll_k25r4b4         = np.sum(np.load('../results/k25r4b4/ll_k25r4b4.npy'), axis = (1,2))
 ll_k25r4b4m        = np.sum(np.load('../results/k25r4b4m/ll_k25r4b4m.npy'), axis = (1,2))
 ll_k41r16b043      = np.sum(np.load('../results_tmp/k41r1.6b0.43/ll_k41r1.6b0.43.npy'), axis = (1,2))
-ll_k41r16b043m     = np.sum(np.load('../results_tmp/k41r1.6b0.43m/ll_k41r1.6b0.43m.npy'), axis = (1,2))
+ll_k41r16b043m     = np.sum(np.load('../results/k41r1.6b0.43m/ll_k41r1.6b0.43m.npy'), axis = (1,2))
 ll_k41r2b067       = np.sum(np.load('../results_tmp/k41r2b0.67/ll_k41r2b0.67.npy'), axis = (1,2))
-ll_k41r2b067m      = np.sum(np.load('../results_tmp/k41r2b0.67m/ll_k41r2b0.67m.npy'), axis = (1,2))
+ll_k41r2b067m      = np.sum(np.load('../results/k41r2b0.67m/ll_k41r2b0.67m.npy'), axis = (1,2))
 
 ll_list = [ll_HuserWadsworth, #ll_k13b4AI,
            ll_k13r4b4,    ll_k13r4b4m,
@@ -2304,63 +2304,62 @@ ll_list = [ll_HuserWadsworth, #ll_k13b4AI,
            ll_k41r16b043, ll_k41r16b043m,
            ll_k41r2b067,  ll_k41r2b067m]
 
-# %%
+# %% Vertical Boxplots
+fig, ax = plt.subplots()
+fig.set_size_inches((40,32))
+bp = ax.boxplot(ll_list, patch_artist = True)
 
-# fig, ax = plt.subplots()
-# fig.set_size_inches((40,32))
-# bp = ax.boxplot(ll_list, patch_artist = True)
-
-# # Customize colors
-# colors = ['deepskyblue', #'deepskyblue',
-#           'deepskyblue', 'lightsalmon',
-#           'deepskyblue', 'lightsalmon',
-#           'deepskyblue', 'lightsalmon',
-#           'deepskyblue', 'lightsalmon',
-#           'deepskyblue', 'lightsalmon',
-#           'deepskyblue', 'lightsalmon']
-# for patch, color in zip(bp['boxes'], colors):
-#     patch.set_facecolor(color)
-#     patch.set_edgecolor('black')
-# for whisker in bp['whiskers']:
-#     whisker.set(color='black', linewidth=1.5)
-# for cap in bp['caps']:
-#     cap.set(color='black', linewidth=1.5)
-# for median in bp['medians']:
-#     median.set(color='black', linewidth=3)
-# for flier in bp['fliers']:
-#     flier.set(marker='o', color='black', markerfacecolor = 'black')
+# Customize colors
+colors = ['deepskyblue', #'deepskyblue',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon',
+          'deepskyblue', 'lightsalmon']
+for patch, color in zip(bp['boxes'], colors):
+    patch.set_facecolor(color)
+    patch.set_edgecolor('black')
+for whisker in bp['whiskers']:
+    whisker.set(color='black', linewidth=1.5)
+for cap in bp['caps']:
+    cap.set(color='black', linewidth=1.5)
+for median in bp['medians']:
+    median.set(color='black', linewidth=3)
+for flier in bp['fliers']:
+    flier.set(marker='o', color='black', markerfacecolor = 'black')
 
 
-# # Customize axis labels and ticks
-# ax.set_xticklabels(['HuserWadsworth', #'k13b4AI',
-#                     'k13r4b4',      'k13r4b4m',
-#                     'k25r2b0.67',   'k25r2b0.67m',
-#                     'k25r2b2',      'k25r2b2m',
-#                     'k25r4b4',      'k25r4b4m',
-#                     'k41r1.6b0.43', 'k41r1.6b0.43m',
-#                     'k41r2b0.67',   'k41r2b0.67m'],
-#                    rotation = 45)
-# ax.set_ylabel('log likelihood', fontsize = 50)
-# ax.yaxis.offsetText.set_fontsize(50)
-# ax.tick_params(axis='both', which='major', labelsize=50)
-# fig.supxlabel('Models', fontsize = 50)
-# plt.title('Predicative log likelihoods of out-of-sample observations', 
-#           fontsize = 50)
+# Customize axis labels and ticks
+ax.set_xticklabels(['HuserWadsworth', #'k13b4AI',
+                    'k13r4b4',      'k13r4b4m',
+                    'k25r2b0.67',   'k25r2b0.67m',
+                    'k25r2b2',      'k25r2b2m',
+                    'k25r4b4',      'k25r4b4m',
+                    'k41r1.6b0.43', 'k41r1.6b0.43m',
+                    'k41r2b0.67',   'k41r2b0.67m'],
+                   rotation = 45)
+ax.set_ylabel('log likelihood', fontsize = 50)
+ax.yaxis.offsetText.set_fontsize(50)
+ax.tick_params(axis='both', which='major', labelsize=50)
+fig.supxlabel('Models', fontsize = 50)
+plt.title('Predicative log likelihoods of out-of-sample observations', 
+          fontsize = 50)
 
-# # Add gridlines for better readability
-# ax.grid(True, which='both', linestyle='--',linewidth=0.7)
+# Add gridlines for better readability
+ax.grid(True, which='both', linestyle='--',linewidth=0.7)
 
-# # Custom legend
-# legend_elements = [mpl.patches.Patch(facecolor='deepskyblue', edgecolor='black',
-#                                      label='no marginal restriction'),
-#                    mpl.patches.Patch(facecolor='lightsalmon', edgecolor='black',
-#                                      label='restriction on GEV params')]
-# ax.legend(handles=legend_elements, loc='lower right', fontsize = 50)
+# Custom legend
+legend_elements = [mpl.patches.Patch(facecolor='deepskyblue', edgecolor='black',
+                                     label='no marginal restriction'),
+                   mpl.patches.Patch(facecolor='lightsalmon', edgecolor='black',
+                                     label='restriction on GEV params')]
+ax.legend(handles=legend_elements, loc='lower right', fontsize = 50)
 
-# # plt.tight_layout()
-# plt.savefig('ll_boxplot_all.pdf', bbox_inches='tight')
-# plt.show()
-# plt.close()
+# plt.tight_layout()
+plt.savefig('ll_boxplot_all.pdf', bbox_inches='tight')
+plt.show()
+plt.close()
 
 
 # %% Draw Boxplot
@@ -2432,6 +2431,9 @@ legend_elements = [
 ]
 ax.legend(handles=legend_elements, 
           loc='lower left', fontsize=50, frameon=True)
+
+box = ax.get_position()
+ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
 plt.savefig('ll_boxplot_all_horizontal.pdf', bbox_inches='tight')
 plt.show()
