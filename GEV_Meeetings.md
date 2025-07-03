@@ -1,22 +1,34 @@
 # Meeting Summaries on GEV Project
 
+## July 7 (Monday) Muyang/Ben
+
 ## June 27 EVA2025
 
-- Likun: think about packaing the python package for people to use it
+### Ideas
+- [ ] Likun: think about packaging the python package for people to use it
+  - we have the `github`?
+- [ ] GEV + *standard* Pareto
+
+### Chain
 - The `k25...` chains mostly seem to have converge/finished. redo their diagnostic plots
   - `k25r2b2`
   - `k25r4b4`
   - `k25r2b0.67`
-  - [x] remake diagnostic plots
-    - [x] `k25r2b2`
-    - [x] `k25r4b4`
-    - [x] `k25r2b0.67`
-    - [ ] `k41r2b0.67m`
-    - [ ] `k41r1.6b0.43m`
-  - [ ] remake boxplots
-- wait until the `k41` finish, edit the manuscript
+- [x] remake diagnostic plots
+  - [x] `k25r2b2`
+  - [x] `k25r4b4`
+  - [x] `k25r2b0.67`
+  - [ ] `k41r2b0.67m`
+  - [ ] `k41r1.6b0.43m`
+- [ ] remake boxplots
+- [ ] wait until the `k41` finish
   - 20250629 backed-up and requeued
-- add a set of $\chi$-plots for the H-W model?
+  - 20250702 backed-up and requeued
+
+### Paper Edits
+- [ ] assuming no big changes in the `k41` models, edit the manuscript
+- [ ] add a set of $\chi$-plots for the H-W model?
+- [ ] modify the color scale on $\chi$ plot to make the shallow red show up more
 
 ## June 19 (Thursday) Muyang/Likun/Ben
 
