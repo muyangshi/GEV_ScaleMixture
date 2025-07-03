@@ -5,30 +5,36 @@
 ## June 27 EVA2025
 
 ### Ideas
-- [ ] Likun: think about packaging the python package for people to use it
-  - we have the `github`?
+- Likun: think about packaging the python package for people to use it
+  - we have it on `github`?
 - [ ] GEV + *standard* Pareto
 
 ### Chain
-- The `k25...` chains mostly seem to have converge/finished. redo their diagnostic plots
-  - `k25r2b2`
-  - `k25r4b4`
-  - `k25r2b0.67`
-- [x] remake diagnostic plots
-  - [x] `k25r2b2`
-  - [x] `k25r4b4`
-  - [x] `k25r2b0.67`
-  - [ ] `k41r2b0.67m`
-  - [ ] `k41r1.6b0.43m`
-- [ ] remake boxplots
-- [ ] wait until the `k41` finish
+- The `k25...` chains mostly seem to have converge/finished.
+  - [x] remake diagnostic plots
+    - [x] `k25r2b2`
+    - [x] `k25r4b4`
+    - [x] `k25r2b0.67`
+- [x] remake boxplots
+  - looks pretty much the same to the previous, safe to proceed with manuscript editing
+  - the varaibility of the counterparts also become more similar
+    - new: ![alt text](image-41.png)
+    - old: ![alt text](image-42.png)
+- [ ] wait until the `k41` finish to finalize the boxplot
   - 20250629 backed-up and requeued
   - 20250702 backed-up and requeued
 
 ### Paper Edits
 - [ ] assuming no big changes in the `k41` models, edit the manuscript
+  - [x] swap out the images
+  - [x] add posterior CI table for `k25r4b4`
+  - [x] table of models
+  - [x] edit section 4: application
+  - [ ] edit section 5: discussion
 - [ ] add a set of $\chi$-plots for the H-W model?
 - [ ] modify the color scale on $\chi$ plot to make the shallow red show up more
+  - change upper bound to 0.30
+  - match the colorbar to both be (0, 0.3) for empirical and model-based
 
 ## June 19 (Thursday) Muyang/Likun/Ben
 
