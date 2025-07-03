@@ -254,27 +254,27 @@ def get_elevation(longitude, latitude):
 # N_outer_grid_rho = 16
 # burnin           = 3000
 
-# # Model 7: k25r4b4 ----------------------------------------
-# folder           = './'
-# name             = 'k25r4b4'
-# fixGEV           = False
-# radius           = 4
-# bandwidth_phi    = 4
-# bandwidth_rho    = 4
-# N_outer_grid_phi = 16
-# N_outer_grid_rho = 16
-# burnin           = 3000
-
-# Model 8: k25r4b4m ---------------------------------------
+# Model 7: k25r4b4 ----------------------------------------
 folder           = './'
-name             = 'k25r4b4m'
-fixGEV           = True
+name             = 'k25r4b4'
+fixGEV           = False
 radius           = 4
 bandwidth_phi    = 4
 bandwidth_rho    = 4
 N_outer_grid_phi = 16
 N_outer_grid_rho = 16
 burnin           = 3000
+
+# # Model 8: k25r4b4m ---------------------------------------
+# folder           = './'
+# name             = 'k25r4b4m'
+# fixGEV           = True
+# radius           = 4
+# bandwidth_phi    = 4
+# bandwidth_rho    = 4
+# N_outer_grid_phi = 16
+# N_outer_grid_rho = 16
+# burnin           = 3000
 
 # # Model 9: k41r1.6b0.43 ----------------------------------
 # folder           = './'
@@ -857,7 +857,7 @@ if not fixGEV:
     plt.yticks(fontsize = 30)
     plt.xlabel('longitude', fontsize = 50)
     plt.ylabel('latitude', fontsize = 50)
-    plt.title(r'$\mu_0(s)$ surface', fontsize = 50)
+    plt.title(r'$\mu_0(s)$', fontsize = 50)
     plt.savefig('Surface_mu0_pred.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
@@ -889,7 +889,7 @@ if not fixGEV:
     plt.yticks(fontsize = 30)
     plt.xlabel('longitude', fontsize = 50)
     plt.ylabel('latitude', fontsize = 50)
-    plt.title(r'$\mu_1(s)$ surface', fontsize = 50)
+    plt.title(r'$\mu_1(s)$', fontsize = 50)
     plt.savefig('Surface_mu1_pred.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
@@ -920,7 +920,7 @@ if not fixGEV:
     plt.yticks(fontsize = 30)
     plt.xlabel('longitude', fontsize = 50)
     plt.ylabel('latitude', fontsize = 50)
-    plt.title(r'$\log(\sigma(s))$ surface', fontsize = 50)
+    plt.title(r'$\log(\sigma(s))$', fontsize = 50)
     plt.savefig('Surface_logsigma_pred.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
@@ -951,7 +951,7 @@ if not fixGEV:
     plt.yticks(fontsize = 30)
     plt.xlabel('longitude', fontsize = 50)
     plt.ylabel('latitude', fontsize = 50)
-    plt.title(r'$\xi(s)$ surface', fontsize = 50)
+    plt.title(r'$\xi(s)$', fontsize = 50)
     plt.savefig('Surface_xi_pred.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
@@ -1127,7 +1127,7 @@ plt.xticks(fontsize = 30)
 plt.yticks(fontsize = 30)
 plt.xlabel('longitude', fontsize = 50)
 plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\phi(s)$ surface', fontsize = 50)
+plt.title(r'$\phi(s)$', fontsize = 50)
 plt.savefig('Surface_phi.pdf')
 plt.show()
 plt.close()
@@ -1173,8 +1173,8 @@ plt.xticks(fontsize = 30)
 plt.yticks(fontsize = 30)
 plt.xlabel('longitude', fontsize = 50)
 plt.ylabel('latitude', fontsize = 50)
-plt.title(r'$\rho(s)$ surface', fontsize = 50)
-plt.savefig('Surface_range.pdf')
+plt.title(r'$\rho(s)$', fontsize = 50)
+plt.savefig('Surface_rho.pdf')
 plt.show()
 plt.close()
 
@@ -1184,7 +1184,7 @@ plt.xticks(fontsize=40)
 plt.yticks(np.arange(1000, 10000, 2000), fontsize=40)
 plt.title('Posterior Samples of $\\rho(s)$', fontsize = 50)
 plt.xlabel(rf'$\rho(s)$', fontsize = 50)
-plt.savefig('Surface_range_hist.pdf')
+plt.savefig('Surface_rho_hist.pdf')
 plt.show()
 plt.close()
 
@@ -1241,9 +1241,9 @@ if not fixGEV:
     # Create a LinearSegmentedColormap from white to red
     colors = ["#ffffff", "#ff0000"]
     min_chi = 0.0
-    max_chi = 0.5
+    max_chi = 0.3
     n_bins = 100  # Number of discrete bins
-    n_ticks = 10
+    n_ticks = 7
     cmap_name = "white_to_red"
     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
     ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
@@ -1691,9 +1691,9 @@ def calc_model_chi_local(args):
 # Create a LinearSegmentedColormap from white to red
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
-max_chi = 1.0
+max_chi = 0.3
 n_bins = 100  # Number of discrete bins
-n_ticks = 10
+n_ticks = 7
 cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
 ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
@@ -2280,6 +2280,7 @@ plt.close()
 # %% Load Models' Predicative loglikelihoods --------------------------------------------------------------
 
 # Make sure corresponding .npy files are put into the result folder
+# this script should be put in the /scripts folder
 
 ll_HuserWadsworth  = np.sum(np.load('../results/HuserWadsworth/ll_HuserWadsworth.npy'), axis = (1,2))
 ll_k13b4AI         = np.sum(np.load('../results/k13b4AI/ll_k13b4AI.npy'), axis = (1,2))
@@ -2438,13 +2439,6 @@ ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 plt.savefig('ll_boxplot_all_horizontal.pdf', bbox_inches='tight')
 plt.show()
 plt.close()
-
-
-
-
-
-
-
 
 
 
