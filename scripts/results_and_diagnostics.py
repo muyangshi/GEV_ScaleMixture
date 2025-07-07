@@ -1241,9 +1241,9 @@ if not fixGEV:
     # Create a LinearSegmentedColormap from white to red
     colors = ["#ffffff", "#ff0000"]
     min_chi = 0.0
-    max_chi = 0.3
+    max_chi = 0.5
     n_bins = 100  # Number of discrete bins
-    n_ticks = 7
+    n_ticks = 10
     cmap_name = "white_to_red"
     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
     ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
@@ -1691,9 +1691,9 @@ def calc_model_chi_local(args):
 # Create a LinearSegmentedColormap from white to red
 colors = ["#ffffff", "#ff0000"]
 min_chi = 0.0
-max_chi = 0.3
+max_chi = 0.5
 n_bins = 100  # Number of discrete bins
-n_ticks = 7
+n_ticks = 10
 cmap_name = "white_to_red"
 colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
 ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
@@ -1719,7 +1719,7 @@ for h in [75, 150, 225]:
         ax.set_aspect('equal', 'box')
         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
         heatmap = ax.imshow(chi_mat, cmap = colormap, interpolation = 'nearest',
-                            vmin = 0.0, vmax = 1.0,
+                            vmin = min_chi, vmax = max_chi,
                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                     min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
