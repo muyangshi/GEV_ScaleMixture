@@ -2,6 +2,10 @@
 
 ## July 7 (Monday) Muyang/Ben
 
+- [x] Figure out the color scale of the $\chi$-plots
+- [ ] remake boxplot with the `10,000` iters `k41...` models
+- [x] send email to Ben/Likun/Mark `main_JASA.tex`, we've made changes
+
 ## June 27 EVA2025
 
 ### Ideas
@@ -25,15 +29,15 @@
   - 20250702 backed-up and requeued
 
 ### Paper Edits
-- [ ] assuming no big changes in the `k41` models, edit the manuscript
+- [-] assuming no big changes in the `k41` models, edit the manuscript
   - [x] swap out the images
   - [x] add posterior CI table for `k25r4b4`
   - [x] table of models
   - [x] edit section 4: application
-  - [ ] edit section 5: discussion
-- [ ] add a set of $\chi$-plots for the H-W model?
-- [ ] modify the color scale on $\chi$ plot to make the shallow red show up more
-  - change upper bound to 0.30
+  - [x] edit section 5: discussion
+- [-] add a set of $\chi$-plots for the H-W model?
+- [-] modify the color scale on $\chi$ plot to make the shallow red show up more
+  - <mark>change upper bound to 0.30</mark>
   - match the colorbar to both be (0, 0.3) for empirical and model-based
 
 ## June 19 (Thursday) Muyang/Likun/Ben
