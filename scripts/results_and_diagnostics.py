@@ -2292,9 +2292,9 @@ ll_k25r2b2         = np.sum(np.load('../results/k25r2b2/ll_k25r2b2.npy'), axis =
 ll_k25r2b2m        = np.sum(np.load('../results/k25r2b2m/ll_k25r2b2m.npy'), axis = (1,2))
 ll_k25r4b4         = np.sum(np.load('../results/k25r4b4/ll_k25r4b4.npy'), axis = (1,2))
 ll_k25r4b4m        = np.sum(np.load('../results/k25r4b4m/ll_k25r4b4m.npy'), axis = (1,2))
-ll_k41r16b043      = np.sum(np.load('../results_tmp/k41r1.6b0.43/ll_k41r1.6b0.43.npy'), axis = (1,2))
+ll_k41r16b043      = np.sum(np.load('../results/k41r1.6b0.43/ll_k41r1.6b0.43.npy'), axis = (1,2))
 ll_k41r16b043m     = np.sum(np.load('../results/k41r1.6b0.43m/ll_k41r1.6b0.43m.npy'), axis = (1,2))
-ll_k41r2b067       = np.sum(np.load('../results_tmp/k41r2b0.67/ll_k41r2b0.67.npy'), axis = (1,2))
+ll_k41r2b067       = np.sum(np.load('../results/k41r2b0.67/ll_k41r2b0.67.npy'), axis = (1,2))
 ll_k41r2b067m      = np.sum(np.load('../results/k41r2b0.67m/ll_k41r2b0.67m.npy'), axis = (1,2))
 
 ll_list = [ll_HuserWadsworth, #ll_k13b4AI,

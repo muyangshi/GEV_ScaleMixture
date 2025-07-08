@@ -1,9 +1,15 @@
+# Lingering Ideas
+
+- [ ] Package the Software and put to PYPI
+- [ ] GEV + *standard* Pareto
+
 # Meeting Summaries on GEV Project
 
 ## July 7 (Monday) Muyang/Ben
 
 - [x] Figure out the color scale of the $\chi$-plots
-- [ ] remake boxplot with the `10,000` iters `k41...` models
+- [x] remake boxplot with the `10,000` iters `k41...` models
+  - ![alt text](image-43.png)
 - [x] send email to Ben/Likun/Mark `main_JASA.tex`, we've made changes
 
 ## June 27 EVA2025
@@ -11,7 +17,7 @@
 ### Ideas
 - Likun: think about packaging the python package for people to use it
   - we have it on `github`?
-- [ ] GEV + *standard* Pareto
+- [-] GEV + *standard* Pareto
 
 ### Chain
 - The `k25...` chains mostly seem to have converge/finished.
