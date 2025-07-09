@@ -690,7 +690,7 @@ gamma_vec = np.sum(np.multiply(wendland_weight_matrix, gamma_at_knots)**(alpha),
                     axis = 1)**(1/alpha) # bar{gamma}, axis = 1 to sum over K knots
 
 
-# Marginal Model Setup - F_Y ~ GEV(mu, sigma, xi) ---------
+# Marginal Model Setup - F_Y ~ GEV(mu, sigma, xi) -----------------------------
 
 mu_matrix    = np.full(shape = (Ns, Nt), fill_value = 50)
 sigma_matrix = np.full(shape = (Ns, Nt), fill_value = 10)

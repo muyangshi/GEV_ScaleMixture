@@ -1,6 +1,6 @@
 # Lingering Ideas
 
-- [ ] Package the Software and put to PYPI
+- [ ] Package the Software and put to `pypi`
 - [ ] GEV + *standard* Pareto
 
 # Meeting Summaries on GEV Project
@@ -30,7 +30,7 @@
   - the varaibility of the counterparts also become more similar
     - new: ![alt text](image-41.png)
     - old: ![alt text](image-42.png)
-- [ ] wait until the `k41` finish to finalize the boxplot
+- [x] wait until the `k41` finish to finalize the boxplot
   - 20250629 backed-up and requeued
   - 20250702 backed-up and requeued
 
