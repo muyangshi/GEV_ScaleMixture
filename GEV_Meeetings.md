@@ -2,8 +2,17 @@
 
 - [ ] Package the Software and put to `pypi`
 - [ ] GEV + *standard* Pareto
+- [ ] include on GitHub, GEV `qRW()` emulator 
+  - [ ] do some testing
+  - [ ] put a switch between emulator and true numerical integration in the `MCMC.py` or `utilities.py`
 
 # Meeting Summaries on GEV Project
+
+## July 10 (Thursday) Muyang/Likun/Ben
+
+- Ben & Likun will go over the manuscript today
+- [ ] submit on Monday going over with Ben
+- [ ] Update the arXiv version
 
 ## July 7 (Monday) Muyang/Ben
 
