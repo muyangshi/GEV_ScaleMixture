@@ -8,6 +8,13 @@
 
 # Meeting Summaries on GEV Project
 
+## July 14 (Monday) Muyang/Ben
+
+- Author details
+  - ORCiD
+  - corresponding author with email address normally displayed in the article PDF
+- Link to GitHub code?
+
 ## July 10 (Thursday) Muyang/Likun/Ben
 
 - Ben & Likun will go over the manuscript today
