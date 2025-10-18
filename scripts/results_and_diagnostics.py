@@ -49,6 +49,7 @@ from    math                   import sin, cos, sqrt, atan2, radians, asin
 
 # Python Extensions
 import  scipy
+from    scipy.stats            import t as tdist
 import  numpy                as np
 import  geopandas            as gpd
 import  matplotlib           as mpl
@@ -1194,6 +1195,14 @@ plt.close()
 Moving window empirical chi plot, using mean of per MCMC iter fitted GEV at the observation sites
 """
 
+def wilson_ci(k, n, conf=0.95):
+        z = scipy.stats.norm.ppf(0.5 + conf/2)
+        p = k / n
+        denom  = 1 + z**2/n
+        center = (p + z**2/(2*n)) / denom
+        half   = z*np.sqrt((p*(1-p)/n) + z**2/(4*n**2)) / denom
+        return center - half, center + half
+
 if not fixGEV: 
     
     # these are the per iteration marginal parameters
@@ -1248,6 +1257,31 @@ if not fixGEV:
     colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
     ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
 
+    def chi_time_agg(pY_in_rect, u, site_pairs_to_check):
+        # pY_in_rect: shape (n_sites_in_rect, Nt), PIT uniforms
+        Nt_local = pY_in_rect.shape[1]
+        n_pairs  = len(site_pairs_to_check)
+
+        # per-time co-exceedance fraction across pairs
+        p_t = np.empty(Nt_local)
+        for t in range(Nt_local):
+            cnt = 0
+            for (i,j) in site_pairs_to_check:
+                cnt += ((pY_in_rect[i, t] >= u) and (pY_in_rect[j, t] >= u))
+            p_t[t] = cnt / n_pairs if n_pairs > 0 else np.nan
+
+        p_bar = np.nanmean(p_t)
+        s     = np.nanstd(p_t, ddof=1)
+        SE    = s / np.sqrt(Nt_local)
+
+        # transform to chi_u
+        chi_hat = p_bar / (1.0 - u)
+        # use t-interval over time
+        tcrit = tdist.ppf(0.975, df=max(Nt_local-1,1))
+        chi_lb = max(0.0, (p_bar - tcrit*SE) / (1.0 - u))
+        chi_ub = min(1.0, (p_bar + tcrit*SE) / (1.0 - u))
+        return chi_hat, chi_lb, chi_ub
+
     def calculate_chi_mat(args):
         pY, h, u = args
         # print('h:',h,'u:',u)
@@ -1256,6 +1290,9 @@ if not fixGEV:
         h_up  = h * (1 + e_abs)
 
         chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+
+        chi_mat2_lb = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+        chi_mat2_ub = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
 
         for i in range(knots_xy_chi.shape[0]):
 
@@ -1293,15 +1330,25 @@ if not fixGEV:
                                                         pY_in_rect[site_pair[1]] >= u))
             prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
             prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
-            chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+            # chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
+            chi = prob_joint_ext / (1-u)
             if np.isnan(chi): chi = 0
+            
+            p_lb, p_ub = wilson_ci(count_co_extreme, n_pairs * Nt, conf = 0.95) 
+            chi_lb, chi_ub = p_lb / (1-u), p_ub / (1-u)
+            # if prob_uni_ext == 0:
+            #     chi_lb, chi_ub = chi_lb/(1-u), chi_ub/(1-u)
+            # else:
+            #     chi_lb, chi_ub = chi_lb/prob_uni_ext, chi_ub/prob_uni_ext
 
             # chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
             chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
+            chi_mat2_lb[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi_lb
+            chi_mat2_ub[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi_ub
         
-        return chi_mat2
+        return chi_mat2, chi_mat2_lb, chi_mat2_ub
 
-
+    # chi hat
     for h in [75, 150, 225]:
 
         fig, axes = plt.subplots(1,3)
@@ -1311,9 +1358,14 @@ if not fixGEV:
 
             args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
             with multiprocessing.Pool(processes=N_CORES) as pool:
-                results = pool.map(calculate_chi_mat, args_list)
+                results = list(
+                    tqdm(
+                        pool.imap(calculate_chi_mat, args_list),
+                        total = len(args_list)
+                    )
+                )
             chi_mats = np.array(results)
-            chi_mat_mean = np.mean(chi_mats, axis = 0)
+            chi_mat_mean = np.mean(chi_mats, axis = 0)[0,:,:]
 
 
             ax = axes[ax_id]
@@ -1324,7 +1376,7 @@ if not fixGEV:
                                 extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                         min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
             # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-            ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+            ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
             ax.set_xlim(-101,-93)
             ax.set_ylim(32.5, 45)
             ax.tick_params(axis='both', which='major', labelsize=14)
@@ -1343,7 +1395,102 @@ if not fixGEV:
         plt.savefig('Surface_mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
         plt.show()
         plt.close()
+    
+    # chi lb
+    for h in [75, 150, 225]:
 
+        fig, axes = plt.subplots(1,3)
+        fig.set_size_inches(10,6)
+
+        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+            args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
+            with multiprocessing.Pool(processes=N_CORES) as pool:
+                results = list(
+                    tqdm(
+                        pool.imap(calculate_chi_mat, args_list),
+                        total = len(args_list)
+                    )
+                )
+            chi_mats = np.array(results)
+            chi_mat_mean = np.mean(chi_mats, axis = 0)
+            chi_mat_lb   = chi_mat_mean[1,:,:]
+
+            ax = axes[ax_id]
+            ax.set_aspect('equal', 'box')
+            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+            heatmap = ax.imshow(chi_mat_lb, cmap = colormap, vmin = min_chi, vmax = max_chi,
+                                interpolation='nearest', 
+                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+            ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
+            ax.set_xlim(-101,-93)
+            ax.set_ylim(32.5, 45)
+            ax.tick_params(axis='both', which='major', labelsize=14)
+
+            ax.title.set_text(rf'$\chi_{{{u}}}$')
+            ax.title.set_fontsize(20)
+            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+
+        fig.subplots_adjust(right=0.8)
+        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        colorbar.ax.tick_params(labelsize=14)
+        plt.savefig('Surface_mean_LB_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.show()
+        plt.close()
+
+    # chi ub
+    for h in [75, 150, 225]:
+
+        fig, axes = plt.subplots(1,3)
+        fig.set_size_inches(10,6)
+
+        for ax_id, u in enumerate([0.9, 0.95, 0.99]):
+
+            args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
+            with multiprocessing.Pool(processes=N_CORES) as pool:
+                results = list(
+                    tqdm(
+                        pool.imap(calculate_chi_mat, args_list),
+                        total = len(args_list)
+                    )
+                )
+            chi_mats = np.array(results)
+            chi_mat_mean = np.mean(chi_mats, axis = 0)
+            chi_mat_ub   = chi_mat_mean[2,:,:]
+
+            ax = axes[ax_id]
+            ax.set_aspect('equal', 'box')
+            state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
+            heatmap = ax.imshow(chi_mat_ub, cmap = colormap, vmin = min_chi, vmax = max_chi,
+                                interpolation='nearest', 
+                                extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
+                                        min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
+            # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
+            ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
+            ax.set_xlim(-101,-93)
+            ax.set_ylim(32.5, 45)
+            ax.tick_params(axis='both', which='major', labelsize=14)
+
+            ax.title.set_text(rf'$\chi_{{{u}}}$')
+            ax.title.set_fontsize(20)
+            # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
+
+        fig.subplots_adjust(right=0.8)
+        fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
+        fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
+        fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
+        cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+        colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
+        colorbar.ax.tick_params(labelsize=14)
+        plt.savefig('Surface_mean_UB_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
+        plt.show()
+        plt.close()
 # %% Empirical chi of dataset, initSmooth MLE GEV
 
 if fixGEV:
@@ -1681,9 +1828,10 @@ def calc_model_chi_local(args):
         count_co_extreme += np.sum(np.logical_and(site1 >= site1_qu,
                                                   site2 >= site2_qu))
     prob_joint_ext = count_co_extreme / (n_pairs * n_draw) # numerator
-    prob_uni_ext   = np.mean(X_in_rect >= qu_in_rect[:, np.newaxis])
+    # prob_uni_ext   = np.mean(X_in_rect >= qu_in_rect[:, np.newaxis])
+    prob_uni_ext   = 1-u
     chi            = prob_joint_ext / prob_uni_ext if prob_uni_ext != 0 else 0.0
-    
+
     return chi
 
 # Plotting --------------------------------------------------------------------
@@ -1708,10 +1856,16 @@ for h in [75, 150, 225]:
         for i in range(knots_xy_chi.shape[0]):
             args = (knots_xy_chi[i], h, u, qu_all[ax_id])
             args_list.append(args)
-        with multiprocessing.Pool(processes = 60) as pool:
-            results = pool.map(calc_model_chi_local, args_list)
-        
+        with multiprocessing.Pool(processes = N_CORES) as pool:
+            results = list(
+                    tqdm(
+                        pool.imap(calc_model_chi_local, args_list),
+                        total = len(args_list)
+                    )
+                )
+        results = np.array(results)
         chi_mat = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
+
         for i in range(knots_xy_chi.shape[0]):
             chi_mat[-1 - i//len(x_pos_chi), i % len(x_pos_chi)] = results[i]
         
@@ -1723,7 +1877,7 @@ for h in [75, 150, 225]:
                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
                                     min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)])
         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-        ax.scatter(knots_x_chi, knots_y_chi, s = 15, color = 'white', marker = '+')
+        ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
         ax.set_xlim(-101,-93)
         ax.set_ylim(32.5, 45)
         ax.tick_params(axis='both', which='major', labelsize=14)
