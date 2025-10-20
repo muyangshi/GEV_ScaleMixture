@@ -488,7 +488,7 @@ vmax_ls_est = my_ceil (np.nanmax(logsigma_estimates), 1)
 norm_ls_est = matplotlib.colors.TwoSlopeNorm(vcenter=(vmin_ls_est+vmax_ls_est)/2,
                                              vmin=vmin_ls_est, vmax=vmax_ls_est)
 sc_ls_est = ax_ls_est.scatter(sites_x, sites_y, s=10, c=logsigma_estimates,
-                              cmap='terrain', norm=norm_ls_est, rasterized=True)
+                              cmap='viridis', norm=norm_ls_est, rasterized=True)
 state_map.plot(ax=ax_ls_est, facecolor='none', edgecolor='0.3', linewidth=0.4, zorder=0)
 ax_ls_est.set_aspect('equal', 'box')
 ax_ls_est.set_title('log(\u03C3) estimates', fontsize = 20)
@@ -499,7 +499,7 @@ vmin_ls = min(my_floor(np.nanmin(logsigma_matrix[:,0]), 1), my_floor(np.nanmin(l
 vmax_ls = max(my_ceil (np.nanmax(logsigma_matrix[:,0]), 1), my_ceil (np.nanmax(logsigma_matrix[:,0]), 1))
 norm_ls = matplotlib.colors.TwoSlopeNorm(vcenter=(vmin_ls+vmax_ls)/2, vmin=vmin_ls, vmax=vmax_ls)
 sc_ls_fit = ax_ls_fit.scatter(sites_x, sites_y, s=10, c=logsigma_matrix[:,0],
-                              cmap='terrain', norm=norm_ls, rasterized=True)
+                              cmap='viridis', norm=norm_ls, rasterized=True)
 state_map.plot(ax=ax_ls_fit, facecolor='none', edgecolor='0.3', linewidth=0.4, zorder=0)
 ax_ls_fit.set_aspect('equal', 'box')
 ax_ls_fit.set_title('log(\u03C3) spline-smoothed', fontsize = 20)
@@ -511,18 +511,20 @@ vmax_k_est = max(my_ceil (np.nanmax(ksi_estimates), 1), my_ceil (np.nanmax(ksi_e
 norm_k_est = matplotlib.colors.TwoSlopeNorm(vcenter=(vmin_k_est+vmax_k_est)/2,vmin=vmin_k_est, vmax=vmax_k_est)
 
 sc_ks_est = ax_ksi_est.scatter(sites_x, sites_y, s=10, c=ksi_estimates,
-                               cmap='terrain', norm=norm_k_est, rasterized=True)
+                               cmap='viridis', norm=norm_k_est, rasterized=True)
 state_map.plot(ax=ax_ksi_est, facecolor='none', edgecolor='0.3', linewidth=0.4, zorder=0)
 ax_ksi_est.set_aspect('equal', 'box')
 ax_ksi_est.set_title('\u03BE estimates', fontsize = 20)
 # fig.colorbar(sc_ks_est, ax=ax_ksi_est, fraction=0.046, pad=0.02)
 
 # --- xi spline-smoothed ---
-vmin_k = min(my_floor(np.nanmin(ksi_matrix[:,0]), 1), my_floor(np.nanmin(ksi_matrix[:,0]), 1))
-vmax_k = max(my_ceil (np.nanmax(ksi_matrix[:,0]), 1), my_ceil (np.nanmax(ksi_matrix[:,0]), 1))
+# vmin_k = min(my_floor(np.nanmin(ksi_matrix[:,0]), 1), my_floor(np.nanmin(ksi_matrix[:,0]), 1))
+# vmax_k = max(my_ceil (np.nanmax(ksi_matrix[:,0]), 1), my_ceil (np.nanmax(ksi_matrix[:,0]), 1))
+vmin_k = np.nanmin(ksi_matrix[:,0])
+vmax_k = np.nanmax(ksi_matrix[:,0])
 norm_k = matplotlib.colors.TwoSlopeNorm(vcenter=(vmin_k+vmax_k)/2,vmin=vmin_k, vmax=vmax_k)
 sc_ks_fit = ax_ksi_fit.scatter(sites_x, sites_y, s=10, c=ksi_matrix[:,0],
-                               cmap='terrain', norm=norm_k, rasterized=True)
+                               cmap='viridis', norm=norm_k, rasterized=True)
 state_map.plot(ax=ax_ksi_fit, facecolor='none', edgecolor='0.3', linewidth=0.4, zorder=0)
 ax_ksi_fit.set_aspect('equal', 'box')
 ax_ksi_fit.set_title('\u03BE spline-smoothed', fontsize = 20)
@@ -531,13 +533,13 @@ ax_ksi_fit.set_title('\u03BE spline-smoothed', fontsize = 20)
 # --- Elevation (scaled, you defined elevations = elev/200 above) ---
 vmin_e = my_floor(np.nanmin(elevations), 1)
 vmax_e = my_ceil (np.nanmax(elevations), 1)
-elev_sc = ax_elev.scatter(sites_x, sites_y, s=10, c=elevations, cmap='terrain',
+elev_sc = ax_elev.scatter(sites_x, sites_y, s=10, c=-elevations, cmap='viridis',
                           rasterized=True)
 
 # state boundaries overlay (already loaded as state_map)
 state_map.plot(ax=ax_elev, facecolor='none', edgecolor='0.3', linewidth=0.4, zorder=0)
 ax_elev.set_aspect('equal', 'box')
-ax_elev.set_title('Elevation (scaled)', fontsize = 20)
+ax_elev.set_title('(Negated) Elevation (scaled)', fontsize = 20)
 # fig.colorbar(elev_sc, ax=ax_elev, fraction=0.046, pad=0.02)
 
 for ax in [ax_elev, ax_ls_est, ax_ls_fit, ax_ksi_est, ax_ksi_fit]:
