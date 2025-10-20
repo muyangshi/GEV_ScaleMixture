@@ -876,6 +876,19 @@ myfig = draw_chi_lb_hat_ub(chi_hat_data, chi_lb_data, chi_ub_data,
 )
 myfig.savefig('myfig.pdf', bbox_inches='tight')
 
+for u_i, u in enumerate(u_list):
+    for h_i, h in enumerate(h_list):
+        myfig = draw_chi_lb_hat_ub(chi_hat_data, chi_lb_data, chi_ub_data, 
+                  h, u, h_i=h_i, u_i=u_i,
+                  x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
+                  state_map=state_map, 
+                  cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
+                  vmin=0.0, vmax=0.5, 
+                  ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+        )
+        myfig.savefig(rf"Surface_data_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
+
+
 # # check pairs within a window ---------------------------
 # # e.g. first endpoint
 # sites_xy[sites_in_window[0]][pairs_by_window[(75,0)][0]]
@@ -1072,7 +1085,7 @@ for u_i, u in enumerate(u_list):
                   vmin=0.0, vmax=0.5, 
                   ticks = np.linspace(0.0, 0.5, 10+1).round(3)
         )
-        myfig.savefig(rf"Surface_model_chi_h={h}_u={u}.pdf", bbox_inches="tight")
+        myfig.savefig(rf"Surface_model_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
 
 # myfig = draw_chi_lb_hat_ub(chi_hat_model, chi_lb_model, chi_ub_model, 
 #                   h_list[0], u_list[0], h_i=0, u_i=0,
