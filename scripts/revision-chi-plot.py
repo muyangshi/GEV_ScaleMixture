@@ -1187,32 +1187,34 @@ rho_vec_chi_thin100 = gaussian_weight_matrix_rho_chi @ rho_knots_trace_thin100.T
 #       a Z_vec_chi simulation takes 12 minutes 40 secs
 X_model_chi_thin100 = np.full(shape = (Ns_chi, n_draw, n_thin100), fill_value = np.nan)
 
-# for i in range(n_thin100):
-#     K_chi  = ns_cov(range_vec = rho_vec_chi_thin100[:,i],
-#                     sigsq_vec = sigsq_vec, coords = sites_xy_chi, kappa = nu, cov_model = "matern")
-
-#     # --- Draw <n_draw> (time) replicates, one per posterior sample ---
-#     S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
-#     Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
-#                                                     cov = K_chi, 
-#                                                     size = n_draw) # shape(n_draw, Ns_chi)
-#     R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
-#     W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
-#     X_model_chi_thin100[:,:,i] = (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
-
-def _simulate_par(i):
+for i in range(n_thin100):
+    print(rf'{i}/{n_thin100}')
     K_chi  = ns_cov(range_vec = rho_vec_chi_thin100[:,i],
                     sigsq_vec = sigsq_vec, coords = sites_xy_chi, kappa = nu, cov_model = "matern")
 
     # --- Draw <n_draw> (time) replicates, one per posterior sample ---
     S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
-    Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_chi, size = n_draw) # shape(n_draw, Ns_chi)
+    Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
+                                                    cov = K_chi, 
+                                                    size = n_draw) # shape(n_draw, Ns_chi)
     R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
     W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
-    return (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
+    X_model_chi_thin100[:,:,i] = (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
+    np.save('X_model_chi_thin100', X_model_chi_thin100)
 
-with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
-    X_model_chi_thin100 = list(tqdm(pool.imap(_simulate_par, np.arange(n_thin100)), total=len(np.arange(n_thin100)), desc='simulate'))
+# def _simulate_par(i):
+#     K_chi  = ns_cov(range_vec = rho_vec_chi_thin100[:,i],
+#                     sigsq_vec = sigsq_vec, coords = sites_xy_chi, kappa = nu, cov_model = "matern")
+
+#     # --- Draw <n_draw> (time) replicates, one per posterior sample ---
+#     S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
+#     Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_chi, size = n_draw) # shape(n_draw, Ns_chi)
+#     R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
+#     W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
+#     return (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
+
+# with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+#     X_model_chi_thin100 = list(tqdm(pool.imap(_simulate_par, np.arange(n_thin100)), total=len(np.arange(n_thin100)), desc='simulate'))
 
 np.save('X_model_chi_thin100', X_model_chi_thin100)
 np.save('phi_vec_chi_thin100', phi_vec_chi_thin100)
