@@ -17,7 +17,7 @@ from    math                   import sin, cos, sqrt, atan2, radians, asin
 
 # Python Extensions
 import  scipy
-from    scipy.stats            import t as tdist
+# from    scipy.stats            import t as tdist
 import  numpy                as np
 import  geopandas            as gpd
 import  matplotlib           as mpl
@@ -31,7 +31,7 @@ from    tqdm                   import tqdm
 # Custom Extensions and settings
 from    utilities              import *
 
-N_CORES = 30
+N_CORES = 64
 
 np.set_printoptions(threshold=sys.maxsize)
 state_map = gpd.read_file('./cb_2018_us_state_20m/cb_2018_us_state_20m.shp')
@@ -735,14 +735,14 @@ def chi_field_from_indicators(
                 p_t = joint_t.sum(axis=0) / float(n_pairs)  # (Nt,)
 
                 p_bar = np.nanmean(p_t)
-                se    = hac_se_time(p_t)   # your HAC SE over time
+                se    = hac_se_time(p_t)   # HAC SE over time
                 denom = (1.0 - u)
                 ch    = p_bar / denom
 
-                df = max(p_t.size - 1, 1)
-                tcrit = tdist.ppf(0.975, df=df)
-                lb = max(0.0, (p_bar - tcrit*se) / denom)
-                ub = min(1.0, (p_bar + tcrit*se) / denom)
+                # df = max(p_t.size - 1, 1)
+                # tcrit = tdist.ppf(0.975, df=df)
+                lb = max(0.0, (p_bar - 2*se) / denom)
+                ub = min(1.0, (p_bar + 2*se) / denom)
 
                 r = -1 - wi // Nx
                 c = wi  % Nx
@@ -782,164 +782,341 @@ def draw_chi_lb_hat_ub(chi_hat, chi_lb, chi_ub, h, u, h_i,u_i,x_pos, y_pos, rect
     cbar.ax.tick_params(labelsize=14)
     return fig
 
-# %% Data empirical chi (REDO)
+def qRW_par(args):
+    u, phi, gamma = args
+    return qRW(u, phi, gamma)
 
-# A) DATA: build PITs with fitted GEV per iteration, but CI should come from the data.
-# You already built pY_mcmc of shape (n_iter, Ns, Nt); a common, clean choice:
-# use the per-iteration PITs to reduce noise by *averaging indicators in time step*, 
-# but the CI still comes from time variation. Easiest is: pick one consistent pY for data, e.g. the mean CDF over iterations:
+# # %% Data empirical chi (REDO)
 
-# these are the per iteration marginal parameters
-niter                       = phi_knots_trace.shape[0]
-Beta_mu0_trace_thin100      = Beta_mu0_trace[0:niter:100,:]
-Beta_mu1_trace_thin100      = Beta_mu1_trace[0:niter:100,:]
-Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:niter:100,:]
-Beta_ksi_trace_thin100      = Beta_ksi_trace[0:niter:100,:]
-mu0_fitted_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
-mu1_fitted_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
-mu_fitted_matrix_thin100    = mu0_fitted_matrix_thin100 + mu1_fitted_matrix_thin100 * Time
-sigma_fitted_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
-ksi_fitted_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
-n_thin100                   = Beta_mu0_trace_thin100.shape[0]
+# # A) DATA: build PITs with fitted GEV per iteration, but CI should come from the data.
+# # You already built pY_mcmc of shape (n_iter, Ns, Nt); a common, clean choice:
+# # use the per-iteration PITs to reduce noise by *averaging indicators in time step*, 
+# # but the CI still comes from time variation. Easiest is: pick one consistent pY for data, e.g. the mean CDF over iterations:
 
-pY_mcmc = np.full(shape = (n_thin100, Ns, Nt), fill_value = np.nan)
-for i in range(n_thin100):
-    pY_mcmc[i,:,:] = pgev(Y, mu_fitted_matrix_thin100[i,:,:], sigma_fitted_matrix_thin100[i,:,:], ksi_fitted_matrix_thin100[i,:,:])
+# # these are the per iteration marginal parameters
+# niter                       = phi_knots_trace.shape[0]
+# Beta_mu0_trace_thin100      = Beta_mu0_trace[0:niter:100,:]
+# Beta_mu1_trace_thin100      = Beta_mu1_trace[0:niter:100,:]
+# Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:niter:100,:]
+# Beta_ksi_trace_thin100      = Beta_ksi_trace[0:niter:100,:]
+# mu0_fitted_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
+# mu1_fitted_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
+# mu_fitted_matrix_thin100    = mu0_fitted_matrix_thin100 + mu1_fitted_matrix_thin100 * Time
+# sigma_fitted_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
+# ksi_fitted_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
+# n_thin100                   = Beta_mu0_trace_thin100.shape[0]
 
-
-u_list = [0.90, 0.95, 0.99]
-h_list = [75, 150, 225]
-e_abs  = 0.2  # relative tolerance for distance band
-
-# --- grid for χ windows (re-uses your choices) -----------
-res_x_chi, res_y_chi = 7, 17
-x_pos_chi, y_pos_chi, knots_xy_chi = build_window_knots(minX, maxX, minY, maxY, res_x_chi, res_y_chi)
-rect_width      = (knots_xy_chi[0][0] - minX)*2
-rect_height     = (knots_xy_chi[0][1] - minY)*2
-sites_in_window = [window_mask_for_center(knots_xy_chi[i], rect_width, rect_height, sites_xy) for i in range(knots_xy_chi.shape[0])] # which sites are in this window, global indexing
-pairs_by_window = precompute_pairs(h_list, e_abs, sites_xy, sites_in_window) # pairs of lag h for each window, local indexing
-
-# --- calculate \chi --------------------------------------
-
-# average the PITs over iterations then compute \chi
-
-pY_data = np.nanmean(pY_mcmc, axis=0)  # (Ns, Nt)
-q_by_u_pY = {u: np.full(shape=(Ns,), fill_value=u) for u in u_list}
-I_by_u_pY = indicators_from_quantiles(pY_data, q_by_u_pY)
-
-chi_hat_data, chi_lb_data, chi_ub_data = chi_field_from_indicators(
-    I_by_u=I_by_u_pY, u_list=u_list, h_list=h_list, pairs_by_window=pairs_by_window, sites_in_window=sites_in_window
-)
+# pY_mcmc = np.full(shape = (n_thin100, Ns, Nt), fill_value = np.nan)
+# for i in range(n_thin100):
+#     pY_mcmc[i,:,:] = pgev(Y, mu_fitted_matrix_thin100[i,:,:], sigma_fitted_matrix_thin100[i,:,:], ksi_fitted_matrix_thin100[i,:,:])
 
 
-# calculate \chi per iteration then average
-q_by_u_pY = {u: np.full(shape=(Ns,), fill_value=u) for u in u_list}
+# u_list = [0.90, 0.95, 0.99]
+# h_list = [75, 150, 225]
+# e_abs  = 0.2  # relative tolerance for distance band
 
-def chi_per_iter(i):
-    # Build indicators per u from the PITs of this iteration
-    pY_i = pY_mcmc[i, :, :]                 # (Ns, Nt)
-    I_by_u_pY = indicators_from_quantiles(pY_i, q_by_u_pY)
-    # Compute χ fields + time-wise t/HAC CI for this iteration
-    hat_i, lb_i, ub_i = chi_field_from_indicators(
-        I_by_u=I_by_u_pY,
-        u_list=u_list, h_list=h_list,
-        pairs_by_window=pairs_by_window,
-        sites_in_window=sites_in_window,
-        conf=0.95
-    )
-    return hat_i, lb_i, ub_i  # each (H, U, Ny, Nx)
+# # --- grid for χ windows (re-uses your choices) ---
+# res_x_chi, res_y_chi = 7, 17
+# x_pos_chi, y_pos_chi, knots_xy_chi = build_window_knots(minX, maxX, minY, maxY, res_x_chi, res_y_chi)
+# rect_width      = (knots_xy_chi[0][0] - minX)*2
+# rect_height     = (knots_xy_chi[0][1] - minY)*2
+# sites_in_window = [window_mask_for_center(knots_xy_chi[i], rect_width, rect_height, sites_xy) for i in range(knots_xy_chi.shape[0])] # which sites are in this window, global indexing
+# pairs_by_window = precompute_pairs(h_list, e_abs, sites_xy, sites_in_window) # pairs of lag h for each window, local indexing
 
-iter_idx = list(range(n_thin100))
-with multiprocessing.get_context('fork').Pool(processes=N_CORES) as pool:
-    results = list(tqdm(pool.imap(chi_per_iter, iter_idx, chunksize=1), total=len(iter_idx)))
+# # --- calculate \chi ---
 
-# Stack along the new "posterior sample" axis: (n_thin100, H, U, Ny, Nx)
-chi_hat_all = np.stack([r[0] for r in results], axis=0)
-chi_lb_all  = np.stack([r[1] for r in results], axis=0)
-chi_ub_all  = np.stack([r[2] for r in results], axis=0)
+# # average the PITs over iterations then compute \chi
 
-# Posterior means (THIS is the “calculate-all-then-mean” you want)
-chi_hat_data = np.nanmean(chi_hat_all, axis=0)  # (H, U, Ny, Nx)
-chi_lb_data  = np.nanmean(chi_lb_all,  axis=0)  # (H, U, Ny, Nx)
-chi_ub_data  = np.nanmean(chi_ub_all,  axis=0)  # (H, U, Ny, Nx)
+# pY_data = np.nanmean(pY_mcmc, axis=0)  # (Ns, Nt)
+# q_by_u_pY = {u: np.full(shape=(Ns,), fill_value=u) for u in u_list}
+# I_by_u_pY = indicators_from_quantiles(pY_data, q_by_u_pY)
+
+# chi_hat_data, chi_lb_data, chi_ub_data = chi_field_from_indicators(
+#     I_by_u=I_by_u_pY, u_list=u_list, h_list=h_list, pairs_by_window=pairs_by_window, sites_in_window=sites_in_window
+# )
 
 
-# --- drawing ---------------------------------------------
+# # calculate \chi per iteration then average
+# q_by_u_pY = {u: np.full(shape=(Ns,), fill_value=u) for u in u_list}
 
-myfig = draw_chi_lb_hat_ub(chi_hat_data, chi_lb_data, chi_ub_data, 
-                  h_list[0], u_list[0], h_i=0, u_i=0,
-                  x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
-                  state_map=state_map, 
-                  cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
-                  vmin=0.0, vmax=0.5, 
-                  ticks = np.linspace(0.0, 0.5, 10+1).round(3)
-)
-myfig.savefig('myfig.pdf', bbox_inches='tight')
-
-for u_i, u in enumerate(u_list):
-    for h_i, h in enumerate(h_list):
-        myfig = draw_chi_lb_hat_ub(chi_hat_data, chi_lb_data, chi_ub_data, 
-                  h, u, h_i=h_i, u_i=u_i,
-                  x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
-                  state_map=state_map, 
-                  cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
-                  vmin=0.0, vmax=0.5, 
-                  ticks = np.linspace(0.0, 0.5, 10+1).round(3)
-        )
-        myfig.savefig(rf"Surface_data_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
-
-
-# # check pairs within a window ---------------------------
-# # e.g. first endpoint
-# sites_xy[sites_in_window[0]][pairs_by_window[(75,0)][0]]
-# # e.g. second endpoint
-# sites_xy[sites_in_window[0]][pairs_by_window[(75,0)][1]]
-# first119 = dict(list(pairs_by_window.items())[:119])
-# plt.hist([len(pairs_by_window[k][0]) for k in first119])
-
-# # manually group by h drawing ---------------------------
-# h = h_list[0]
-# x_pos=x_pos_chi
-# y_pos=y_pos_chi
-# rect_w=rect_width
-# rect_h=rect_height
-# state_map=state_map
-# cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100)
-# vmin=0.0
-# vmax=0.5
-# ticks = np.linspace(0.0, 0.5, 10+1).round(3)
-# fig, axes = plt.subplots(1, 3, figsize=(10, 6))
-# fig.subplots_adjust(right=0.8)
-# def _draw(ax, mat, title_txt):
-#     ax.set_aspect('equal', 'box')
-#     state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
-#     hm = ax.imshow(
-#         mat, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest',
-#         extent=[min(x_pos - rect_w/8), max(x_pos + rect_w/8),
-#                 min(y_pos - rect_h/8), max(y_pos + rect_h/8)]
+# def chi_per_iter(i):
+#     # Build indicators per u from the PITs of this iteration
+#     pY_i = pY_mcmc[i, :, :]                 # (Ns, Nt)
+#     I_by_u_pY = indicators_from_quantiles(pY_i, q_by_u_pY)
+#     # Compute χ fields + time-wise t/HAC CI for this iteration
+#     hat_i, lb_i, ub_i = chi_field_from_indicators(
+#         I_by_u=I_by_u_pY,
+#         u_list=u_list, h_list=h_list,
+#         pairs_by_window=pairs_by_window,
+#         sites_in_window=sites_in_window,
+#         conf=0.95
 #     )
-#     ax.scatter(knots_xy_chi[:,0], knots_xy_chi[:,1], s=25, color='black', marker='+', linewidths=1)
-#     ax.set_xlim(-101, -93); ax.set_ylim(32.5, 45)
-#     ax.tick_params(axis='both', which='major', labelsize=14)
-#     ax.set_title(title_txt, fontsize=20)
-#     return hm
-# _   = _draw(axes[0], chi_hat_data[0,0,:,:],   rf'$\chi_{{{u_list[0]}}}$')
-# hm0 = _draw(axes[1], chi_hat_data[0,1,:,:],  rf'$\hat\chi_{{{u_list[1]}}}$')
-# _   = _draw(axes[2], chi_hat_data[0,2,:,:],   rf'$\chi_{{{u_list[2]}}}$')
-# fig.text(0.5, 0.825, rf'h $\approx$ {h} km', ha='center', fontsize=20)
-# fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
-# fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
-# cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-# cbar = fig.colorbar(hm0, cax=cbar_ax, ticks=ticks)
-# cbar.ax.tick_params(labelsize=14)
+#     return hat_i, lb_i, ub_i  # each (H, U, Ny, Nx)
 
-# %% Model Realization empirical chi (REDO)
+# iter_idx = list(range(n_thin100))
+# with multiprocessing.get_context('fork').Pool(processes=N_CORES) as pool:
+#     results = list(tqdm(pool.imap(chi_per_iter, iter_idx, chunksize=1), total=len(iter_idx)))
 
-# %% Simulate data for model realization chi estimation
+# # Stack along the new "posterior sample" axis: (n_thin100, H, U, Ny, Nx)
+# chi_hat_all = np.stack([r[0] for r in results], axis=0)
+# chi_lb_all  = np.stack([r[1] for r in results], axis=0)
+# chi_ub_all  = np.stack([r[2] for r in results], axis=0)
 
-# Engineer a grid of sites ----------------------------------------------------
+# # Posterior means (THIS is the “calculate-all-then-mean” you want)
+# chi_hat_data = np.nanmean(chi_hat_all, axis=0)  # (H, U, Ny, Nx)
+# chi_lb_data  = np.nanmean(chi_lb_all,  axis=0)  # (H, U, Ny, Nx)
+# chi_ub_data  = np.nanmean(chi_ub_all,  axis=0)  # (H, U, Ny, Nx)
 
-# resolution of engineered points
+
+# # --- drawing of LB and UB for each h and u ---
+
+# for u_i, u in enumerate(u_list):
+#     for h_i, h in enumerate(h_list):
+#         myfig = draw_chi_lb_hat_ub(chi_hat_data, chi_lb_data, chi_ub_data, 
+#                   h, u, h_i=h_i, u_i=u_i,
+#                   x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
+#                   state_map=state_map, 
+#                   cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
+#                   vmin=0.0, vmax=0.5, 
+#                   ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+#         )
+#         myfig.savefig(rf"Surface_data_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
+
+
+# # # check pairs within a window ---------------------------
+# # # e.g. first endpoint
+# # sites_xy[sites_in_window[0]][pairs_by_window[(75,0)][0]]
+# # # e.g. second endpoint
+# # sites_xy[sites_in_window[0]][pairs_by_window[(75,0)][1]]
+# # first119 = dict(list(pairs_by_window.items())[:119])
+# # plt.hist([len(pairs_by_window[k][0]) for k in first119])
+
+# # --- manually group by h drawing ---
+
+# for h_i,h in enumerate(h_list):
+#     x_pos=x_pos_chi
+#     y_pos=y_pos_chi
+#     rect_w=rect_width
+#     rect_h=rect_height
+#     state_map=state_map
+#     cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100)
+#     vmin=0.0
+#     vmax=0.5
+#     ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+#     fig, axes = plt.subplots(1, 3, figsize=(10, 6))
+#     fig.subplots_adjust(right=0.8)
+#     def _draw(ax, mat, title_txt):
+#         ax.set_aspect('equal', 'box')
+#         state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
+#         hm = ax.imshow(
+#             mat, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest',
+#             extent=[min(x_pos - rect_w/8), max(x_pos + rect_w/8),
+#                     min(y_pos - rect_h/8), max(y_pos + rect_h/8)]
+#         )
+#         ax.scatter(knots_xy_chi[:,0], knots_xy_chi[:,1], s=25, color='black', marker='+', linewidths=1)
+#         ax.set_xlim(-101, -93); ax.set_ylim(32.5, 45)
+#         ax.tick_params(axis='both', which='major', labelsize=14)
+#         ax.set_title(title_txt, fontsize=20)
+#         return hm
+#     up90 = _draw(axes[0], chi_hat_data[h_i,0,:,:],   rf'$\chi_{{{u_list[0]}}}$')
+#     up95 = _draw(axes[1], chi_hat_data[h_i,1,:,:],  rf'$\hat\chi_{{{u_list[1]}}}$')
+#     up99 = _draw(axes[2], chi_hat_data[h_i,2,:,:],   rf'$\chi_{{{u_list[2]}}}$')
+#     fig.text(0.5, 0.825, rf'h $\approx$ {h} km', ha='center', fontsize=20)
+#     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
+#     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
+#     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+#     cbar = fig.colorbar(up95, cax=cbar_ax, ticks=ticks)
+#     cbar.ax.tick_params(labelsize=14)
+#     plt.savefig(rf'Surface_data_chi_fittedGEV_h={h}.pdf', bbox_inches='tight')
+
+# # %% Model Realization empirical chi (REDO) ===================================
+
+# # %% Engineer a grid of sites -------------------------------------------------
+
+# # --- resolution of engineered points ---
+
+# numX_chi     = 50  # Number of points along the X-axis
+# numY_chi     = 150 # Number of points along the Y-axis
+# Ns_chi       = numX_chi * numY_chi
+# x_chi        = np.linspace(minX, maxX, numX_chi)
+# y_chi        = np.linspace(minY, maxY, numY_chi)
+# X_chi,Y_chi  = np.meshgrid(x_chi, y_chi)
+# sites_xy_chi = np.column_stack([X_chi.ravel(), Y_chi.ravel()]) # a grid of engineerin
+# sites_x_chi  = sites_xy_chi[:,0]
+# sites_y_chi  = sites_xy_chi[:,1]
+
+# u_list = [0.90, 0.95, 0.99]
+# h_list = [75, 150, 225]
+# e_abs = 0.2
+
+# # --- grid for χ windows (re-uses your choices) --- 6'30'' single core
+# res_x_chi, res_y_chi = 7, 17
+# x_pos_chi, y_pos_chi, knots_xy_chi = build_window_knots(minX, maxX, minY, maxY, res_x_chi, res_y_chi)
+# rect_width      = (knots_xy_chi[0][0] - minX)*2
+# rect_height     = (knots_xy_chi[0][1] - minY)*2
+# sites_in_window = [window_mask_for_center(knots_xy_chi[i], rect_width, rect_height, sites_xy_chi) for i in range(knots_xy_chi.shape[0])] # which sites are in this window, global indexing
+# pairs_by_window = precompute_pairs(h_list, e_abs, sites_xy_chi, sites_in_window) # pairs of lag h for each window, local indexing
+
+
+# # %% Simulate data for model realization chi estimation -----------------------
+
+# # --- setting up the copula splines ---
+
+# wendland_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
+# for site_id in np.arange(Ns_chi):
+#         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+#                                                     XB = knots_xy_phi)
+#         wendland_weight_matrix_chi[site_id, :] = wendland_weights_fun(d_from_knots, radius_from_knots)
+# gaussian_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
+# for site_id in np.arange(Ns_chi):
+#         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+#                                                     XB = knots_xy_phi)
+#         gaussian_weight_matrix_chi[site_id, :] = weights_fun(d_from_knots, radius, bandwidth_phi, cutoff=False)
+# gaussian_weight_matrix_rho_chi = np.full(shape = (Ns_chi, k_rho), fill_value = np.nan)
+# for site_id in np.arange(Ns_chi):
+#         d_from_knots = scipy.spatial.distance.cdist(XA = sites_xy_chi[site_id,:].reshape((-1,2)), 
+#                                                     XB = knots_xy_rho)
+#         gaussian_weight_matrix_rho_chi[site_id, :] = weights_fun(d_from_knots, radius, bandwidth_rho, cutoff=False)
+
+# alpha          = 0.5
+# nu             = 0.5
+# sigsq_vec      = np.repeat(1.0, Ns_chi)
+# gamma_at_knots = np.repeat(0.5, k_phi)
+# gamma_vec_chi  = np.sum(np.multiply(wendland_weight_matrix_chi, gamma_at_knots)**(alpha),
+#                         axis = 1)**(1/alpha)
+# assert any(np.isnan(gamma_vec_chi)) != True
+
+# # --- model posterior means ---
+
+# phi_vec_chi = gaussian_weight_matrix_chi     @ phi_mean
+# rho_vec_chi = gaussian_weight_matrix_rho_chi @ range_mean
+# K_chi       = ns_cov(range_vec = rho_vec_chi,
+#                      sigsq_vec = sigsq_vec,
+#                      coords    = sites_xy_chi,
+#                      kappa     = nu, cov_model = "matern") # 16 secs for Ns_chi = 7,500
+
+# # --- Draw <n_draw> (time) replicates of observations ---
+
+# np.random.seed(910)
+# n_draw    = 100 # number of time replicates to draw
+# S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
+# Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
+#                                                 cov = K_chi, 
+#                                                 size = n_draw) # shape(n_draw, Ns_chi)
+# # Notes on multivariate gaussian speed:
+# #   1m 23s for 7,500 x 100
+# #   no speed difference when drawing size = 1 or 100
+
+# R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
+# W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
+# X_model_chi = (R_vec_chi.T ** phi_vec_chi).T * W_chi   # shape(Ns_chi, n_draw)
+
+# np.save('X_model_chi', X_model_chi)
+# np.save('phi_vec_chi', phi_vec_chi)
+# np.save('rho_vec_chi', rho_vec_chi)
+
+# # Threshold quantile qu
+# # Note:
+# #   Only needs to be calculated once for each u
+# #   should parallelize the calculation
+
+# def qRW_par(args):
+#     u, phi, gamma = args
+#     return qRW(u, phi, gamma)
+
+# args_list090 = []
+# args_list095 = []
+# args_list099 = []
+# for i in range(Ns_chi):
+#     args_list090.append((0.9, phi_vec_chi[i], gamma_vec_chi[i]))
+#     args_list095.append((0.95, phi_vec_chi[i], gamma_vec_chi[i]))
+#     args_list099.append((0.99, phi_vec_chi[i], gamma_vec_chi[i]))
+# with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
+#     results090 = list(tqdm(pool.imap(qRW_par, args_list090), total=len(args_list090), desc='u=0.90'))
+# with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
+#     results095 = list(tqdm(pool.imap(qRW_par, args_list095), total=len(args_list095), desc='u=0.95')) #pool.map(qRW_par, args_list095)
+# with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
+#     results099 = list(tqdm(pool.imap(qRW_par, args_list099), total=len(args_list099), desc='u=0.99')) #pool.map(qRW_par, args_list099)
+
+# qu_090 = np.array(results090)
+# np.save('qu_090', qu_090)
+# qu_095 = np.array(results095)
+# np.save('qu_095', qu_095)
+# qu_099 = np.array(results099)
+# np.save('qu_099', qu_099)
+
+# # %% \chi estimation ----------------------------------------------------------
+
+# # --- load simulated data ---
+# X_model_chi = np.load('X_model_chi.npy')
+# qu_090      = np.load('qu_090.npy')
+# qu_095      = np.load('qu_095.npy')
+# qu_099      = np.load('qu_099.npy')
+# qu_all      = (qu_090, qu_095, qu_099)
+
+# # --- calculate χ ---
+# q_by_u_model = {u: qu_all[i] for i, u in enumerate(u_list)}
+# I_by_u_model = indicators_from_quantiles(X_model_chi, q_by_u_model)
+# chi_hat_model, chi_lb_model, chi_ub_model = chi_field_from_indicators(
+#     I_by_u = I_by_u_model, 
+#     u_list = u_list, h_list = h_list, 
+#     pairs_by_window = pairs_by_window, sites_in_window = sites_in_window
+# )
+
+# # --- drawing of LB and UB for each h and u ---
+# for u_i, u in enumerate(u_list):
+#     for h_i, h in enumerate(h_list):
+#         myfig = draw_chi_lb_hat_ub(chi_hat_model, chi_lb_model, chi_ub_model, 
+#                   h, u, h_i=h_i, u_i=u_i,
+#                   x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
+#                   state_map=state_map, 
+#                   cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
+#                   vmin=0.0, vmax=0.5, 
+#                   ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+#         )
+#         myfig.savefig(rf"Surface_model_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
+
+# # --- manually group by h drawing ---
+
+# for h_i,h in enumerate(h_list):
+#     x_pos=x_pos_chi
+#     y_pos=y_pos_chi
+#     rect_w=rect_width
+#     rect_h=rect_height
+#     state_map=state_map
+#     cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100)
+#     vmin=0.0
+#     vmax=0.5
+#     ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+#     fig, axes = plt.subplots(1, 3, figsize=(10, 6))
+#     fig.subplots_adjust(right=0.8)
+#     def _draw(ax, mat, title_txt):
+#         ax.set_aspect('equal', 'box')
+#         state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
+#         hm = ax.imshow(
+#             mat, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest',
+#             extent=[min(x_pos - rect_w/8), max(x_pos + rect_w/8),
+#                     min(y_pos - rect_h/8), max(y_pos + rect_h/8)]
+#         )
+#         ax.scatter(knots_xy_chi[:,0], knots_xy_chi[:,1], s=25, color='black', marker='+', linewidths=1)
+#         ax.set_xlim(-101, -93); ax.set_ylim(32.5, 45)
+#         ax.tick_params(axis='both', which='major', labelsize=14)
+#         ax.set_title(title_txt, fontsize=20)
+#         return hm
+#     up90 = _draw(axes[0], chi_hat_model[h_i,0,:,:],   rf'$\chi_{{{u_list[0]}}}$')
+#     up95 = _draw(axes[1], chi_hat_model[h_i,1,:,:],  rf'$\hat\chi_{{{u_list[1]}}}$')
+#     up99 = _draw(axes[2], chi_hat_model[h_i,2,:,:],   rf'$\chi_{{{u_list[2]}}}$')
+#     fig.text(0.5, 0.825, rf'h $\approx$ {h} km', ha='center', fontsize=20)
+#     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
+#     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
+#     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+#     cbar = fig.colorbar(up95, cax=cbar_ax, ticks=ticks)
+#     cbar.ax.tick_params(labelsize=14)
+#     plt.savefig(rf'Surface_model_chi_h={h}.pdf', bbox_inches='tight')
+
+# %% Per MCMC iteration model \chi ============================================
+
+# %% Engineer a grid of sites -------------------------------------------------
 
 numX_chi     = 50  # Number of points along the X-axis
 numY_chi     = 150 # Number of points along the Y-axis
@@ -951,7 +1128,19 @@ sites_xy_chi = np.column_stack([X_chi.ravel(), Y_chi.ravel()]) # a grid of engin
 sites_x_chi  = sites_xy_chi[:,0]
 sites_y_chi  = sites_xy_chi[:,1]
 
-# setting up the copula splines
+u_list = [0.90, 0.95, 0.99]
+h_list = [75, 150, 225]
+e_abs = 0.2
+
+# --- grid for χ windows (re-uses your choices) --- 6'30'' single core
+res_x_chi, res_y_chi = 7, 17
+x_pos_chi, y_pos_chi, knots_xy_chi = build_window_knots(minX, maxX, minY, maxY, res_x_chi, res_y_chi)
+rect_width      = (knots_xy_chi[0][0] - minX)*2
+rect_height     = (knots_xy_chi[0][1] - minY)*2
+sites_in_window = [window_mask_for_center(knots_xy_chi[i], rect_width, rect_height, sites_xy_chi) for i in range(knots_xy_chi.shape[0])] # which sites are in this window, global indexing
+pairs_by_window = precompute_pairs(h_list, e_abs, sites_xy_chi, sites_in_window) # pairs of lag h for each window, local indexing
+
+# --- setting up the copula splines ---
 
 wendland_weight_matrix_chi     = np.full(shape = (Ns_chi, k_phi), fill_value = np.nan)
 for site_id in np.arange(Ns_chi):
@@ -977,104 +1166,130 @@ gamma_vec_chi  = np.sum(np.multiply(wendland_weight_matrix_chi, gamma_at_knots)*
                         axis = 1)**(1/alpha)
 assert any(np.isnan(gamma_vec_chi)) != True
 
-# model posterior means
+# %% Simulate data per MCMC iteration -----------------------------------------
 
-phi_vec_chi = gaussian_weight_matrix_chi     @ phi_mean
-rho_vec_chi = gaussian_weight_matrix_rho_chi @ range_mean
-K_chi       = ns_cov(range_vec = rho_vec_chi,
-                     sigsq_vec = sigsq_vec,
-                     coords    = sites_xy_chi,
-                     kappa     = nu, cov_model = "matern") # 16 secs for Ns_chi = 7,500
+np.random.seed(1019)
+n_draw = 100 # number of time replicates per posterior sample/surface
 
-# Draw <n_draw> (time) replicates of observations -----------------------------
+# --- Aggresively thin the posterior samples ---
+niter                       = phi_knots_trace.shape[0]
+phi_knots_trace_thin100     = phi_knots_trace[0:niter:100,:]
+rho_knots_trace_thin100     = range_knots_trace[0:niter:100,:]
+n_thin100                   = phi_knots_trace_thin100.shape[0]
 
-np.random.seed(910)
-n_draw    = 100 # number of time replicates to draw
-S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
-Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
-                                                cov = K_chi, 
-                                                size = n_draw) # shape(n_draw, Ns_chi)
-# Notes on multivariate gaussian speed:
-#   1m 23s for 7,500 x 100
-#   no speed difference when drawing size = 1 or 100
+# --- posterior samples interpolated surface ---
 
-R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
-W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
-X_model_chi = (R_vec_chi.T ** phi_vec_chi).T * W_chi   # shape(Ns_chi, n_draw)
+phi_vec_chi_thin100 = gaussian_weight_matrix_chi     @ phi_knots_trace_thin100.T # shape (Ns_chi, n_thin100)
+rho_vec_chi_thin100 = gaussian_weight_matrix_rho_chi @ rho_knots_trace_thin100.T # shape (Ns_chi, n_thin100)
 
-np.save('X_model_chi', X_model_chi)
-np.save('phi_vec_chi', phi_vec_chi)
-np.save('rho_vec_chi', rho_vec_chi)
+# --- simulate sample ---
+# Note: a single K_chi calculation takes 23 secs
+#       a Z_vec_chi simulation takes 12 minutes 40 secs
+X_model_chi_thin100 = np.full(shape = (Ns_chi, n_draw, n_thin100), fill_value = np.nan)
+
+# for i in range(n_thin100):
+#     K_chi  = ns_cov(range_vec = rho_vec_chi_thin100[:,i],
+#                     sigsq_vec = sigsq_vec, coords = sites_xy_chi, kappa = nu, cov_model = "matern")
+
+#     # --- Draw <n_draw> (time) replicates, one per posterior sample ---
+#     S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
+#     Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, 
+#                                                     cov = K_chi, 
+#                                                     size = n_draw) # shape(n_draw, Ns_chi)
+#     R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
+#     W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
+#     X_model_chi_thin100[:,:,i] = (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
+
+def _simulate_par(i):
+    K_chi  = ns_cov(range_vec = rho_vec_chi_thin100[:,i],
+                    sigsq_vec = sigsq_vec, coords = sites_xy_chi, kappa = nu, cov_model = "matern")
+
+    # --- Draw <n_draw> (time) replicates, one per posterior sample ---
+    S_vec_chi = np.array([scipy.stats.levy.rvs(loc = 0, scale = 0.5, size = k_phi) for _ in range(n_draw)]) # shape(n_draw, k_phi)
+    Z_vec_chi = scipy.stats.multivariate_normal.rvs(mean = None, cov = K_chi, size = n_draw) # shape(n_draw, Ns_chi)
+    R_vec_chi = (wendland_weight_matrix_chi @ S_vec_chi.T) # shape(Ns_chi, n_draw)
+    W_chi     = norm_to_Pareto(Z_vec_chi.T)                # shape(Ns_chi, n_draw)
+    return (R_vec_chi.T ** phi_vec_chi_thin100[:,i]).T * W_chi   # shape(Ns_chi, n_draw)
+
+with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+    X_model_chi_thin100 = list(tqdm(pool.imap(_simulate_par, np.arange(n_thin100)), total=len(np.arange(n_thin100)), desc='simulate'))
+
+np.save('X_model_chi_thin100', X_model_chi_thin100)
+np.save('phi_vec_chi_thin100', phi_vec_chi_thin100)
+np.save('rho_vec_chi_thin100', rho_vec_chi_thin100)
 
 # Threshold quantile qu
 # Note:
-#   Only needs to be calculated once for each u
-#   should parallelize the calculation
+#   Only needs to be calculated once for each u, should parallelize the calculation
+#   Roughly 7 secs for 7,500 qRW evals
+qu_090_thin100 = np.full(shape = (Ns_chi, n_thin100), fill_value = np.nan)
+qu_095_thin100 = np.full(shape = (Ns_chi, n_thin100), fill_value = np.nan)
+qu_099_thin100 = np.full(shape = (Ns_chi, n_thin100), fill_value = np.nan)
 
-def qRW_par(args):
-    u, phi, gamma = args
-    return qRW(u, phi, gamma)
+for i in range(n_thin100):
+    print(rf"{i}/{n_thin100}")
+    args_list090 = np.vstack([np.full(shape=(Ns_chi,), fill_value=0.9), phi_vec_chi_thin100[:,i], gamma_vec_chi]).T
+    args_list090 = [tuple(row) for row in args_list090]
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results090 = list(tqdm(pool.imap(qRW_par, args_list090), total=len(args_list090), desc='u=0.90'))
+    qu_090_thin100[:,i] = np.array(results090)
 
-args_list090 = []
-args_list095 = []
-args_list099 = []
-for i in range(Ns_chi):
-    args_list090.append((0.9, phi_vec_chi[i], gamma_vec_chi[i]))
-    args_list095.append((0.95, phi_vec_chi[i], gamma_vec_chi[i]))
-    args_list099.append((0.99, phi_vec_chi[i], gamma_vec_chi[i]))
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results090 = list(tqdm(pool.imap(qRW_par, args_list090), total=len(args_list090), desc='u=0.90'))
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results095 = list(tqdm(pool.imap(qRW_par, args_list095), total=len(args_list095), desc='u=0.95')) #pool.map(qRW_par, args_list095)
-with multiprocessing.get_context('fork').Pool(processes = 50) as pool:
-    results099 = list(tqdm(pool.imap(qRW_par, args_list099), total=len(args_list099), desc='u=0.99')) #pool.map(qRW_par, args_list099)
+for i in range(n_thin100):
+    print(rf"{i}/{n_thin100}")
+    args_list095 = np.vstack([np.full(shape=(Ns_chi,), fill_value=0.95), phi_vec_chi_thin100[:,i], gamma_vec_chi]).T
+    args_list095 = [tuple(row) for row in args_list095]
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results095 = list(tqdm(pool.imap(qRW_par, args_list095), total=len(args_list095), desc='u=0.95'))
+    qu_095_thin100[:,i] = np.array(results095)
 
-qu_090 = np.array(results090)
-np.save('qu_090', qu_090)
-qu_095 = np.array(results095)
-np.save('qu_095', qu_095)
-qu_099 = np.array(results099)
-np.save('qu_099', qu_099)
+for i in range(n_thin100):
+    print(rf"{i}/{n_thin100}")
+    args_list099 = np.vstack([np.full(shape=(Ns_chi,), fill_value=0.99), phi_vec_chi_thin100[:,i], gamma_vec_chi]).T
+    args_list099 = [tuple(row) for row in args_list099]
+    with multiprocessing.get_context('fork').Pool(processes = N_CORES) as pool:
+        results099 = list(tqdm(pool.imap(qRW_par, args_list099), total=len(args_list099), desc='u=0.99'))
+    qu_099_thin100[:,i] = np.array(results099)
 
-# %% \chi estimation
+np.save('qu_090_thin100', qu_090_thin100)
+np.save('qu_095_thin100', qu_095_thin100)
+np.save('qu_099_thin100', qu_099_thin100)
+    
+# %% Calculate \chi per MCMC iteration
 
-X_model_chi = np.load('X_model_chi.npy')
-qu_090      = np.load('qu_090.npy')
-qu_095      = np.load('qu_095.npy')
-qu_099      = np.load('qu_099.npy')
-qu_all      = (qu_090, qu_095, qu_099)
-numX_chi     = 50  # Number of points along the X-axis
-numY_chi     = 150 # Number of points along the Y-axis
-Ns_chi       = numX_chi * numY_chi
-x_chi        = np.linspace(minX, maxX, numX_chi)
-y_chi        = np.linspace(minY, maxY, numY_chi)
-X_chi,Y_chi  = np.meshgrid(x_chi, y_chi)
-sites_xy_chi = np.column_stack([X_chi.ravel(), Y_chi.ravel()]) # a grid of engineerin
-sites_x_chi  = sites_xy_chi[:,0]
-sites_y_chi  = sites_xy_chi[:,1]
-
-u_list = [0.90, 0.95, 0.99]
-h_list = [75, 150, 225]
-e_abs = 0.2
-
-# --- grid for χ windows (re-uses your choices) -----------
-res_x_chi, res_y_chi = 7, 17
-x_pos_chi, y_pos_chi, knots_xy_chi = build_window_knots(minX, maxX, minY, maxY, res_x_chi, res_y_chi)
-rect_width      = (knots_xy_chi[0][0] - minX)*2
-rect_height     = (knots_xy_chi[0][1] - minY)*2
-sites_in_window = [window_mask_for_center(knots_xy_chi[i], rect_width, rect_height, sites_xy_chi) for i in range(knots_xy_chi.shape[0])] # which sites are in this window, global indexing
-pairs_by_window = precompute_pairs(h_list, e_abs, sites_xy_chi, sites_in_window) # pairs of lag h for each window, local indexing
+# --- load simulated data ---
+X_model_chi_thin100 = np.load('X_model_chi_thin100.npy')
+qu_090_thin100      = np.load('qu_090.npy_thin100')
+qu_095_thin100      = np.load('qu_095.npy_thin100')
+qu_099_thin100      = np.load('qu_099.npy_thin100')
+qu_all_thin100      = (qu_090_thin100, qu_095_thin100, qu_099_thin100)
 
 # --- calculate χ ---
-q_by_u_model = {u: qu_all[i] for i, u in enumerate(u_list)}
-I_by_u_model = indicators_from_quantiles(X_model_chi, q_by_u_model)
-chi_hat_model, chi_lb_model, chi_ub_model = chi_field_from_indicators(
-    I_by_u = I_by_u_model, 
-    u_list = u_list, h_list = h_list, 
-    pairs_by_window = pairs_by_window, sites_in_window = sites_in_window
-)
 
-# --- drawing ---
+chi_hat_model_thin100 = np.full(shape = (len(h_list), len(u_list), len(y_pos_chi), len(x_pos_chi), n_thin100), fill_value = np.nan)
+chi_lb_model_thin100  = np.full_like(chi_hat_model_thin100, np.nan)
+chi_ub_model_thin100  = np.full_like(chi_hat_model_thin100, np.nan)
+
+for iter in range(n_thin100):
+    print(rf"{iter}/{n_thin100}")
+    q_by_u_model = {u: qu_all_thin100[i][:,iter] for i, u in enumerate(u_list)}
+    I_by_u_model = indicators_from_quantiles(X_model_chi_thin100[:,iter], q_by_u_model)
+    chi_hat_model, chi_lb_model, chi_ub_model = chi_field_from_indicators(
+        I_by_u = I_by_u_model, 
+        u_list = u_list, h_list = h_list, 
+        pairs_by_window = pairs_by_window, sites_in_window = sites_in_window
+    )
+    chi_hat_model_thin100[:,:,:,iter] = chi_hat_model
+    chi_lb_model_thin100 [:,:,:,iter] = chi_lb_model
+    chi_ub_model_thin100 [:,:,:,iter] = chi_ub_model
+    
+np.save('chi_hat_model_thin100', chi_hat_model_thin100)
+np.save('chi_lb_model_thin100', chi_lb_model_thin100)
+np.save('chi_ub_model_thin100', chi_ub_model_thin100)
+
+# --- drawing of LB and UB for each h and u ---
+chi_hat_model = np.mean(chi_hat_model_thin100, axis=-1)
+chi_lb_model  = np.mean(chi_lb_model_thin100, axis=-1)
+chi_ub_model  = np.mean(chi_ub_model_thin100, axis=-1)
 for u_i, u in enumerate(u_list):
     for h_i, h in enumerate(h_list):
         myfig = draw_chi_lb_hat_ub(chi_hat_model, chi_lb_model, chi_ub_model, 
@@ -1087,431 +1302,40 @@ for u_i, u in enumerate(u_list):
         )
         myfig.savefig(rf"Surface_model_chi_LBUB_h={h}_u={u}.pdf", bbox_inches="tight")
 
-# myfig = draw_chi_lb_hat_ub(chi_hat_model, chi_lb_model, chi_ub_model, 
-#                   h_list[0], u_list[0], h_i=0, u_i=0,
-#                   x_pos=x_pos_chi, y_pos=y_pos_chi, rect_w=rect_width, rect_h=rect_height, 
-#                   state_map=state_map, 
-#                   cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100), 
-#                   vmin=0.0, vmax=0.5, 
-#                   ticks = np.linspace(0.0, 0.5, 10+1).round(3)
-# )
+# --- manually group by h drawing ---
 
-# manually group by h drawing ---------------------------
-h = h_list[0]
-x_pos=x_pos_chi
-y_pos=y_pos_chi
-rect_w=rect_width
-rect_h=rect_height
-state_map=state_map
-cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100)
-vmin=0.0
-vmax=0.5
-ticks = np.linspace(0.0, 0.5, 10+1).round(3)
-fig, axes = plt.subplots(1, 3, figsize=(10, 6))
-fig.subplots_adjust(right=0.8)
-def _draw(ax, mat, title_txt):
-    ax.set_aspect('equal', 'box')
-    state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
-    hm = ax.imshow(
-        mat, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest',
-        extent=[min(x_pos - rect_w/8), max(x_pos + rect_w/8),
-                min(y_pos - rect_h/8), max(y_pos + rect_h/8)]
-    )
-    ax.scatter(knots_xy_chi[:,0], knots_xy_chi[:,1], s=25, color='black', marker='+', linewidths=1)
-    ax.set_xlim(-101, -93); ax.set_ylim(32.5, 45)
-    ax.tick_params(axis='both', which='major', labelsize=14)
-    ax.set_title(title_txt, fontsize=20)
-    return hm
-_   = _draw(axes[0], chi_hat_model[0,0,:,:],   rf'$\chi_{{{u_list[0]}}}$')
-hm0 = _draw(axes[1], chi_hat_model[0,1,:,:],  rf'$\hat\chi_{{{u_list[1]}}}$')
-_   = _draw(axes[2], chi_hat_model[0,2,:,:],   rf'$\chi_{{{u_list[2]}}}$')
-fig.text(0.5, 0.825, rf'h $\approx$ {h} km', ha='center', fontsize=20)
-fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
-fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
-cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-cbar = fig.colorbar(hm0, cax=cbar_ax, ticks=ticks)
-cbar.ax.tick_params(labelsize=14)
-
-
-# # %% Empirical chi of dataset, mean of the chi using per MCMC iter fitted GEV
-
-# """
-# Moving window empirical chi plot, using mean of per MCMC iter fitted GEV at the observation sites
-# """
-    
-# niter = phi_knots_trace.shape[0]
-
-# # these are the per iteration marginal parameters
-# Beta_mu0_trace_thin100      = Beta_mu0_trace[0:niter:100,:]
-# Beta_mu1_trace_thin100      = Beta_mu1_trace[0:niter:100,:]
-# Beta_logsigma_trace_thin100 = Beta_logsigma_trace[0:niter:100,:]
-# Beta_ksi_trace_thin100      = Beta_ksi_trace[0:niter:100,:]
-
-# mu0_fitted_matrix_thin100   = (C_mu0.T @ Beta_mu0_trace_thin100.T).T # shape (n, test_Ns, Nt)
-# mu1_fitted_matrix_thin100   = (C_mu1.T @ Beta_mu1_trace_thin100.T).T # shape (n, test_Ns, Nt)
-# mu_fitted_matrix_thin100    = mu0_fitted_matrix_thin100 + mu1_fitted_matrix_thin100 * Time
-# sigma_fitted_matrix_thin100 = np.exp((C_logsigma.T @ Beta_logsigma_trace_thin100.T).T)
-# ksi_fitted_matrix_thin100   = (C_ksi.T @ Beta_ksi_trace_thin100.T).T
-
-# n_thin100  = Beta_mu0_trace_thin100.shape[0]
-
-# pY_mcmc = np.full(shape = (n_thin100, Ns, Nt), fill_value = np.nan)
-# for i in range(n_thin100): # this should be parallelize too
-#     for t in range(Nt):
-#         pY_mcmc[i,:,t] = pgev(Y[:,t], 
-#                                 mu_fitted_matrix_thin100[i,:,t],
-#                                 sigma_fitted_matrix_thin100[i,:,t],
-#                                 ksi_fitted_matrix_thin100[i,:,t])
-
-# # place knots for chi plot
-# res_x_chi = 9
-# res_y_chi = 19
-# k_chi = res_x_chi * res_y_chi # number of knots
-# # create one-dimensional arrays for x and y
-# x_pos_chi = np.linspace(minX, maxX, res_x_chi+2)[2:-2]
-# y_pos_chi = np.linspace(minY, maxY, res_y_chi+2)[2:-2]
-# # create the mesh based on these arrays
-# X_pos_chi, Y_pos_chi = np.meshgrid(x_pos_chi,y_pos_chi)
-# knots_xy_chi = np.vstack([X_pos_chi.ravel(), Y_pos_chi.ravel()]).T
-# knots_x_chi = knots_xy_chi[:,0]
-# knots_y_chi = knots_xy_chi[:,1]   
-
-# rect_width = (knots_xy_chi[0][0] - minX)*2
-# rect_height = (knots_xy_chi[0][1] - minY)*2
-
-# # Plot chi with same h in same figure
-
-# e_abs = 0.2
-
-# # Create a LinearSegmentedColormap from white to red
-# colors = ["#ffffff", "#ff0000"]
-# min_chi = 0.0
-# max_chi = 0.5
-# n_bins = 100  # Number of discrete bins
-# n_ticks = 10
-# cmap_name = "white_to_red"
-# colormap = mpl.colors.LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
-# ticks = np.linspace(min_chi, max_chi, n_ticks+1).round(3)
-
-# def wilson_ci(k, n, conf=0.95):
-#         z = scipy.stats.norm.ppf(0.5 + conf/2)
-#         p = k / n
-#         denom  = 1 + z**2/n
-#         center = (p + z**2/(2*n)) / denom
-#         half   = z*np.sqrt((p*(1-p)/n) + z**2/(4*n**2)) / denom
-#         return center - half, center + half
-
-# def se_with_neff(p_t):
-#     p_t = p_t[np.isfinite(p_t)]
-#     T = len(p_t)
-#     if T <= 3:  # too short to estimate corr
-#         return np.nanstd(p_t, ddof=1)/np.sqrt(max(T,1))
-#     # bandwidth L ~ T^(1/3)
-#     L = max(1, int(round(T**(1/3))))
-#     mu = np.nanmean(p_t)
-#     # sample autocorrs up to L
-#     gamma = np.array([np.nanmean((p_t[:T-l]-mu)*(p_t[l:]-mu)) for l in range(L+1)])
-#     var0  = gamma[0]
-#     if var0 <= 0:
-#         return np.nanstd(p_t, ddof=1)/np.sqrt(T)
-#     rho = gamma[1:]/var0
-#     # effective sample size
-#     Neff = T / max(1e-12, (1 + 2*np.nansum(rho)))
-#     Neff = max(1.0, min(Neff, T))  # clamp
-#     s = np.nanstd(p_t, ddof=1)
-#     return s/np.sqrt(Neff)
-
-# def chi_time_agg(pY_in_rect, u, site_pairs_to_check):
-#     # pY_in_rect: shape (n_sites_in_rect, Nt), PIT uniforms
-#     Nt_local = pY_in_rect.shape[1]
-#     n_pairs  = len(site_pairs_to_check)
-
-#     # per-time co-exceedance fraction across pairs
-#     p_t = np.empty(Nt_local)
-#     for t in range(Nt_local):
-#         cnt = 0
-#         for (i,j) in site_pairs_to_check:
-#             cnt += ((pY_in_rect[i, t] >= u) and (pY_in_rect[j, t] >= u))
-#         p_t[t] = cnt / n_pairs if n_pairs > 0 else np.nan
-
-#     p_bar = np.nanmean(p_t)
-#     # s     = np.nanstd(p_t, ddof=1)
-#     # SE    = s / np.sqrt(Nt_local)
-#     SE = se_with_neff(p_t)
-
-#     # transform to chi_u
-#     chi_hat = p_bar / (1.0 - u)
-#     # use t-interval over time
-#     tcrit = tdist.ppf(0.975, df=max(Nt_local-1,1))
-#     chi_lb = max(0.0, (p_bar - tcrit*SE) / (1.0 - u))
-#     chi_ub = min(1.0, (p_bar + tcrit*SE) / (1.0 - u))
-#     return chi_hat, chi_lb, chi_ub
-
-# def calculate_chi_mat(args):
-#     pY, h, u = args
-#     # print('h:',h,'u:',u)
-
-#     h_low = h * (1 - e_abs)
-#     h_up  = h * (1 + e_abs)
-
-#     chi_mat2 = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
-
-#     chi_mat2_lb = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
-#     chi_mat2_ub = np.full(shape = (len(y_pos_chi), len(x_pos_chi)), fill_value = np.nan)
-
-#     for i in range(knots_xy_chi.shape[0]):
-
-#         # select sites within the rectangle
-#         rect_left   = knots_xy_chi[i][0] - rect_width/2
-#         rect_right  = knots_xy_chi[i][0] + rect_width/2
-#         rect_top    = knots_xy_chi[i][1] + rect_height/2
-#         rect_bottom = knots_xy_chi[i][1] - rect_height/2
-#         sites_in_rect_mask = np.logical_and(np.logical_and(rect_left <= sites_x, sites_x <= rect_right), 
-#                                             np.logical_and(rect_bottom <= sites_y, sites_y <= rect_top))
-#         sites_in_rect = sites_xy[sites_in_rect_mask]
-
-#         # calculate the distance between sites inside rectangle (coords --> km)
-#         n_sites = sites_in_rect.shape[0]
-#         # print('n_sites:',n_sites)
-#         sites_dist_mat = np.full(shape = (n_sites, n_sites), fill_value = np.nan)
-#         for si in range(n_sites):
-#             for sj in range(n_sites):
-#                 sites_dist_mat[si,sj] = coord_to_dist(sites_in_rect[si], sites_in_rect[sj])
-
-#         # select pairs: sites that are ~h km apart
-#         sites_h_mask = np.logical_and(np.triu(sites_dist_mat) > h_low,
-#                                     np.triu(sites_dist_mat) < h_up)
-#         n_pairs = len(np.triu(sites_dist_mat)[sites_h_mask])
-#         # print('n_pairs:',n_pairs)
-#         site_pairs_to_check = [(np.where(sites_h_mask)[0][i], np.where(sites_h_mask)[1][i]) for i in range(n_pairs)]
-
-#         # large pairs
-#         # Y_in_rect     = Y[sites_in_rect_mask]
-#         pY_in_rect    = pY[sites_in_rect_mask]
-
-#         # # Calculate empirical chi
-#         # count_co_extreme = 0
-#         # for site_pair in site_pairs_to_check:
-#         #     # for this pair, over time, how many co-occured extremes?
-#         #     count_co_extreme += np.sum(np.logical_and(pY_in_rect[site_pair[0]] >= u,
-#         #                                             pY_in_rect[site_pair[1]] >= u))
-#         # prob_joint_ext = count_co_extreme / (n_pairs * Nt) # numerator
-#         # prob_uni_ext   = np.mean(pY_in_rect >= u)          # denominator
-#         # # chi            = prob_joint_ext / prob_uni_ext     # emipircal Chi
-#         # chi = prob_joint_ext / (1-u)
-#         # if np.isnan(chi): chi = 0
-        
-#         # p_lb, p_ub = wilson_ci(count_co_extreme, n_pairs * Nt, conf = 0.95) 
-#         # chi_lb, chi_ub = p_lb / (1-u), p_ub / (1-u)
-        
-#         # Caluclate empirical chi by averaging over Nt
-#         chi, chi_lb, chi_ub = chi_time_agg(pY_in_rect, u, site_pairs_to_check)
-
-#         # chi_mat[i % len(x_pos_chi), i // len(x_pos_chi)] = chi
-#         chi_mat2[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi
-#         chi_mat2_lb[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi_lb
-#         chi_mat2_ub[-1 - i // len(x_pos_chi), i % len(x_pos_chi)] = chi_ub
-    
-#     return chi_mat2, chi_mat2_lb, chi_mat2_ub
-
-# # %% --- 9 separate figures: one per (h, u), each with 3 panels: hat / LB / UB ---
-
-# for h in [75, 150, 225]:
-#     for u in [0.9, 0.95, 0.99]:
-#         # compute once across MCMC draws
-#         args_list = [(pY_mcmc[i, :, :], h, u) for i in range(n_thin100)]
-#         with multiprocessing.Pool(processes=N_CORES) as pool:
-#             results = list(
-#                 tqdm(pool.imap(calculate_chi_mat, args_list), total=len(args_list))
-#             )
-#         chi_mats = np.array(results)                # shape: (n_draws, 3, Ny, Nx)
-#         chi_mats_mean = np.mean(chi_mats, axis=0)   # shape: (3, Ny, Nx)
-
-#         chi_hat = chi_mats_mean[0, :, :]
-#         chi_lb  = chi_mats_mean[1, :, :]
-#         chi_ub  = chi_mats_mean[2, :, :]
-
-#         # chi_lb  = np.nanquantile(chi_mats, q=0.025, axis=0)[1, :, :]
-#         # chi_ub  = np.nanquantile(chi_mats, q=0.975, axis=0)[2, :, :]
-
-#         # one figure with 3 axes: hat / LB / UB
-#         fig, axes = plt.subplots(1, 3, figsize=(10, 6))
-#         fig.subplots_adjust(right=0.8)
-
-#         def _draw(ax, mat, title_txt):
-#             ax.set_aspect('equal', 'box')
-#             state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
-#             hm = ax.imshow(
-#                 mat, cmap=colormap, vmin=min_chi, vmax=max_chi, interpolation='nearest',
-#                 extent=[min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8),
-#                         min(y_pos_chi - rect_height/8), max(y_pos_chi + rect_height/8)]
-#             )
-#             ax.scatter(knots_x_chi, knots_y_chi, s=25, color='black', marker='+', linewidths=1)
-#             ax.set_xlim(-101, -93)
-#             ax.set_ylim(32.5, 45)
-#             ax.tick_params(axis='both', which='major', labelsize=14)
-#             ax.set_title(title_txt, fontsize=20)
-#             return hm
-
-#         hm0 = _draw(axes[1], chi_hat,  rf'$\hat\chi_{{{u}}}$')
-#         _   = _draw(axes[0], chi_lb,   rf'LB $\chi_{{{u}}}$')
-#         _   = _draw(axes[2], chi_ub,   rf'UB $\chi_{{{u}}}$')
-
-#         # labels + shared colorbar
-#         fig.subplots_adjust(right=0.8)
-#         fig.text(0.5, 0.825, rf'h $\approx$ {h} km,  u = {u}', ha='center', fontsize=20)
-#         fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
-#         fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
-
-#         cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-#         cbar = fig.colorbar(hm0, cax=cbar_ax, ticks=ticks)
-#         cbar.ax.tick_params(labelsize=14)
-
-#         plt.savefig(f'Surface_mean_empirical_chi_fittedGEV_h={h}_u={u}.pdf', bbox_inches='tight')
-#         plt.show()
-#         plt.close()
-# # %% chi hat
-# for h in [75, 150, 225]:
-
-#     fig, axes = plt.subplots(1,3)
-#     fig.set_size_inches(10,6)
-
-#     for ax_id, u in enumerate([0.9, 0.95, 0.99]):
-
-#         args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
-#         with multiprocessing.Pool(processes=N_CORES) as pool:
-#             # results = pool.map(calculate_chi_mat, args_list)
-#             results = list(
-#                 tqdm(
-#                     pool.imap(calculate_chi_mat, args_list),
-#                     total = len(args_list)
-#                 )
-#             )
-#         chi_mats = np.array(results)
-#         chi_mat_mean = np.mean(chi_mats, axis = 0)
-#         chi_mat_mean = chi_mat_mean[0,:,:]
-
-
-#         ax = axes[ax_id]
-#         ax.set_aspect('equal', 'box')
-#         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-#         heatmap = ax.imshow(chi_mat_mean, cmap = colormap, vmin = min_chi, vmax = max_chi,
-#                             interpolation='nearest', 
-#                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
-#                                     min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
-#         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-#         ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
-#         ax.set_xlim(-101,-93)
-#         ax.set_ylim(32.5, 45)
-#         ax.tick_params(axis='both', which='major', labelsize=14)
-
-#         ax.title.set_text(rf'$\chi_{{{u}}}$')
-#         ax.title.set_fontsize(20)
-#         # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
-
-#     fig.subplots_adjust(right=0.8)
-#     fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
-#     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
-#     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
-#     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-#     colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-#     colorbar.ax.tick_params(labelsize=14)
-#     plt.savefig('Surface_mean_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
-#     plt.show()
-#     plt.close()
-
-# # chi lb
-# for h in [75, 150, 225]:
-
-#     fig, axes = plt.subplots(1,3)
-#     fig.set_size_inches(10,6)
-
-#     for ax_id, u in enumerate([0.9, 0.95, 0.99]):
-
-#         args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
-#         with multiprocessing.Pool(processes=N_CORES) as pool:
-#             results = list(
-#                 tqdm(
-#                     pool.imap(calculate_chi_mat, args_list),
-#                     total = len(args_list)
-#                 )
-#             )
-#         chi_mats = np.array(results)
-#         chi_mat_mean = np.mean(chi_mats, axis = 0)
-#         chi_mat_lb   = chi_mat_mean[1,:,:]
-
-#         ax = axes[ax_id]
-#         ax.set_aspect('equal', 'box')
-#         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-#         heatmap = ax.imshow(chi_mat_lb, cmap = colormap, vmin = min_chi, vmax = max_chi,
-#                             interpolation='nearest', 
-#                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
-#                                     min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
-#         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-#         ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
-#         ax.set_xlim(-101,-93)
-#         ax.set_ylim(32.5, 45)
-#         ax.tick_params(axis='both', which='major', labelsize=14)
-
-#         ax.title.set_text(rf'$\chi_{{{u}}}$')
-#         ax.title.set_fontsize(20)
-#         # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
-
-#     fig.subplots_adjust(right=0.8)
-#     fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
-#     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
-#     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
-#     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-#     colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-#     colorbar.ax.tick_params(labelsize=14)
-#     plt.savefig('Surface_mean_LB_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
-#     plt.show()
-#     plt.close()
-
-# # chi ub
-# for h in [75, 150, 225]:
-
-#     fig, axes = plt.subplots(1,3)
-#     fig.set_size_inches(10,6)
-
-#     for ax_id, u in enumerate([0.9, 0.95, 0.99]):
-
-#         args_list = [(pY_mcmc[i,:,:],h,u) for i in range(n_thin100)]
-#         with multiprocessing.Pool(processes=N_CORES) as pool:
-#             results = list(
-#                 tqdm(
-#                     pool.imap(calculate_chi_mat, args_list),
-#                     total = len(args_list)
-#                 )
-#             )
-#         chi_mats = np.array(results)
-#         chi_mat_mean = np.mean(chi_mats, axis = 0)
-#         chi_mat_ub   = chi_mat_mean[2,:,:]
-
-#         ax = axes[ax_id]
-#         ax.set_aspect('equal', 'box')
-#         state_map.boundary.plot(ax=ax, color = 'black', linewidth = 0.5)
-#         heatmap = ax.imshow(chi_mat_ub, cmap = colormap, vmin = min_chi, vmax = max_chi,
-#                             interpolation='nearest', 
-#                             extent = [min(x_pos_chi - rect_width/8), max(x_pos_chi + rect_width/8), 
-#                                     min(y_pos_chi - rect_height/8), max(y_pos_chi+rect_height/8)])
-#         # ax.scatter(sites_x, sites_y, s = 5, color = 'grey', marker = 'o', alpha = 0.8)
-#         ax.scatter(knots_x_chi, knots_y_chi, s = 25, color = 'black', marker = '+', linewidths=1)
-#         ax.set_xlim(-101,-93)
-#         ax.set_ylim(32.5, 45)
-#         ax.tick_params(axis='both', which='major', labelsize=14)
-
-#         ax.title.set_text(rf'$\chi_{{{u}}}$')
-#         ax.title.set_fontsize(20)
-#         # ax.title.set_text(rf'$\chi_{{{u}}}$, h $\approx$ {h}km', fontsize = 20)
-
-#     fig.subplots_adjust(right=0.8)
-#     fig.text(0.5, 0.825, rf'h $\approx$ {h}km', ha='center', fontsize = 20)
-#     fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize = 20)
-#     fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize = 20)
-#     cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
-#     colorbar = fig.colorbar(heatmap, cax = cbar_ax, ticks = ticks)
-#     colorbar.ax.tick_params(labelsize=14)
-#     plt.savefig('Surface_mean_UB_empirical_chi_fittedGEV_h={}.pdf'.format(h), bbox_inches='tight')
-#     plt.show()
-#     plt.close()
+for h_i,h in enumerate(h_list):
+    x_pos=x_pos_chi
+    y_pos=y_pos_chi
+    rect_w=rect_width
+    rect_h=rect_height
+    state_map=state_map
+    cmap=mpl.colors.LinearSegmentedColormap.from_list("white_to_red", ["#ffffff", "#ff0000"], N=100)
+    vmin=0.0
+    vmax=0.5
+    ticks = np.linspace(0.0, 0.5, 10+1).round(3)
+    fig, axes = plt.subplots(1, 3, figsize=(10, 6))
+    fig.subplots_adjust(right=0.8)
+    def _draw(ax, mat, title_txt):
+        ax.set_aspect('equal', 'box')
+        state_map.boundary.plot(ax=ax, color='black', linewidth=0.5)
+        hm = ax.imshow(
+            mat, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest',
+            extent=[min(x_pos - rect_w/8), max(x_pos + rect_w/8),
+                    min(y_pos - rect_h/8), max(y_pos + rect_h/8)]
+        )
+        ax.scatter(knots_xy_chi[:,0], knots_xy_chi[:,1], s=25, color='black', marker='+', linewidths=1)
+        ax.set_xlim(-101, -93); ax.set_ylim(32.5, 45)
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.set_title(title_txt, fontsize=20)
+        return hm
+    up90 = _draw(axes[0], chi_hat_model[h_i,0,:,:],   rf'$\chi_{{{u_list[0]}}}$')
+    up95 = _draw(axes[1], chi_hat_model[h_i,1,:,:],  rf'$\hat\chi_{{{u_list[1]}}}$')
+    up99 = _draw(axes[2], chi_hat_model[h_i,2,:,:],   rf'$\chi_{{{u_list[2]}}}$')
+    fig.text(0.5, 0.825, rf'h $\approx$ {h} km', ha='center', fontsize=20)
+    fig.text(0.5, 0.125, 'Longitude', ha='center', fontsize=20)
+    fig.text(0.04, 0.5, 'Latitude', va='center', rotation='vertical', fontsize=20)
+    cbar_ax = fig.add_axes([0.85, 0.2, 0.05, 0.6])
+    cbar = fig.colorbar(up95, cax=cbar_ax, ticks=ticks)
+    cbar.ax.tick_params(labelsize=14)
+    plt.savefig(rf'Surface_model_chi_h={h}.pdf', bbox_inches='tight')
