@@ -33,10 +33,10 @@ max_u = int(unique_counts.max()) if len(unique_counts) else 1
 min_u = int(unique_counts.min())
 plt.hist(unique_counts.values, bins=range(min_u, max_u + 2))
 plt.xlabel("Number of unique dates of JJA maxima (per year)", fontsize=16)
-plt.ylabel("Number of years", fontsize=16)
-plt.title("Distribution across years", fontsize=20)
-plt.xticks(fontsize=14)   # x-axis tick label size
-plt.yticks(fontsize=14)   # y-axis tick label size
+plt.ylabel("Number of years", fontsize=20)
+plt.title("Distribution across years", fontsize=24)
+plt.xticks(fontsize=20)   # x-axis tick label size
+plt.yticks(fontsize=20)   # y-axis tick label size
 plt.tight_layout()
 plt.savefig(Path(__file__).resolve().parent / "Fig_unique_peak_dates_hist.pdf")
 plt.show()
@@ -98,7 +98,7 @@ for q in percentiles:
     series_by_q[q] = count_unique_per_year(data, mask_q)
 
 # --- Plot ---
-plt.figure(figsize=(10, 5), dpi=300)
+plt.figure(figsize=(12, 6), dpi=300)
 plt.plot(series_all.index, series_all.values, label="All data", linewidth=2.2, color="#d62728")
 
 color_map = {0.80: "#1f77b4", 0.90: "#2ca02c", 0.95: "#9467bd", 0.99: "#ff7f0e"}
@@ -106,12 +106,12 @@ for q in percentiles:
     plt.plot(series_by_q[q].index, series_by_q[q].values,
              label=f">={int(q*100)}th %ile", linewidth=1.8, color=color_map[q])
 
-plt.xlabel("Year", fontsize=16)
-plt.ylabel("Number of unique days", fontsize=16)
-plt.xticks(fontsize=14); plt.yticks(fontsize=14)
+plt.xlabel("Year", fontsize=20)
+plt.ylabel("Number of unique days", fontsize=20)
+plt.xticks(fontsize=20); plt.yticks(fontsize=20)
 plt.grid(True, alpha=0.25)
-plt.legend(frameon=False, loc="center left", bbox_to_anchor=(1.02, 0.5))
-plt.title("Unique JJA peak dates by upper-percentile subsets", fontsize=20)
+plt.legend(frameon=False, loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=20)
+plt.title("Unique JJA peak dates by upper-percentile subsets", fontsize=24)
 plt.tight_layout()
 plt.savefig(Path(__file__).resolve().parent / "Fig_unique_peak_dates_by_year_percentiles.pdf",
             bbox_inches="tight")
