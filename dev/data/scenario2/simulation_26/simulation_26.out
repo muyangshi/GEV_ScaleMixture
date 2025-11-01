@@ -1,0 +1,1428 @@
+1
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+50
+2023-12-11 13:06:28
+100
+2023-12-11 13:18:38
+elapsed:  1444.0  seconds
+150
+2023-12-11 13:30:50
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+200
+2023-12-11 13:42:43
+elapsed:  2888.9  seconds
+250
+2023-12-11 13:54:50
+300
+2023-12-11 14:06:56
+elapsed:  4341.8  seconds
+350
+2023-12-11 14:18:55
+400
+2023-12-11 14:30:48
+elapsed:  5773.6  seconds
+failed, gsl_errno=18
+450
+2023-12-11 14:42:50
+500
+2023-12-11 14:54:52
+elapsed:  7218.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+550
+2023-12-11 15:06:52
+600
+2023-12-11 15:18:53
+elapsed:  8659.2  seconds
+650
+2023-12-11 15:30:58
+700
+2023-12-11 15:42:58
+elapsed:  10103.6  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+750
+2023-12-11 15:55:04
+800
+2023-12-11 16:07:10
+elapsed:  11555.6  seconds
+850
+2023-12-11 16:19:21
+900
+2023-12-11 16:31:30
+elapsed:  13016.4  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+950
+2023-12-11 16:43:39
+1000
+2023-12-11 16:55:44
+elapsed:  14469.7  seconds
+1050
+2023-12-11 17:07:49
+failed, gsl_errno=18
+1100
+2023-12-11 17:19:50
+elapsed:  15916.3  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+1150
+2023-12-11 17:31:54
+1200
+2023-12-11 17:43:58
+elapsed:  17364.0  seconds
+1250
+2023-12-11 17:56:08
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+1300
+2023-12-11 18:08:16
+elapsed:  18822.0  seconds
+1350
+2023-12-11 18:20:23
+1400
+2023-12-11 18:32:31
+elapsed:  20276.7  seconds
+1450
+2023-12-11 18:44:40
+1500
+2023-12-11 18:56:44
+elapsed:  21729.7  seconds
+1550
+2023-12-11 19:08:48
+1600
+2023-12-11 19:20:50
+elapsed:  23175.5  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+1650
+2023-12-11 19:32:55
+1700
+2023-12-11 19:44:57
+elapsed:  24622.6  seconds
+1750
+2023-12-11 19:56:54
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+1800
+2023-12-11 20:08:53
+elapsed:  26059.1  seconds
+1850
+2023-12-11 20:20:59
+1900
+2023-12-11 20:33:03
+elapsed:  27509.5  seconds
+1950
+2023-12-11 20:45:13
+2000
+2023-12-11 20:57:18
+elapsed:  28964.2  seconds
+failed, gsl_errno=18
+2050
+2023-12-11 21:09:29
+failed, gsl_errno=18
+2100
+2023-12-11 21:21:34
+elapsed:  30419.9  seconds
+2150
+2023-12-11 21:33:40
+2200
+2023-12-11 21:45:42
+elapsed:  31868.3  seconds
+failed, gsl_errno=18
+2250
+2023-12-11 21:57:42
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+2300
+2023-12-11 22:09:45
+elapsed:  33311.4  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+2350
+2023-12-11 22:21:48
+2400
+2023-12-11 22:33:50
+elapsed:  34756.2  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+2450
+2023-12-11 22:45:56
+2500
+2023-12-11 22:58:05
+elapsed:  36210.6  seconds
+2550
+2023-12-11 23:10:14
+2600
+2023-12-11 23:22:21
+elapsed:  37666.5  seconds
+2650
+2023-12-11 23:34:27
+2700
+2023-12-11 23:46:31
+elapsed:  39117.3  seconds
+2750
+2023-12-11 23:58:40
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+2800
+2023-12-12 00:10:40
+elapsed:  40566.3  seconds
+2850
+2023-12-12 00:22:46
+failed, gsl_errno=18
+2900
+2023-12-12 00:34:51
+elapsed:  42017.1  seconds
+2950
+2023-12-12 00:47:00
+3000
+2023-12-12 00:59:05
+elapsed:  43471.5  seconds
+failed, gsl_errno=18
+3050
+2023-12-12 01:11:10
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+3100
+2023-12-12 01:23:13
+elapsed:  44919.0  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+3150
+2023-12-12 01:35:20
+3200
+2023-12-12 01:47:26
+elapsed:  46371.9  seconds
+failed, gsl_errno=18
+3250
+2023-12-12 01:59:32
+3300
+2023-12-12 02:11:34
+elapsed:  47819.8  seconds
+failed, gsl_errno=18
+3350
+2023-12-12 02:23:42
+3400
+2023-12-12 02:35:46
+elapsed:  49271.9  seconds
+3450
+2023-12-12 02:47:55
+3500
+2023-12-12 03:00:02
+elapsed:  50728.3  seconds
+3550
+2023-12-12 03:12:14
+failed, gsl_errno=18
+3600
+2023-12-12 03:24:23
+elapsed:  52188.9  seconds
+3650
+2023-12-12 03:36:32
+3700
+2023-12-12 03:48:41
+elapsed:  53646.6  seconds
+3750
+2023-12-12 04:00:55
+3800
+2023-12-12 04:13:02
+elapsed:  55108.3  seconds
+3850
+2023-12-12 04:25:14
+3900
+2023-12-12 04:37:21
+elapsed:  56567.4  seconds
+3950
+2023-12-12 04:49:29
+failed, gsl_errno=18
+4000
+2023-12-12 05:01:34
+elapsed:  58020.3  seconds
+4050
+2023-12-12 05:13:41
+4100
+2023-12-12 05:25:45
+elapsed:  59470.9  seconds
+4150
+2023-12-12 05:37:51
+4200
+2023-12-12 05:49:55
+elapsed:  60921.2  seconds
+4250
+2023-12-12 06:02:03
+4300
+2023-12-12 06:14:10
+elapsed:  62375.6  seconds
+4350
+2023-12-12 06:26:18
+4400
+2023-12-12 06:38:26
+elapsed:  63832.4  seconds
+4450
+2023-12-12 06:50:34
+4500
+2023-12-12 07:02:43
+elapsed:  65288.8  seconds
+failed, gsl_errno=18
+4550
+2023-12-12 07:14:53
+failed, gsl_errno=18
+4600
+2023-12-12 07:26:55
+elapsed:  66741.4  seconds
+4650
+2023-12-12 07:39:01
+4700
+2023-12-12 07:51:06
+elapsed:  68192.0  seconds
+4750
+2023-12-12 08:03:12
+failed, gsl_errno=18
+failed, gsl_errno=18
+4800
+2023-12-12 08:15:17
+elapsed:  69643.3  seconds
+4850
+2023-12-12 08:27:24
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+4900
+2023-12-12 08:39:28
+elapsed:  71094.2  seconds
+4950
+2023-12-12 08:51:37
+5000
+2023-12-12 09:03:42
+elapsed:  72547.6  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+5050
+2023-12-12 09:15:51
+5100
+2023-12-12 09:27:51
+elapsed:  73996.8  seconds
+5150
+2023-12-12 09:39:52
+5200
+2023-12-12 09:51:56
+elapsed:  75442.5  seconds
+5250
+2023-12-12 10:04:06
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+5300
+2023-12-12 10:16:14
+elapsed:  76899.7  seconds
+5350
+2023-12-12 10:28:23
+failed, gsl_errno=18
+5400
+2023-12-12 10:40:28
+elapsed:  78354.2  seconds
+failed, gsl_errno=18
+5450
+2023-12-12 10:52:38
+5500
+2023-12-12 11:04:44
+elapsed:  79809.6  seconds
+failed, gsl_errno=18
+5550
+2023-12-12 11:16:50
+5600
+2023-12-12 11:28:52
+elapsed:  81257.9  seconds
+failed, gsl_errno=18
+5650
+2023-12-12 11:40:58
+failed, gsl_errno=18
+5700
+2023-12-12 11:53:05
+elapsed:  82711.5  seconds
+5750
+2023-12-12 12:05:11
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+5800
+2023-12-12 12:17:14
+elapsed:  84159.9  seconds
+5850
+2023-12-12 12:29:19
+5900
+2023-12-12 12:41:19
+elapsed:  85605.3  seconds
+5950
+2023-12-12 12:53:23
+6000
+2023-12-12 13:05:28
+elapsed:  87054.5  seconds
+6050
+2023-12-12 13:17:34
+6100
+2023-12-12 13:29:37
+elapsed:  88503.4  seconds
+6150
+2023-12-12 13:41:43
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+6200
+2023-12-12 13:53:51
+elapsed:  89957.3  seconds
+6250
+2023-12-12 14:05:58
+6300
+2023-12-12 14:17:59
+elapsed:  91405.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+6350
+2023-12-12 14:30:02
+6400
+2023-12-12 14:42:06
+elapsed:  92852.5  seconds
+6450
+2023-12-12 14:54:09
+6500
+2023-12-12 15:06:12
+elapsed:  94298.1  seconds
+6550
+2023-12-12 15:18:13
+6600
+2023-12-12 15:30:16
+elapsed:  95741.6  seconds
+6650
+2023-12-12 15:42:20
+6700
+2023-12-12 15:54:15
+elapsed:  97180.9  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+6750
+2023-12-12 16:06:19
+6800
+2023-12-12 16:18:22
+elapsed:  98627.8  seconds
+6850
+2023-12-12 16:30:27
+6900
+2023-12-12 16:42:33
+elapsed:  100079.0  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+6950
+2023-12-12 16:54:40
+7000
+2023-12-12 17:06:41
+elapsed:  101526.9  seconds
+failed, gsl_errno=18
+7050
+2023-12-12 17:18:45
+7100
+2023-12-12 17:30:48
+elapsed:  102974.1  seconds
+7150
+2023-12-12 17:42:56
+7200
+2023-12-12 17:54:58
+elapsed:  104423.9  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+7250
+2023-12-12 18:07:01
+7300
+2023-12-12 18:19:04
+elapsed:  105869.6  seconds
+7350
+2023-12-12 18:31:05
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+7400
+2023-12-12 18:43:06
+elapsed:  107312.4  seconds
+7450
+2023-12-12 18:55:11
+7500
+2023-12-12 19:07:19
+elapsed:  108764.8  seconds
+7550
+2023-12-12 19:19:28
+7600
+2023-12-12 19:31:35
+elapsed:  110221.1  seconds
+7650
+2023-12-12 19:43:47
+7700
+2023-12-12 19:55:55
+elapsed:  111680.6  seconds
+7750
+2023-12-12 20:08:05
+7800
+2023-12-12 20:20:10
+elapsed:  113136.1  seconds
+7850
+2023-12-12 20:32:19
+7900
+2023-12-12 20:44:24
+elapsed:  114590.1  seconds
+7950
+2023-12-12 20:56:33
+failed, gsl_errno=18
+8000
+2023-12-12 21:08:38
+elapsed:  116043.7  seconds
+8050
+2023-12-12 21:20:42
+8100
+2023-12-12 21:32:48
+elapsed:  117494.0  seconds
+failed, gsl_errno=18
+8150
+2023-12-12 21:44:53
+8200
+2023-12-12 21:56:57
+elapsed:  118943.2  seconds
+failed, gsl_errno=18
+8250
+2023-12-12 22:08:59
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+8300
+2023-12-12 22:21:03
+elapsed:  120388.6  seconds
+8350
+2023-12-12 22:33:06
+8400
+2023-12-12 22:45:13
+elapsed:  121839.2  seconds
+failed, gsl_errno=18
+8450
+2023-12-12 22:57:20
+8500
+2023-12-12 23:09:23
+elapsed:  123289.0  seconds
+failed, gsl_errno=18
+8550
+2023-12-12 23:21:30
+8600
+2023-12-12 23:33:35
+elapsed:  124740.8  seconds
+8650
+2023-12-12 23:45:36
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+8700
+2023-12-12 23:57:39
+elapsed:  126185.5  seconds
+8750
+2023-12-13 00:09:49
+8800
+2023-12-13 00:21:55
+elapsed:  127641.0  seconds
+8850
+2023-12-13 00:34:05
+8900
+2023-12-13 00:46:11
+elapsed:  129097.2  seconds
+8950
+2023-12-13 00:58:19
+9000
+2023-12-13 01:10:24
+elapsed:  130550.5  seconds
+failed, gsl_errno=18
+9050
+2023-12-13 01:22:35
+9100
+2023-12-13 01:34:44
+elapsed:  132010.0  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+9150
+2023-12-13 01:46:53
+9200
+2023-12-13 01:59:01
+elapsed:  133466.9  seconds
+9250
+2023-12-13 02:11:13
+9300
+2023-12-13 02:23:20
+elapsed:  134926.0  seconds
+9350
+2023-12-13 02:35:30
+9400
+2023-12-13 02:47:36
+elapsed:  136381.8  seconds
+failed, gsl_errno=18
+9450
+2023-12-13 02:59:42
+9500
+2023-12-13 03:11:51
+elapsed:  137836.8  seconds
+9550
+2023-12-13 03:23:59
+9600
+2023-12-13 03:36:06
+elapsed:  139291.6  seconds
+9650
+2023-12-13 03:48:13
+9700
+2023-12-13 04:00:16
+elapsed:  140742.1  seconds
+9750
+2023-12-13 04:12:24
+9800
+2023-12-13 04:24:32
+elapsed:  142197.9  seconds
+9850
+2023-12-13 04:36:39
+9900
+2023-12-13 04:48:47
+elapsed:  143653.3  seconds
+9950
+2023-12-13 05:00:54
+10000
+2023-12-13 05:12:59
+elapsed:  145105.3  seconds
+10050
+2023-12-13 05:25:05
+10100
+2023-12-13 05:37:09
+elapsed:  146555.5  seconds
+10150
+2023-12-13 05:49:21
+10200
+2023-12-13 06:01:28
+elapsed:  148014.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+10250
+2023-12-13 06:13:35
+failed, gsl_errno=18
+10300
+2023-12-13 06:25:39
+elapsed:  149465.0  seconds
+10350
+2023-12-13 06:37:48
+10400
+2023-12-13 06:49:55
+elapsed:  150921.0  seconds
+10450
+2023-12-13 07:02:07
+10500
+2023-12-13 07:14:13
+elapsed:  152379.1  seconds
+10550
+2023-12-13 07:26:22
+10600
+2023-12-13 07:38:25
+elapsed:  153831.4  seconds
+failed, gsl_errno=18
+10650
+2023-12-13 07:50:29
+10700
+2023-12-13 08:02:33
+elapsed:  155278.8  seconds
+10750
+2023-12-13 08:14:40
+failed, gsl_errno=18
+10800
+2023-12-13 08:26:47
+elapsed:  156732.6  seconds
+10850
+2023-12-13 08:38:55
+10900
+2023-12-13 08:50:57
+elapsed:  158182.7  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+10950
+2023-12-13 09:02:51
+11000
+2023-12-13 09:14:52
+elapsed:  159617.8  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+11050
+2023-12-13 09:26:50
+11100
+2023-12-13 09:38:50
+elapsed:  161056.0  seconds
+11150
+2023-12-13 09:50:53
+11200
+2023-12-13 10:02:53
+elapsed:  162499.4  seconds
+11250
+2023-12-13 10:14:59
+11300
+2023-12-13 10:27:03
+elapsed:  163949.3  seconds
+11350
+2023-12-13 10:39:12
+11400
+2023-12-13 10:51:13
+elapsed:  165398.8  seconds
+failed, gsl_errno=18
+11450
+2023-12-13 11:03:17
+11500
+2023-12-13 11:15:21
+elapsed:  166846.7  seconds
+11550
+2023-12-13 11:27:26
+11600
+2023-12-13 11:39:30
+elapsed:  168296.1  seconds
+11650
+2023-12-13 11:51:39
+11700
+2023-12-13 12:03:46
+elapsed:  169751.6  seconds
+11750
+2023-12-13 12:15:56
+11800
+2023-12-13 12:28:00
+elapsed:  171206.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+11850
+2023-12-13 12:40:05
+11900
+2023-12-13 12:52:11
+elapsed:  172657.5  seconds
+11950
+2023-12-13 13:04:20
+12000
+2023-12-13 13:16:23
+elapsed:  174109.5  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+12050
+2023-12-13 13:28:31
+12100
+2023-12-13 13:40:41
+elapsed:  175567.0  seconds
+12150
+2023-12-13 13:52:52
+12200
+2023-12-13 14:04:58
+elapsed:  177023.6  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+12250
+2023-12-13 14:17:04
+12300
+2023-12-13 14:29:10
+elapsed:  178476.2  seconds
+12350
+2023-12-13 14:41:20
+12400
+2023-12-13 14:53:26
+elapsed:  179931.9  seconds
+12450
+2023-12-13 15:05:34
+12500
+2023-12-13 15:17:33
+elapsed:  181379.3  seconds
+12550
+2023-12-13 15:29:42
+12600
+2023-12-13 15:41:44
+elapsed:  182830.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+12650
+2023-12-13 15:53:51
+12700
+2023-12-13 16:05:56
+elapsed:  184282.0  seconds
+failed, gsl_errno=18
+12750
+2023-12-13 16:18:01
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+12800
+2023-12-13 16:29:57
+elapsed:  185722.6  seconds
+failed, gsl_errno=18
+12850
+2023-12-13 16:41:56
+12900
+2023-12-13 16:53:54
+elapsed:  187160.1  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+12950
+2023-12-13 17:06:01
+13000
+2023-12-13 17:18:05
+elapsed:  188610.8  seconds
+13050
+2023-12-13 17:30:09
+13100
+2023-12-13 17:42:16
+elapsed:  190062.0  seconds
+13150
+2023-12-13 17:54:25
+13200
+2023-12-13 18:06:30
+elapsed:  191515.7  seconds
+13250
+2023-12-13 18:18:37
+13300
+2023-12-13 18:30:42
+elapsed:  192967.8  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+13350
+2023-12-13 18:42:49
+13400
+2023-12-13 18:54:58
+elapsed:  194424.5  seconds
+13450
+2023-12-13 19:07:08
+13500
+2023-12-13 19:19:17
+elapsed:  195882.6  seconds
+13550
+2023-12-13 19:31:27
+13600
+2023-12-13 19:43:30
+elapsed:  197335.8  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+13650
+2023-12-13 19:55:38
+13700
+2023-12-13 20:07:48
+elapsed:  198793.5  seconds
+13750
+2023-12-13 20:20:00
+13800
+2023-12-13 20:32:08
+elapsed:  200254.4  seconds
+13850
+2023-12-13 20:44:17
+13900
+2023-12-13 20:56:20
+elapsed:  201706.2  seconds
+13950
+2023-12-13 21:08:29
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+14000
+2023-12-13 21:20:40
+elapsed:  203165.6  seconds
+14050
+2023-12-13 21:32:50
+14100
+2023-12-13 21:44:58
+elapsed:  204624.5  seconds
+14150
+2023-12-13 21:57:10
+failed, gsl_errno=18
+14200
+2023-12-13 22:09:19
+elapsed:  206084.6  seconds
+14250
+2023-12-13 22:21:26
+14300
+2023-12-13 22:33:32
+elapsed:  207537.9  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+14350
+2023-12-13 22:45:37
+14400
+2023-12-13 22:57:43
+elapsed:  208988.8  seconds
+14450
+2023-12-13 23:09:47
+failed, gsl_errno=18
+14500
+2023-12-13 23:21:49
+elapsed:  210434.7  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+14550
+2023-12-13 23:33:46
+14600
+2023-12-13 23:45:47
+elapsed:  211872.6  seconds
+14650
+2023-12-13 23:57:47
+14700
+2023-12-14 00:09:48
+elapsed:  213314.5  seconds
+failed, gsl_errno=18
+failed, gsl_errno=18
+14750
+2023-12-14 00:21:49
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+failed, gsl_errno=18
+14800
+2023-12-14 00:33:55
+elapsed:  214761.2  seconds
+14850
+2023-12-14 00:46:04
+14900
+2023-12-14 00:58:10
+elapsed:  216215.6  seconds
+14950
+2023-12-14 01:10:16
+elapsed:  217651.9  seconds
+total time:  217669.7  seconds
+true R:  [[3.51028046e-01 2.96369476e-01 1.20464960e+00 3.95983791e+00
+  1.77478695e-01 3.02299598e+00 3.57772175e-01 3.49811487e+00
+  3.62608826e+00 1.45457507e-01 3.27889083e-01 2.61531353e+00
+  5.50853401e-01 3.21092414e+00 2.46260664e+00 5.48818285e-01
+  1.03338343e+01 2.44952621e+01 1.15866921e+00 8.86882039e-02
+  1.39748122e+01 3.23292314e-01 2.29410191e-01 6.05175631e-01
+  9.10107000e-01 7.07004715e-01 1.82837901e+01 2.19890555e-01
+  1.65428122e+00 1.23910685e+00 1.63665261e+00 1.64049266e-01
+  6.16727641e-01 1.90117408e+00 5.53712493e+00 1.22033405e+02
+  1.82692703e+01 2.63802035e+00 4.98166285e-01 1.15057711e+00
+  3.13984249e-01 2.49550139e+00 2.54185050e-01 1.53143817e+00
+  1.19938159e+01 5.16102400e-01 1.57691467e+00 8.68275934e+00
+  1.85324946e-01 1.56109763e+00 8.95210582e-01 5.64707221e-01
+  5.48083081e-01 5.13851470e+01 4.05859165e+00 1.69766694e+00
+  3.56089190e+00 9.21589617e+01 2.20706226e+00 3.09797197e+00
+  2.44821713e+06 4.15283826e+01 1.18651342e+00 2.39103575e-01]
+ [1.88278880e-01 1.75069147e+00 2.04022294e-01 6.68889331e-01
+  2.44787367e-01 3.44080230e-01 2.01262018e+00 2.77247909e+00
+  9.61210325e-01 1.31159636e+00 9.78158007e+00 1.04755950e-01
+  2.31924024e+00 5.75502112e-01 1.99849070e-01 6.81811669e-01
+  9.06422366e-01 2.92689439e+00 1.41337349e-01 4.64271464e-01
+  3.35897605e-01 1.65007705e+00 4.67508035e-01 3.50647667e+00
+  1.11794766e+01 5.30320526e-01 4.30990442e-01 5.51092875e+00
+  2.67814484e+00 9.02584737e+00 3.64956819e-01 1.11076269e+01
+  5.83017977e+00 4.09298163e+01 1.78096557e+00 4.79975268e-01
+  1.73871338e+02 3.21053517e-01 1.15144243e+01 1.89720142e-01
+  3.33609024e-01 2.95167705e+00 1.94301783e+00 5.52965852e-01
+  4.91490770e-01 1.75065576e+00 3.97564225e+01 3.03309906e+00
+  4.67790318e+00 3.26175356e+00 8.41890176e+00 1.12555151e+01
+  2.31874561e-01 6.58692965e-01 1.30794784e+00 1.74047707e+01
+  2.79176863e-01 3.56649525e-01 4.24845194e-01 1.96828546e+00
+  8.11737749e-01 5.75749873e+00 1.47321381e-01 1.67782894e-01]
+ [1.49582328e-01 1.08464142e+04 5.54338205e-01 1.38484351e-01
+  3.06834873e-01 1.00701371e+00 1.60786705e+00 7.94158239e-02
+  6.27953985e+00 5.37386301e+00 1.39530725e+00 2.63588446e+02
+  1.55489393e-01 3.85491412e+03 1.99138108e+01 1.77843480e-01
+  2.41635533e-01 2.81674713e-01 3.61573222e-01 3.11801885e-01
+  4.26714049e+00 1.18879178e-01 1.29027453e+00 1.26669453e-01
+  4.37417233e+01 1.21390100e+00 7.80005222e-01 3.68473186e-01
+  1.05167828e-01 1.05650685e-01 7.06217120e-01 1.01809975e+01
+  9.79224562e-01 5.54892997e-01 9.18842080e-01 1.15645618e-01
+  2.52728051e+01 4.18236533e-01 2.64630750e+02 6.41360630e-02
+  6.49008774e-01 9.76316519e+05 9.89291214e-01 5.85062321e-01
+  2.88106538e-01 5.59017801e-01 5.80877246e-02 3.16084321e-01
+  7.78686439e+00 2.09823340e+00 2.88735367e+00 5.33552902e-01
+  1.83644059e+00 1.45115618e+00 1.46085642e+02 4.17250602e-01
+  4.94202384e+00 1.84064735e+00 4.46425545e-01 3.02201983e+00
+  6.79300040e-01 3.80758662e-01 3.71099405e+00 1.22266495e-01]
+ [2.71114424e+01 2.18803509e+00 2.18163593e+00 6.44617395e+00
+  1.26343267e-01 2.10996152e-01 1.80330434e-01 8.98078628e-01
+  5.64065917e-01 1.93251205e+00 6.72414168e+00 2.56069463e-01
+  4.38516327e-01 2.15909561e-01 5.51999875e+02 1.30506119e-01
+  3.53689646e+01 1.31666770e+00 1.56101854e+01 1.08409229e+00
+  3.40489079e-01 6.14569346e-01 9.81525944e-01 6.76301047e+00
+  2.35366286e+00 1.08373016e+00 1.96900036e+03 8.52319384e-02
+  1.56745454e+00 5.04248411e-01 3.15079641e+00 1.24574301e-01
+  1.50384620e+00 6.25614574e-02 2.45951423e+01 2.57472089e+00
+  2.55368718e+00 2.71588854e+01 1.46573407e+01 4.31421165e-01
+  2.75460670e-01 9.67491928e-01 1.36929607e+00 3.44798748e-01
+  1.30257101e+00 1.48017601e+01 5.02242097e-01 2.20581384e+00
+  4.77070706e+00 1.32980255e+00 7.59198735e+00 7.91540031e-01
+  5.88678005e-01 2.53198052e+01 2.40676640e+00 3.15875253e+03
+  2.57157384e+00 1.17644499e+00 1.90837818e+00 6.35113524e-01
+  3.63684147e-01 4.38049056e-01 7.27604349e-01 4.91061619e+00]
+ [6.46677781e-01 2.11980982e+00 5.74871168e+00 1.85008518e+00
+  6.41476124e-01 1.69818318e+00 1.80345894e+00 1.78586499e+00
+  6.14193451e+00 8.54228340e-01 1.17744477e+00 7.45277884e-01
+  2.79310681e+02 2.50281248e+00 2.24188080e-01 2.52285725e-01
+  3.59256149e-01 2.06745461e+03 1.39551677e-01 3.22870785e+00
+  4.26233359e-01 1.86948406e-01 5.05801470e+00 2.25242657e+00
+  4.02099834e+00 4.49035420e-01 3.60060533e+00 1.21920429e+01
+  2.68103376e+00 2.70988850e-01 1.41220715e+00 1.88152112e-01
+  8.66150684e+02 1.42708137e-01 7.04724592e+02 1.83279853e-01
+  1.61808767e+01 7.45461638e-01 2.84702317e+00 3.26553235e+00
+  1.63321316e-01 1.59608043e-01 1.25467556e+00 1.03204801e+00
+  1.94272628e-01 3.51339116e+02 7.52979985e-01 6.22468042e+00
+  9.65591956e-02 2.01244414e+00 2.38496883e-01 4.18864745e+01
+  4.79758407e-01 1.08200337e+00 4.45242085e-01 1.23547059e+00
+  1.95567651e+01 3.75900594e+01 1.49806694e-01 1.38680299e-01
+  9.27953351e-01 2.07169433e+00 3.01894378e+01 3.87595912e-01]
+ [2.03450935e+00 3.58937434e-01 1.81058470e+00 3.74625295e-01
+  6.41276440e-01 2.28519677e-01 2.79915801e-01 4.98899813e+00
+  7.34541555e-01 1.06801337e+00 5.00020817e+00 7.76796121e-02
+  3.65697532e+02 3.22329503e-01 4.39958395e+00 1.18520022e+00
+  4.66040406e+00 3.26798436e-01 1.01643823e-01 2.09712346e-01
+  3.37039343e-01 5.78856032e-01 1.79466927e-01 1.12034229e-01
+  4.93628552e-01 8.53626439e-01 1.98813903e-01 6.61541119e-01
+  4.91642906e-01 2.03793519e+03 5.13896138e-01 3.31357760e+02
+  6.55363979e-01 6.70962715e+01 1.78803683e+00 2.91468749e-01
+  1.99368319e+01 9.88684117e-01 2.33215323e-01 1.61451283e+00
+  3.16227559e+00 2.33665558e+00 1.14344119e+00 6.76491120e-01
+  4.28115758e+01 5.53790986e+00 1.82335844e+00 1.99252185e+01
+  1.11231651e+01 1.19994785e+00 1.63081617e-01 4.95843274e+00
+  6.91850461e+02 4.61475059e-01 3.44747644e+01 3.21006239e+03
+  2.41681718e+01 1.03619137e+00 3.72850561e-01 8.68058775e-01
+  7.89144974e-01 4.36190473e-01 5.82465928e+00 5.51131522e-01]
+ [1.25239359e+00 6.40975110e+01 2.65462596e-01 1.86350614e-01
+  7.99891191e+00 6.28780615e-01 5.11613735e+02 8.66747605e+00
+  2.83673970e+00 1.45456693e-01 1.41008332e+00 8.10845092e-01
+  5.58965372e-01 1.14022041e+03 4.18226351e+00 7.65136356e-01
+  4.00786602e+00 1.02410732e-01 1.65935446e+00 4.55460465e-01
+  5.52605786e+00 8.07979896e+00 1.57583725e+00 3.27707997e-01
+  2.22218181e-01 3.50616656e-01 1.35662467e-01 1.28976415e+01
+  2.73205489e-01 1.05044711e+00 6.03328260e+03 3.43200623e+00
+  1.99893609e+00 2.98580463e-01 2.69688836e+01 3.37788121e-01
+  8.63938403e-01 4.24641535e+00 9.65660836e-01 2.05743076e+00
+  1.15969182e+00 2.83163252e+00 1.65420259e+00 3.20719806e-01
+  4.01292554e-01 3.00331388e+00 3.38822973e-01 1.92718361e-01
+  4.77350292e+00 3.70641570e-01 1.67848511e+00 2.78748483e-01
+  9.22124943e-01 6.81013403e+01 3.65972129e-01 3.54890369e+02
+  8.01679518e-01 7.02165234e-01 3.50323400e+00 8.31548439e-02
+  6.29028642e-01 1.46936174e+01 2.52386620e+00 5.50448472e-01]
+ [2.71098524e+00 2.16963932e+01 1.22312734e+00 1.24521184e+00
+  5.06021889e+00 1.86621320e+00 1.69213261e+00 2.84878184e+02
+  3.87164721e-01 3.11453687e+02 1.54054273e-01 1.98439841e-01
+  2.50472814e-01 4.30156910e-01 2.91220171e+00 1.66340768e+00
+  1.78473467e+00 2.16349016e-01 1.11236818e+00 4.97942927e+00
+  9.26987351e-01 5.02496757e+01 1.78641561e+00 1.01495813e+00
+  3.26805535e+00 2.22748647e+00 1.19887759e+00 3.51927189e-01
+  5.04667143e-01 5.97464370e+00 1.09789497e+02 1.14975619e+00
+  1.81762917e-01 2.15844148e+01 2.50020654e-01 3.66469710e-01
+  4.42170837e+01 2.72250163e+00 7.28167720e-01 1.44246546e-01
+  9.76248578e-01 5.35633456e-01 1.54029850e+00 7.23822206e-01
+  2.86744477e-01 4.52750415e+01 1.06868356e+00 8.03037233e+00
+  4.45075703e-01 3.28269311e-01 1.33252513e-01 4.69475708e+01
+  1.60521480e+00 5.86846470e-01 2.75716915e-01 3.34343495e-01
+  6.03221718e+00 1.17235901e+01 1.04888782e+01 1.49167090e+00
+  1.60455715e+00 5.07723257e-01 3.90314080e-01 1.17861089e+00]
+ [1.55519922e-01 5.07191606e+00 2.61906893e-01 1.90761000e+00
+  3.34637638e+00 2.47694183e-01 9.70201275e-01 7.50475887e+00
+  4.97594095e+00 1.39149033e-01 1.85839196e-01 4.61087495e-01
+  1.27595123e+00 1.42376862e+00 2.72334407e-01 1.70320354e+02
+  8.84233933e+00 6.12879520e+00 5.10970955e-01 8.11951495e-01
+  4.73190762e-01 1.63141462e+01 1.33701639e+00 1.41900364e+01
+  8.02600771e-01 8.24523339e-02 1.43740308e-01 2.32194505e+01
+  5.12943456e-01 7.68667876e-01 1.62463480e+00 1.27951708e+00
+  7.78463460e+00 1.29789905e+00 1.96098524e+00 2.22627902e-01
+  1.07871686e-01 6.65691551e-01 1.92283822e-01 1.12934707e+00
+  5.29039073e-01 2.61579900e+00 1.57483777e-01 1.45035634e+00
+  2.78546335e-01 5.10209771e-01 1.32356855e-01 8.75611405e-01
+  8.14941138e-01 4.15159232e-01 1.43783220e+00 5.93156626e-01
+  1.99675223e-01 5.05016783e-01 1.70340037e-01 1.94274394e+00
+  4.33742597e-01 2.62049611e+00 2.12317145e+03 1.03035905e-01
+  2.48248219e-01 7.59314361e-02 9.06186084e+01 5.10682787e+00]]
