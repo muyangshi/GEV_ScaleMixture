@@ -13,8 +13,6 @@ data = df.drop(columns=df.columns[0])
 # Parse everything as datetimes (robust to mixed formats); NaNs become NaT
 data = data.apply(pd.to_datetime, errors="coerce")
 
-# If your cells include the year (they probably do), it's fine;
-# within a given column all entries are already the same year.
 # Count unique dates per year (ignore missing)
 unique_counts = data.apply(lambda s: s.dropna().nunique())
 
@@ -41,17 +39,6 @@ plt.tight_layout()
 plt.savefig(Path(__file__).resolve().parent / "Fig_unique_peak_dates_hist.pdf")
 plt.show()
 
-# # --- (Nice to have) per-year line to see trends ---
-# plt.figure(figsize=(8.125, 5), dpi=300)
-# plt.plot(unique_counts.index, unique_counts.values, marker="o", linewidth=1)
-# plt.ylabel("# unique dates (within JJA)", fontsize=16)
-# plt.xlabel("Year", fontsize = 16)
-# plt.xticks(fontsize=14)   # x-axis tick label size
-# plt.yticks(fontsize=14)   # y-axis tick label size
-# plt.title("Per-year count of unique JJA peak dates across 590 sites", fontsize = 20)
-# plt.tight_layout()
-# plt.savefig(Path(__file__).resolve().parent / "Fig_unique_peak_dates_by_year.pdf")
-# plt.show()
 # %%
 import rpy2.robjects as robjects
 from rpy2.robjects import r 
