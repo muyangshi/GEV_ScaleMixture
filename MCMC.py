@@ -1,21 +1,47 @@
 """
-MCMC sampler for the spatial scale-mixture extreme value model described in Section 3 of the paper.
+MCMC.py
 
-This script implements the full Bayesian inference procedure, including:
-    - marginal GEV parameter modeling (Section 3.1),
-    - spatial dependence modeling via the scale-mixture "copula" (Section 3.1),
-    - MPI-parallelized Metropolis-Hastings updates (Section 3.2).
+Purpose
+-------
+MPI-parallel MCMC sampler for the scale-mixture model (Section 3) of the paper.
+This script performs full Bayesian inference for both:
+    (i) the marginal GEV model and 
+    (ii) the spatial dependence model,
+and writes posterior traces to disk for downstream diagnostics and plotting.
 
-Outputs:
-    - produces traceplot items saved to disk,
-    - saves posterior samples and model states for downstream analysis.
+Data Analysis
+------------------------------
+- Marginal model: site-varying GEV parameters modeled using covariates & spline
+  basis expansions (see paper Section 4.1).
+- Dependence model: scale-mixture construction
+    X*(s, t) = R(s, t)^{phi(s)} * g(Z(s, t)),
+  specific configurations can be modified (see paper Section 4.2).
+- Inference: Metropolis-Hastings / block updates with adaptive tuning, with
+  time-replicate updates parallelized across MPI ranks (see Paper Section 3.2).
 
-# Require:
-#   - utilities.py
-#   - proposal_cov.py
-# Example Usage:
-# mpirun -n 2 --output-filename <put here: folder_name/filename> python3 MCMC.py > combinedoutput.txt &
-# mpirun -n 2 python3 MCMC.py > output.txt 2>&1 &
+Inputs / assumptions
+--------------------
+- Expects the real dataset to be available (loaded via RData; see "Load Dataset"
+  section below / "Preparation" section in README).
+- Requires supporting modules:
+    - utilities.py (likelihood, transforms, helpers)
+    - proposal_cov.py (optional initial proposal covariance settings)
+- Requires the compiled shared library RW_inte_cpp.so (see README / Pipeline) for
+  marginal CDF/PDF/quantile computations used in the likelihood.
+
+Execution (MPI)
+---------------
+Recommended (HPC):
+    mpirun -n <NPROC> python3 MCMC.py [data_seed]
+
+Local execution is possible but slower. If your machine has fewer physical cores
+than <NPROC>, you may oversubscribe:
+    mpirun --oversubscribe -n <NPROC> python3 MCMC.py [data_seed]
+
+Outputs (written to the working directory)
+------------------------------------------
+This script writes posterior traces and intermediate outputs as NumPy arrays,
+which are then consumed by downstream scripts for analysis and diagnostics.
 """
 
 
