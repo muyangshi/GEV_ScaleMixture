@@ -310,7 +310,7 @@ python3 plot-chi-diff.py
 
 **Reproduces:**
 - **Figure 1** and **Figure 11** — Empirical and model-based chi surfaces
-- **Appendix E figures** — chi lower/upper bound surfaces and difference surfaces, including:
+- **Appendix E Figures 16 - 17** — chi lower/upper bound surfaces and difference surfaces, including:
   - `Surface_model_chi_h=<h>.pdf`
   - `Surface_data_chi_fittedGEV_h=<h>.pdf`
   - `Surface_model_chi_LBUB_h=<h>_u=<u>.pdf`
