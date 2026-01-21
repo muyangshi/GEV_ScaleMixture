@@ -1,3 +1,32 @@
+"""
+simulate_data.py
+
+Purpose
+-------
+Generate synthetic datasets for the simulation study. This script simulates
+data of size (Ns, Nt) from the scale-mixture model used in the paper Section 3.3
+and writes the simulated dataset to disk (NumPy arrays and an `.RData` file) 
+for downstream MCMC sampling and analysis. 
+
+Model (high level)
+------------------
+Simulates latent fields and observations under:
+    X*(s, t) = R(s, t)^{phi(s)} * g(Z(s, t)),
+then maps X* to GEV margins via probability integral transoformation:
+    Y(s, t) = qGEV( F_{X*}(X*(s, t)); mu(s, t), sigma(s), xi(s) ).
+
+Main outputs
+------------
+- `simulated_data.RData` (consumed by `MCMC.py` when running simulation replicates)
+- `Y_truth_full_sim_sc{sim_case}_t{Nt}_s{Ns}.npy` (complete Y)
+- `Y_truth_NA_sim_sc{sim_case}_t{Nt}_s{Ns}.npy` (Y with missing values set to NaN)
+- `miss_matrix_bool.npy` (missingness indicator; True means missing)
+
+Notes
+-----
+This script can be computationally expensive for large Nt/Ns. HPC resources are
+recommended for full-scale runs; smaller Ns and Nt values can be used for tests.
+"""
 if __name__ == "__main__":
     # %% for reading seed from bash
     import sys
