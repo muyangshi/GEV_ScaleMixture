@@ -1,3 +1,14 @@
+"""
+RW_inte.py
+
+Purpose
+-------
+A "Python-C bridge" utility file for marginal distribution calculations in the
+scale-mixture model. This module loads the compiled shared library
+`RW_inte_cpp.so` and exposes vectorized wrappers for CDF, PDF, and quantile
+functions (pRW, dRW, qRW) under different Pareto parameterizations, with and
+without nugget effects.
+"""
 # %%
 import numpy as np
 # import scipy
