@@ -1,41 +1,35 @@
 """
-Generate the below results and diagnostics.
-Requires:
-    - utilities.py
-    - predGEV_grid_elev.npy <- the elevation grid for the predicted marginal GEV surface
+results_and_diagnostics.py
 
--------- Numerical Summaries --------
+Purpose
+-------
+Post-processing and visualization for the real-data analysis. This script reads
+posterior traces produced by `MCMC.py` and generates numerical summaries,
+diagnostics, and the main posterior surface plots used in the manuscript.
+This script produces multiple figure files that are mapped to manuscript display
+items in `run_all.sh` and the README **Pipeline** section. In particular, it
+generates (depending on configuration) the files used for:
+- Figure 6(a): station map (training vs testing),
+- Figure 8: log-likelihood boxplot summary,
+- Figure 9: QQ plots at test sites,
+- Figure 10: posterior mean surfaces (phi, rho, and marginal GEV surfaces).
 
-Posterior summaries (posterior mean, 95% CI) for 
-    - phi
-    - rho
-
--------- Posterior Surfaces --------
-
-Posterior mean surfaces for 
-    - GEV
-    - phi
-    - rho
-
-Dataset empirical chi surface
-    - using per-iteration fitted GEV
-
-Model-Realized empirical chi surface
-    - April 19 Ben: use R drawn from stable prior
-
--------- Diagnostics Plots --------
-
-Marginal fit: 
-Make QQplot of gumbel (April 14, 2024)
-    - mean(per MCMC iter GEV)
-    Note that CDF(Y) and transformation to gumbel should be performed on misspiggy
-    require lots of memory to load the pY per MCMC iteration
-
-Predicative performance: 
-log-likelihood at testing sites (April 15, 2024)
-    - (April 19, 2024) Ben: ll calculation isn't linear, use per-iteration parameter value
-
-
+Description
+------------
+- Loads the real dataset, training and testing, 
+  covariates (e.g., elevation grids) and saved MCMC traces.
+- Produces numerical posterior summaries (means/medians/credible intervals) for
+  parameters (phi, rho, and marginal GEV parameters).
+- Generates posterior mean surfaces and maps, including:
+  - phi(s) and rho(s) spatial surfaces,
+  - marginal GEV parameter surfaces (mu0, mu1, logsigma, xi) when estimated.
+- Produces diagnostic plots used to assess fit and predictive performance,
+  including traceplots and out-of-sample evaluation of likelihoods.
+- Expects the real-data training and testing `.RData` files referenced below to be available in the
+  working directory.
+- Some computations (e.g., per-iteration marginal transformations) are memory-
+  and CPU-intensive; HPC resources are recommended for full-scale runs.
+- To run: python3 results_and_diagnostics.py
 """
 # %% imports
 
