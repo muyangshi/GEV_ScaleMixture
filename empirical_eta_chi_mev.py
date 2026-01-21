@@ -1,8 +1,33 @@
+# %%
 """
-Using the R package mev to estimate the empirical 
-    - eta: using hill estimator
-    - chi: using mev's empirical estimator
-for the Theorem in the paper
+empirical_eta_chi_mev.py
+
+Purpose
+-------
+Empirical study of extremal dependence measures (chi, eta) used to validate the
+theoretical results in the paper. The script simulates data from the proposed
+scale-mixture model and estimates chi(u) and eta(u) at high thresholds,
+using an empirical estimate and the hill estimator from the R package `mev`.
+(See Paper Section 2.4 Illustration 1.)
+
+Overview
+--------
+- Simulates a small spatial field under the model
+    X*(s, t) = R(s, t)^{phi(s)} * g(Z(s, t)),
+- Compute empirical estimates of chi(u) and eta(u).
+- Overlays theoretical limits and bounds derived in the paper for selected site
+  pairs. (See Paper Theorem 1)
+
+Outputs
+-------
+- Simulation_eta_chi.pdf: illustration of the phi(s) surface and site layout.
+- chi_<ij>.pdf and eta_<ij>.pdf: empirical estimates and theoretical bounds for
+  selected site pairs.
+
+Notes
+-----
+This script can be computationally intensive due to very large Nt. HPC resources
+are recommended for full-scale runs; smaller Nt values may be used for testing.
 """
 
 if __name__ == "__main__":
@@ -628,6 +653,40 @@ if __name__ == "__main__":
 
     chi_limit = 0.0
 
+    # chi -----------------------------------------------------
+    chis = prob_co_extreme / (1-us)
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((-0.01,0.5))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\chi$', fontsize=20)
+    ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    # Add bounds and dot
+
+    ax.plot(us, chis, label=r'Empirical $\chi$',
+            linewidth=4, color='black')
+    ax.hlines(y=chi_limit, label=r'$\chi$ limit',
+            xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+    # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+    #         color='blue', linestyle='None', zorder = 100)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
+
     # eta bounds - phi_i < phi_j < alpha
 
     eta_W = (1 + K[i,j])/2
@@ -713,6 +772,39 @@ if __name__ == "__main__":
 
     chi_limit = 0.0
 
+    # chi -------------------------------------------
+    chis = prob_co_extreme / (1-us)
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((-0.01,0.5))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\chi$', fontsize=20)
+    ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    # Add bounds and dot
+    ax.plot(us, chis, label=r'Empirical $\chi$',
+            linewidth=4, color='black')
+    ax.hlines(y=chi_limit, label = r'$\chi$ limit',
+            xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+    # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+    #         color='blue', linestyle='None', zorder = 100)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
+
     # eta bounds - phi_i < \alpha < phi_j
 
     eta_W = (1 + K[i,j])/2
@@ -796,6 +888,39 @@ if __name__ == "__main__":
     # chi bounds - alpha < phi_i < phi_j
 
     chi_limit = 0.0
+
+    # chi -------------------------------------------
+    chis = prob_co_extreme / (1-us)
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((-0.01,0.5))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\chi$', fontsize=20)
+    ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    # Add bounds and dot
+    ax.plot(us, chis, label=r'Empirical $\chi$',
+            linewidth=4, color='black')
+    ax.hlines(y=chi_limit, label = r'$\chi$ limit',
+            xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+    # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+    #         color='blue', linestyle='None', zorder = 100)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
     # eta bounds - alpha < phi_i < phi_j
 
@@ -882,6 +1007,39 @@ if __name__ == "__main__":
 
     chi_limit = 0.0
 
+    # chi -------------------------------------------
+    chis = prob_co_extreme / (1-us)
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((-0.01,0.5))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\chi$', fontsize=20)
+    ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    # Add bounds and dot
+    ax.plot(us, chis, label=r'Empirical $\chi$',
+            linewidth=4, color='black')
+    ax.hlines(y=chi_limit, label = r'$\chi$ limit',
+            xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+    # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+    #         color='blue', linestyle='None', zorder = 100)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
+
     # eta bounds - phi_i < phi_j < alpha
 
     eta_W = (1 + K[i,j])/2
@@ -965,6 +1123,39 @@ if __name__ == "__main__":
     # chi bounds - phi_j < alpha < phi_j
 
     chi_limit = 0.0
+
+    # chi -------------------------------------------
+    chis = prob_co_extreme / (1-us)
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(8,6)
+
+    ax.set_xlim((0.9,1.0))
+    ax.set_ylim((-0.01,0.5))
+    ax.set_xticks(np.linspace(0.9,1.0, 6))
+    ax.tick_params(axis='both', labelsize=20)
+
+    ax.set_xlabel(r'$u$', fontsize=20)
+    ax.set_ylabel(r'$\chi$', fontsize=20)
+    ax.set_title(fr'$\chi_{{{i+1}{j+1}}}$: $\phi(s_{i+1})$ = {round(phi_vec[i],2)}, $\phi(s_{j+1})$ = {round(phi_vec[j],2)}', fontsize=30)
+
+    # Add grid lines
+    ax.grid(True, linestyle = '--')
+
+    # Add bounds and dot
+    ax.plot(us, chis, label=r'Empirical $\chi$',
+            linewidth=4, color='black')
+    ax.hlines(y=chi_limit, label = r'$\chi$ limit',
+            xmin=0.9, xmax=1.0, colors='tab:red', linewidth=4)
+    # ax.plot(us[-1], chis[-1], marker='o', markersize=10, clip_on=False,
+    #         color='blue', linestyle='None', zorder = 100)
+
+    ax.legend(loc='upper left', fontsize = 14, handlelength = 3.0)
+
+    # Show the plot
+    plt.savefig(f'chi_{i+1}{j+1}.pdf', bbox_inches='tight')
+    # plt.show()
+    plt.close()
 
     # eta bounds - phi_j < alpha < phi_j
 
