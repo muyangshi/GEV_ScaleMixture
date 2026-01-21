@@ -124,7 +124,7 @@ plt.show()
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Assume you already have: unique_counts, series_all, series_by_q, percentiles
+# Assume already have: unique_counts, series_all, series_by_q, percentiles
 
 fig, (axL, axR) = plt.subplots(1, 2, figsize=(18, 5), dpi=300)
 plt.subplots_adjust(wspace=0.3)
