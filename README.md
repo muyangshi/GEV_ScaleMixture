@@ -5,17 +5,32 @@ This is to document the files in the `/GEV_ScaleMixture` folder, along with any 
 ```
 GEV_ScaleMixture/
   │
+  │   # data files
   ├── cb_2018_us_state_20m/
+  ├── JJA_precip_maxima_nonimputed.RData
+  ├── blockMax_JJA_centralUS_test.RData
+  │
+  │   # helper functions
   ├── RW_inte_cpp.cpp
   ├── RW_inte_cpp.so
   ├── RW_inte.py
   ├── utilities.py
   │
-  ├── JJA_precip_maxima_nonimputed.RData
-  ├── blockMax_JJA_centralUS_test.RData
+  │   # main sampler
+  ├── MCMC.py
+  │
+  │   # other utility scripts
+  ├── empirical_eta_chi_mev.py
   ├── simulate_data.py
+  ├── coverage_analysis.py
+  ├── results_and_diagnostics.py
   ├── proposal_cov.py
-  └── MCMC.py
+  ├── plot-chi.py
+  ├── plot-chi-diff.py
+  ├── plot-co2.py
+  ├── plot-GEV.py
+  ├── plot-simulation-surface.py
+  └── plot-timing.py
 ```
 
 
@@ -52,6 +67,7 @@ This section includes some dependencies packages/modules to be downloaded and im
 **R**:
 
 - mgcv
+- mev
 
 
 ### Utilities
@@ -99,7 +115,7 @@ File:
 - `simulate_data.py`
 
 This is a python script to generate a simulated dataset. 
- Within this file, specifies $N_s$, $N_t$, $\phi$ and/or $\rho$ surfaces as well as the marginal parameters ($\Beta's$ for the $\mu_0, \mu1$ as well as $\sigma$ and $\xi$) surfaces to fine tune the truth parameter setup. Some additional comments in the script might be helpful. 
+ Within this file, specifies $N_s$, $N_t$, $\phi$ and/or $\rho$ surfaces as well as the marginal parameters ($\Beta's$ for the $\mu_0, \mu_1$ as well as $\sigma$ and $\xi$) surfaces to fine tune the truth parameter setup. Some additional comments in the script might be helpful. 
 
 To run this file:
 
@@ -207,3 +223,171 @@ Running the sampler will generate the following results files
         - the proposal scalar variance for the stable variables $R_t$'s: `sigma_m_sq_Rt_list.pkl`
         - the proposal scalar variance and covariance matrix for any other parameters: `sigma_m_sq.pkl`, `Sigma_0.pkl`
 
+
+## Pipeline
+
+This section documents the end-to-end computational pipeline used in the paper.
+The workflow is divided into two components:
+
+1. **Data Analysis on Real Dataset** — fully reproducible end-to-end (given the required environment and data files).
+2. **Simulation Study** — computationally intensive; scripts and the full workflow are provided, but complete reproduction requires HPC resources.
+
+The top-level wrapper script `run_all.sh` executes the steps below in order.
+
+---
+
+### Preparation
+
+Before running any analysis, ensure all dependencies listed in the **Preparation** section (above) are installed. In particular, the numerical integration routines must be compiled into a shared library.
+
+```bash
+g++ -I$GSL_INCLUDE -I$BOOST_INC -L$GSL_LIBRARY -L$BOOST_LIBRARY \
+    -std=c++11 -Wall -pedantic RW_inte_cpp.cpp \
+    -shared -fPIC -o RW_inte_cpp.so -lgsl -lgslcblas
+```
+
+This command generates the shared object `RW_inte_cpp.so`, which is imported by the Python utilities used throughout the project.
+
+---
+
+## Data Analysis
+
+This section reproduces all real-data results and figures (main text and appendices) produced from the application dataset.
+
+### MCMC Sampling on Real Data
+
+Run the MCMC sampler with 75 parallel MPI processes:
+
+```bash
+mpirun -n 75 python3 MCMC.py
+```
+
+This step:
+- runs the Bayesian MCMC sampler on the real dataset,
+- produces traceplot items saved to disk,
+- saves posterior samples and model states for downstream analysis.
+
+**Reproduces:**
+- **Figure 6(b)** — Model configuration illustration (`Plot_stations{modelname}.pdf`)
+
+---
+
+### Exploratory Analysis and Results Figures
+
+Post-processing and visualization of the MCMC output are handled by:
+
+```bash
+python3 results_and_diagnostics.py
+```
+
+**Reproduces:**
+- **Figure 6(a)** — Station locations (training and test combined)
+- **Figure 8** — Horizontal boxplot of log-likelihoods (`ll_boxplot_all_horizontal.pdf`)
+- **Figure 9** — QQ plots for test data at each site (`QQPlot_R_Test_MCMC_Site_<site>.pdf`)
+- **Figure 10** — Interpolated posterior mean surfaces:
+  - `Surface_phi.pdf`
+  - `Surface_rho.pdf`
+  - `Surface_mu0_pred.pdf`
+  - `Surface_mu1_pred.pdf`
+  - `Surface_logsigma_pred.pdf`
+  - `Surface_xi_pred.pdf`
+
+Timing information of the Data can be generated with:
+
+```bash
+python3 plot-timing.py
+```
+
+**Reproduces:**
+- **Figure 7** — Unique dates of yearly maxima (`Fig_unique_peak_dates_combined.pdf`)
+
+The empirical moving window estimation of $\chi$ is generated with:
+
+```bash
+python3 plot-chi.py
+python3 plot-chi-diff.py
+```
+
+**Reproduces:**
+- **Figure 1** and **Figure 11** — Empirical and model-based chi surfaces
+- **Appendix E figures** — chi lower/upper bound surfaces and difference surfaces, including:
+  - `Surface_model_chi_h=<h>.pdf`
+  - `Surface_data_chi_fittedGEV_h=<h>.pdf`
+  - `Surface_model_chi_LBUB_h=<h>_u=<u>.pdf`
+  - `Surface_data_chi_LBUB_h=<h>_u=<u>.pdf`
+  - `Surface_chi_diff_h=<h>.pdf`
+
+To Generate the marginal parameter spline smoothing figure:
+
+```bash
+python3 plot-GEV.py
+```
+
+**Reproduces:**
+- **Figure 14 (Appendix D)** — Smooth marginal parameter surfaces (`Fig_elev_logsigma_xi_5panel.pdf`)
+
+To Generate the CO₂ / greenhouse gas figure:
+
+```bash
+python3 plot-co2.py
+```
+
+**Reproduces:**
+- **Figure 15 (Appendix D)** — CO₂ / greenhouse gas time trends (`Fig_co2_time_trends_3panel.pdf`)
+
+---
+
+## Simulation Study
+
+The simulation study would requires running many replications, which is computationally heavy, so **full reproduction is intended for execution on an HPC cluster**.
+
+This repository provides:
+- scripts for generating simulation-study figures,
+- the workflow to run replicated simulations,
+- post-processing code to aggregate results and compute coverage.
+
+---
+
+### Empirical Analysis of $\eta$ and $\chi$
+
+This script performs the numerical study in **Illustration 1**:
+
+```bash
+python3 empirical_eta_chi_mev.py
+```
+
+**Reproduces:**
+- **Figure 2** — Parameter surface plot (`Simulation_eta_chi.pdf`)
+- **Figure 3** — Empirical chi/eta estimates (`chi_{i}{j}.pdf`, `eta_{i}{j}.pdf`, 8 subfigures)
+
+---
+
+### Simulation Parameter Surfaces
+
+```bash
+python3 plot-simulation-surface.py
+```
+
+**Reproduces:**
+- **Figure 4** — Dependence model parameter surfaces (`Surface_all_simulation_surfaces.pdf`)
+
+
+### Replicated Simulation Runs and Coverage Analysis (HPC)
+
+Full simulation-study reproduction requires:
+1. Creating multiple simulation-replication directories.
+2. Running data generation and MCMC sampling independently within each directory.
+3. Collecting completed outputs and running the coverage analysis below.
+
+Once all simulation replicates have finished, run:
+
+```bash
+python3 coverage_analysis.py
+```
+
+**Reproduces:**
+- **Figure 5** — Empirical coverage for dependence and marginal parameters
+- **Appendix C Figures 12–13** — Additional binomial coverage plots, including:
+  - `Empirical_Coverage_all_Phi_{simulation_case}.pdf`
+  - `Empirical_Coverage_all_Range_{simulation_case}.pdf`
+  - `Empirical_Coverage_MuSigma_{simulation_case}.pdf`
