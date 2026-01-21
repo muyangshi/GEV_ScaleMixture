@@ -55,7 +55,7 @@ python3 results_and_diagnostics.py
 # Reproduce Figure 7: unique dates of yearly maxima (Fig_unique_peak_dates_combined.pdf).
 python3 plot-timing.py
 
-# Reproduce Figure 1, Figure 11 and Appendix E figures related to chi surfaces:
+# Reproduce Figure 1, Figure 11 and Appendix E Figures 16 - 17 related to chi surfaces:
 # Surface_model_chi_h=<h>.pdf, Surface_data_chi_fittedGEV_h=<h>.pdf,
 # Surface_model_chi_LBUB_h=<h>_u=<u>.pdf, Surface_data_chi_LBUB_h=<h>_u=<u>.pdf.
 # Surface_chi_diff_h={h}.pdf
