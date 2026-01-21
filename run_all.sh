@@ -1,3 +1,27 @@
+###############################################################################
+# run_all.sh
+#
+# Purpose
+# -------
+# Top-level wrapper script that reproduces the analysis workflow for the paper.
+# This script sequentially runs the data-analysis pipeline on the real dataset
+# and documents the expected outputs (figures and tables) at each step.
+#
+# Scope
+# -----
+# - Data analysis section: fully reproducible end-to-end (given data access and
+#   required dependencies).
+# - Simulation study section: provides the post-processing steps; 
+#   full reproduction requires HPC resources due to computational cost.
+#
+# See also
+# --------
+# - README.md (Pipeline section): 
+#   - detailed mapping from scripts to figure numbers.
+#   - instructions for running the simulation study.
+###############################################################################
+
+
 # Preparation -----------------------------------------------------------------
 # Ensure all dependencies listed in the README Preparation section are installed.
 # Compile the shared library for numerical integration.
