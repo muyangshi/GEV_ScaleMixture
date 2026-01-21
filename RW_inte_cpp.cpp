@@ -1,3 +1,30 @@
+// -----------------------------------------------------------------------------
+// RW_inte_cpp.cpp
+//
+// Purpose
+//   Numerical integration routines (GSL-based) used by the Python MCMC/analysis code for the
+//   marginal distribution calculations in the spatial scale-mixture extreme
+//   value model described in the paper Section 3.2.
+//
+// What this file provides
+//   - Numerical integration for CDF/PDF evaluations of the R^\phi*g(Z) component under
+//     parameterization (x, phi, gamma), including stabilized change-of-variable
+//     forms for improved accuracy.
+//   - Root-finding (Brent) for quantile evaluation via inversion of the CDF.
+// 
+// How it is used
+//   The Python code loads the compiled shared library (RW_inte_cpp.so) via
+//   ctypes/cffi (see README and the Pipeline section). These functions are
+//   called repeatedly inside the MPI-parallel MCMC sampler and plotting scripts
+//   for marginal likelihood evaluation, transformation, and simulation.
+//
+// Build (example)
+//   g++ -I$GSL_INCLUDE -I$BOOST_INC -L$GSL_LIBRARY -L$BOOST_LIBRARY \
+//       -std=c++11 -Wall -pedantic RW_inte_cpp.cpp -shared -fPIC \
+//       -o RW_inte_cpp.so -lgsl -lgslcblas
+//
+// -----------------------------------------------------------------------------
+
 #include <stdio.h>
 #include <math.h>
 #include <gsl/gsl_integration.h>
