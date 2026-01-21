@@ -1,8 +1,31 @@
-# combine utilitlies helpful to MCMC sampler
-# grabbed and copied useful functions from Likun's model_sim.py, ns_cov.py
-# Require:
-#   - RW_inte.py, RW_inte_cpp.cpp & RW_inte.cpp.so
-# %%
+"""
+utilities.py
+
+Purpose
+-------
+Shared helper functions used throughout the project (MCMC sampling, simulation,
+empirical chi/eta studies, and plotting). This module contains common numeric
+routines and model utilities.
+
+Description
+----------------
+- Kernel weight functions (Gaussian and Wendland compact basis) for
+  constructing knot-based kernel expansions.
+- Distribution utilities: 
+    - Levy distribution, 
+    - marginal distribution wrappers.
+    - Fast marginal distribution interfaces (pRW/dRW/qRW) via `RW_inte.py`, which
+      bridges to the compiled C++ shared library `RW_inte_cpp.so`.
+- Transformations between Gaussian and Pareto scales for the link function g().
+- Likelihood components and imputation helpers for the sampler.
+- Spatial covariance functions used to construct Gaussian-process covariance matrices.
+
+Dependencies
+------------
+- Requires `RW_inte.py` and the compiled shared library `RW_inte_cpp.so`
+  (built from `RW_inte_cpp.cpp`; see README for build instructions).
+"""
+
 # general imports and ubiquitous utilities
 import sys
 import numpy as np
