@@ -1571,7 +1571,7 @@ if __name__ == "__main__":
             
             # Gather likelihood calculated across time (no prior yet)
             lik_current_gathered   = comm.gather(lik_1t_current, root = 0)
-            like_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
+            lik_proposal_gathered = comm.gather(lik_1t_proposal, root = 0)
 
             # Handle prior and Accept/Reject on worker 0
             if rank == 0:
